@@ -239,13 +239,13 @@ td{padding:9px 14px;font-size:12px;white-space:nowrap;overflow:hidden;text-overf
 /* ── PROCESS DETAIL MODAL ── */
 .modal-overlay{position:fixed;inset:0;background:rgba(20,40,100,0.22);backdrop-filter:blur(4px);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn .2s ease}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-.modal-box{background:#fff;border-radius:18px;padding:0;width:100%;max-width:520px;box-shadow:0 20px 60px rgba(30,60,140,0.18);animation:slideUp .25s ease;overflow:hidden}
+.modal-box{background:#fff;border-radius:20px;padding:0;width:100%;max-width:1100px;box-shadow:0 24px 70px rgba(20,40,120,0.22);animation:slideUp .25s ease;overflow:hidden}
 @keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
 .modal-header{padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:12px;background:linear-gradient(135deg,rgba(59,125,232,0.05),rgba(124,95,230,0.04))}
 .modal-title{font-family:var(--font-d);font-size:17px;letter-spacing:-0.2px;line-height:1.4;flex:1}
 .modal-close{width:30px;height:30px;border-radius:8px;border:1px solid var(--border2);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:16px;flex-shrink:0;transition:all .15s;font-family:var(--font-b)}
 .modal-close:hover{background:var(--surface3);color:var(--text)}
-.modal-body{padding:20px 24px 24px;max-height:calc(90vh - 80px);overflow-y:auto}
+.modal-body{padding:0;max-height:calc(92vh - 70px);overflow:hidden;display:flex;flex-direction:column}
 .modal-field{margin-bottom:16px}
 .modal-field:last-child{margin-bottom:0}
 .modal-field-label{font-size:10px;color:var(--muted2);text-transform:uppercase;letter-spacing:.8px;font-weight:500;margin-bottom:5px}
@@ -266,6 +266,74 @@ td{padding:9px 14px;font-size:12px;white-space:nowrap;overflow:hidden;text-overf
   .type-sum{grid-template-columns:1fr 1fr}
   .upload-info{grid-template-columns:1fr}
 }
+/* ── MODAL TABS ─────────────────────────────────────────────────────────── */
+.modal-3col{display:flex;flex:1;overflow:hidden;min-height:0}
+.modal-col-left{width:340px;flex-shrink:0;border-right:1px solid var(--border);overflow-y:auto;padding:20px 22px 24px;background:#fff}
+.modal-col-right{flex:1;display:flex;flex-direction:column;min-width:0;background:#f8faff}
+.modal-col-mu{flex:1;overflow-y:auto;padding:16px 18px;border-bottom:1px solid var(--border);min-height:0}
+.modal-col-ms{flex:1;overflow-y:auto;padding:16px 18px;min-height:0}
+.modal-panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px}
+.modal-panel-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.9px;display:flex;align-items:center;gap:6px}
+.modal-panel-title svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2.2;flex-shrink:0}
+.modal-panel-count{font-size:10px;font-weight:700;padding:1px 7px;border-radius:10px;min-width:18px;text-align:center}
+.modal-panel-actions{display:flex;gap:5px;align-items:center}
+.modal-divider{height:1px;background:var(--border);margin:0}
+/* right column section labels */
+.rcol-mu .modal-panel-title{color:var(--purple)}
+.rcol-mu .modal-panel-count{background:rgba(124,95,230,0.12);color:var(--purple)}
+.rcol-ms .modal-panel-title{color:var(--teal)}
+.rcol-ms .modal-panel-count{background:rgba(23,185,138,0.12);color:var(--teal)}
+/* recolor imu-btn-teal to use correct var */
+/* inline meeting/milestone cards inside modal */
+.inline-mu-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;transition:border-color .15s}
+.inline-mu-card:hover{border-color:rgba(59,125,232,0.22)}
+.inline-mu-card.done-card{background:#f0fbf7;border-color:rgba(39,201,154,0.2)}
+.inline-mu-card.done-card .imu-note{text-decoration:line-through;opacity:.6;color:var(--muted)}
+.imu-meta{display:flex;align-items:center;gap:7px;margin-bottom:6px;flex-wrap:wrap}
+.imu-note{font-size:12px;color:var(--text);line-height:1.5;word-break:break-word}
+.imu-actions{display:flex;gap:5px;margin-top:8px;flex-wrap:wrap}
+.imu-btn{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:7px;font-size:10px;font-weight:500;cursor:pointer;font-family:var(--font-b);border:none;transition:all .15s}
+.imu-btn-sec{background:var(--surface3);color:var(--muted2);border:1px solid var(--border2)}
+.imu-btn-sec:hover{color:var(--blue);border-color:rgba(59,125,232,0.3)}
+.imu-btn-done{background:rgba(39,201,154,0.1);color:#27c99a;border:1px solid rgba(39,201,154,0.25)}
+.imu-btn-done:hover{background:rgba(39,201,154,0.2)}
+.imu-btn-pending{background:rgba(240,168,50,0.1);color:var(--amber);border:1px solid rgba(240,168,50,0.25)}
+.imu-btn-pending:hover{background:rgba(240,168,50,0.2)}
+.imu-btn-del{background:rgba(232,92,92,0.08);color:var(--coral);border:1px solid rgba(232,92,92,0.2)}
+.imu-btn-del:hover{background:rgba(232,92,92,0.15)}
+.imu-btn-primary{background:var(--blue);color:#fff}
+.imu-btn-primary:hover{opacity:.88}
+.imu-btn-teal{background:var(--teal);color:#fff}
+.imu-btn-teal:hover{opacity:.88}
+.imu-add-form{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px;display:none}
+.imu-add-form.open{display:block}
+.imu-input{padding:7px 10px;border:1px solid var(--border2);border-radius:8px;font-size:12px;font-family:var(--font-b);color:var(--text);background:#fff;outline:none;transition:border-color .15s;width:100%}
+.imu-input:focus{border-color:var(--blue)}
+.imu-textarea{resize:vertical;min-height:60px;line-height:1.4}
+.imu-edit-form{display:none;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border2)}
+.imu-edit-form.open{display:block}
+.imu-empty{text-align:center;padding:28px 16px;color:var(--muted);font-size:12px}
+.imu-empty svg{width:30px;height:30px;stroke:var(--muted);fill:none;stroke-width:1.5;margin:0 auto 10px;display:block;opacity:.4}
+.imu-loader{display:flex;align-items:center;justify-content:center;padding:24px;gap:8px;color:var(--muted);font-size:12px}
+/* milestone inline */
+.ims-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;transition:border-color .15s}
+.ims-card:hover{border-color:rgba(23,185,138,0.25)}
+.ims-card.ims-done{background:#f0fbf7;border-color:rgba(39,201,154,0.18)}
+.ims-card.ims-done .ims-title{text-decoration:line-through;opacity:.6}
+.ims-title{font-size:12px;font-weight:600;color:var(--text)}
+.ims-desc{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.5;word-break:break-word}
+.ims-status-pill{font-size:9px;font-weight:700;padding:2px 8px;border-radius:10px;white-space:nowrap}
+.ims-pill-pending{background:rgba(107,115,148,0.12);color:#6b7394}
+.ims-pill-inprogress{background:rgba(59,125,232,0.12);color:var(--blue)}
+.ims-pill-completed{background:rgba(23,185,138,0.12);color:var(--teal)}
+.ims-due{font-size:10px;color:var(--muted2);background:var(--surface3);padding:2px 7px;border-radius:7px;display:inline-flex;align-items:center;gap:4px}
+.ims-due.overdue{background:rgba(232,92,92,0.1);color:var(--coral)}
+.ims-due.soon{background:rgba(240,168,50,0.1);color:var(--amber)}
+.modal-section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px}
+.modal-section-title{font-size:11px;color:var(--muted2);text-transform:uppercase;letter-spacing:.8px;font-weight:600;display:flex;align-items:center;gap:7px}
+.modal-go-btn{display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:5px 12px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--muted2);cursor:pointer;font-family:var(--font-b);transition:all .15s}
+.modal-go-btn:hover{border-color:var(--blue);color:var(--blue)}
+
 /* ── MEETING UPDATES ─────────────────────────────────────────────────────── */
 .mu-modal-overlay{position:fixed;inset:0;background:rgba(20,40,100,0.28);backdrop-filter:blur(6px);z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn .2s ease}
 .mu-modal-box{background:#fff;border-radius:18px;width:100%;max-width:680px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 24px 70px rgba(30,60,140,0.22);animation:slideUp .25s ease;overflow:hidden}
@@ -1641,122 +1709,538 @@ function openModal(idx){
   const col = getTypeColor(p.type);
   const sc = getStatus(p.status);
   document.getElementById('modalTitle').textContent = p.process;
+
   const peopleHTML = p.people.map(n=>{
     const c = getPersonColor(n);
     return `<div class="modal-av" style="background:${hexToRgba(c,.18)};color:${c}">${getPersonInit(n)}</div><span style="font-size:13px;font-weight:500">${n}</span>`;
   }).join('<span style="color:var(--muted);margin:0 2px">&</span>');
 
-  document.getElementById('modalBody').innerHTML = `
-    <div style="margin-bottom:16px">
-      <div class="modal-field-label">Assignee</div>
-      <div class="modal-people">${peopleHTML}</div>
-    </div>
-    <div class="modal-grid">
-      <div>
-        <div class="modal-field-label">Status</div>
-        <span class="sbadge" style="background:${sc.bg};color:${sc.color};font-size:11px"><span class="sdot" style="background:${sc.color}"></span>${sc.label}</span>
-      </div>
-      <div>
-        <div class="modal-field-label">Process Type</div>
-        <span style="font-size:12px;padding:3px 10px;border-radius:20px;font-weight:600;background:${hexToRgba(col,.12)};color:${col}">${p.type}</span>
-      </div>
-    </div>
-    <div class="modal-grid">
-      <div>
-        <div class="modal-field-label">Completion</div>
-        <div style="font-family:var(--font-d);font-size:24px;color:${pc(p.completion)}">${Math.round(p.completion*100)}%</div>
-        <div class="modal-prog-bg"><div class="modal-prog-fill" style="width:${p.completion*100}%;background:${pc(p.completion)}"></div></div>
-      </div>
-      <div>
-        <div class="modal-field-label">Documentation</div>
-        <div style="font-family:var(--font-d);font-size:24px;color:${pc(p.doc)}">${Math.round(p.doc*100)}%</div>
-        <div class="modal-prog-bg"><div class="modal-prog-fill" style="width:${p.doc*100}%;background:${pc(p.doc)}"></div></div>
-      </div>
-    </div>
-    <div class="modal-grid">
-      <div>
-        <div class="modal-field-label">Start Date</div>
-        <div class="modal-field-value">${p.startDate ? (p.startDate instanceof Date ? (()=>{const m=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return m[p.startDate.getMonth()]+' '+p.startDate.getDate()+', '+p.startDate.getFullYear();})() : p.startDate) : '—'}</div>
-      </div>
-      <div>
-        <div class="modal-field-label">Deadline</div>
-        <div class="modal-field-value">${fmtDate(p.deadline, true)}</div>
-      </div>
-    </div>
-    <div class="modal-grid">
-      <div>
-        <div class="modal-field-label">Department</div>
-        <div class="modal-field-value">${p.dept || '—'}</div>
-      </div>
-      <div>
-        <div class="modal-field-label">Priority</div>
-        <div class="modal-field-value">${p.priority || '—'}</div>
-      </div>
-    </div>
+  const fmtStartDate = p.startDate
+    ? (p.startDate instanceof Date
+        ? (()=>{const m=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return m[p.startDate.getMonth()]+' '+p.startDate.getDate()+', '+p.startDate.getFullYear();})()
+        : p.startDate)
+    : '—';
 
-    <div style="margin-top:4px;padding-top:16px;border-top:1px solid var(--border)">
-      <div style="font-size:10px;color:var(--blue);text-transform:uppercase;letter-spacing:.8px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
-        ${p.type} Details
-      </div>
-      <div class="modal-grid" style="margin-bottom:0">
-        <div style="background:rgba(59,125,232,0.05);border:1px solid rgba(59,125,232,0.13);border-radius:10px;padding:12px 14px">
-          <div class="modal-field-label" style="margin-bottom:6px">Frequency</div>
-          <div style="font-size:13px;font-weight:600;color:var(--blue)">${p.frequency || '—'}</div>
+  document.getElementById('modalBody').innerHTML = `
+    <div class="modal-3col">
+
+      <!-- ── LEFT: PROJECT DETAILS ── -->
+      <div class="modal-col-left">
+        <div style="margin-bottom:14px">
+          <div class="modal-field-label">Assignee</div>
+          <div class="modal-people">${peopleHTML}</div>
         </div>
-        <div style="display:grid;gap:8px">
-          <div style="background:rgba(39,201,154,0.07);border:1px solid rgba(39,201,154,0.18);border-radius:10px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between">
-            <div>
-              <div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.7px;font-weight:500;margin-bottom:3px">FTE Savings from Automation</div>
-              <div style="font-size:20px;font-family:var(--font-d);color:#27c99a;line-height:1">${p.autoFTE !== null && !isNaN(p.autoFTE) ? p.autoFTE : '—'}</div>
-            </div>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#27c99a" stroke-width="1.8" opacity=".5"><path d="M12 2a5 5 0 1 0 0 10A5 5 0 0 0 12 2zm0 12c-5.33 0-8 2.67-8 4v2h16v-2c0-1.33-2.67-4-8-4z"/></svg>
+        <div class="modal-grid" style="margin-bottom:12px">
+          <div>
+            <div class="modal-field-label">Status</div>
+            <span class="sbadge" style="background:${sc.bg};color:${sc.color};font-size:11px"><span class="sdot" style="background:${sc.color}"></span>${sc.label}</span>
           </div>
-          <div style="background:rgba(240,168,50,0.07);border:1px solid rgba(240,168,50,0.18);border-radius:10px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between">
-            <div>
-              <div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.7px;font-weight:500;margin-bottom:3px">Manual FTE Allocate</div>
-              <div style="font-size:20px;font-family:var(--font-d);color:#f0a832;line-height:1">${p.manualFTE !== null && !isNaN(p.manualFTE) ? p.manualFTE : '—'}</div>
-            </div>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f0a832" stroke-width="1.8" opacity=".5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          <div>
+            <div class="modal-field-label">Type</div>
+            <span style="font-size:11px;padding:2px 9px;border-radius:20px;font-weight:600;background:${hexToRgba(col,.12)};color:${col}">${p.type}</span>
           </div>
         </div>
+        <div class="modal-grid" style="margin-bottom:12px">
+          <div>
+            <div class="modal-field-label">Completion</div>
+            <div style="font-family:var(--font-d);font-size:22px;color:${pc(p.completion)}">${Math.round(p.completion*100)}%</div>
+            <div class="modal-prog-bg"><div class="modal-prog-fill" style="width:${p.completion*100}%;background:${pc(p.completion)}"></div></div>
+          </div>
+          <div>
+            <div class="modal-field-label">Documentation</div>
+            <div style="font-family:var(--font-d);font-size:22px;color:${pc(p.doc)}">${Math.round(p.doc*100)}%</div>
+            <div class="modal-prog-bg"><div class="modal-prog-fill" style="width:${p.doc*100}%;background:${pc(p.doc)}"></div></div>
+          </div>
+        </div>
+        <div class="modal-grid" style="margin-bottom:12px">
+          <div>
+            <div class="modal-field-label">Start Date</div>
+            <div class="modal-field-value" style="font-size:12px">${fmtStartDate}</div>
+          </div>
+          <div>
+            <div class="modal-field-label">Deadline</div>
+            <div class="modal-field-value" style="font-size:12px">${fmtDate(p.deadline, true)}</div>
+          </div>
+        </div>
+        <div class="modal-grid" style="margin-bottom:0">
+          <div>
+            <div class="modal-field-label">Department</div>
+            <div class="modal-field-value" style="font-size:12px">${p.dept || '—'}</div>
+          </div>
+          <div>
+            <div class="modal-field-label">Priority</div>
+            <div class="modal-field-value" style="font-size:12px">${p.priority || '—'}</div>
+          </div>
+        </div>
+
+        <!-- FTE / Frequency block -->
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+          <div style="font-size:10px;color:var(--blue);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+            ${p.type} Details
+          </div>
+          <div style="display:grid;gap:7px">
+            <div style="background:rgba(59,125,232,0.05);border:1px solid rgba(59,125,232,0.12);border-radius:9px;padding:9px 12px">
+              <div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.7px;font-weight:500;margin-bottom:2px">Frequency</div>
+              <div style="font-size:13px;font-weight:600;color:var(--blue)">${p.frequency || '—'}</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
+              <div style="background:rgba(39,201,154,0.07);border:1px solid rgba(39,201,154,0.18);border-radius:9px;padding:9px 12px">
+                <div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.6px;font-weight:500;margin-bottom:2px">${p.type.toLowerCase()==="automation" ? "FTE Savings from Automation" : p.type.toLowerCase().includes("software") ? "Application-Based Workforce Savings" : "Auto FTE"}</div>
+                <div style="font-size:18px;font-family:var(--font-d);color:#27c99a;line-height:1">${p.autoFTE !== null && !isNaN(p.autoFTE) ? p.autoFTE : '—'}</div>
+              </div>
+              <div style="background:rgba(240,168,50,0.07);border:1px solid rgba(240,168,50,0.18);border-radius:9px;padding:9px 12px">
+                <div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.6px;font-weight:500;margin-bottom:2px">Manual FTE Allocate</div>
+                <div style="font-size:18px;font-family:var(--font-d);color:#f0a832;line-height:1">${p.manualFTE !== null && !isNaN(p.manualFTE) ? p.manualFTE : '—'}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick nav buttons -->
+        <div style="margin-top:14px;display:flex;gap:7px">
+          <button class="modal-go-btn" style="flex:1;justify-content:center" onclick="closeModal();openMeetingUpdatesPage(${idx})">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            Meetings Full View
+          </button>
+          <button class="modal-go-btn" style="flex:1;justify-content:center;border-color:rgba(23,185,138,0.3);color:var(--teal)" onclick="closeModal();openMilestonesPage(${idx})">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6l9-3 9 3M3 18l9 3 9-3"/></svg>
+            Milestones Full View
+          </button>
+        </div>
       </div>
-    </div>
-    <button class="mu-meeting-btn" onclick="openMeetingUpdatesFromModal(${idx})">
-      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="14" x2="16" y2="14"/></svg>
-      Meeting Updates
-      <span id="muCountBadge_${idx}" class="mu-count-badge" style="display:none"></span>
-      <span style="margin-left:auto;font-size:10px;opacity:.6">View / Add →</span>
-    </button>
-    <button class="mu-meeting-btn" style="background:linear-gradient(135deg,rgba(23,185,138,0.12),rgba(23,185,138,0.06));border-color:rgba(23,185,138,0.3);color:var(--teal);margin-top:8px" onclick="openMilestonesFromModal(${idx})">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18M3 6l9-3 9 3M3 18l9 3 9-3"/></svg>
-      Milestones
-      <span id="msCountBadge_${idx}" class="mu-count-badge" style="display:none;background:rgba(23,185,138,0.15);color:var(--teal)"></span>
-      <span style="margin-left:auto;font-size:10px;opacity:.6">View / Add →</span>
-    </button>`;
+
+      <!-- ── RIGHT: MEETING UPDATES (top) + MILESTONES (bottom) ── -->
+      <div class="modal-col-right">
+
+        <!-- Meeting Updates section -->
+        <div class="modal-col-mu rcol-mu">
+          <div class="modal-panel-header">
+            <div class="modal-panel-title" style="color:var(--purple)">
+              <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="14" x2="16" y2="14"/></svg>
+              Meeting Updates
+              <span class="modal-panel-count" style="background:rgba(124,95,230,0.12);color:var(--purple)" id="mu-inline-count">…</span>
+            </div>
+            <button class="imu-btn imu-btn-primary" style="font-size:10px;padding:5px 11px" onclick="toggleInlineMuForm()">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add
+            </button>
+          </div>
+          <div class="imu-add-form" id="inlineMuAddForm">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:7px">
+              <div><div class="mu-label" style="margin-bottom:3px">Date</div><input class="imu-input" type="date" id="imuNewDate"/></div>
+              <div><div class="mu-label" style="margin-bottom:3px">Time</div><input class="imu-input" type="time" id="imuNewTime"/></div>
+            </div>
+            <div style="margin-bottom:7px">
+              <div class="mu-label" style="margin-bottom:3px">Note <span style="color:var(--coral)">*</span></div>
+              <textarea class="imu-input imu-textarea" id="imuNewNote" placeholder="Meeting discussion, decision or action item…" style="min-height:52px"></textarea>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+              <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer">
+                <input type="checkbox" id="imuNewDone" style="accent-color:var(--teal);width:13px;height:13px"/> Done
+              </label>
+              <div style="display:flex;gap:5px">
+                <button class="imu-btn imu-btn-primary" style="font-size:10px" onclick="saveInlineMeetingUpdate(${idx})">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Save
+                </button>
+                <button class="imu-btn imu-btn-sec" style="font-size:10px" onclick="toggleInlineMuForm()">Cancel</button>
+              </div>
+            </div>
+          </div>
+          <div id="inlineMuList"><div class="imu-loader"><div class="mu-spin"></div> Loading…</div></div>
+        </div>
+
+        <!-- Milestones section -->
+        <div class="modal-col-ms rcol-ms">
+          <div class="modal-panel-header">
+            <div class="modal-panel-title" style="color:var(--teal)">
+              <svg viewBox="0 0 24 24"><path d="M3 12h18M3 6l9-3 9 3M3 18l9 3 9-3"/></svg>
+              Milestones
+              <span class="modal-panel-count" style="background:rgba(23,185,138,0.12);color:var(--teal)" id="ms-inline-count">…</span>
+            </div>
+            <button class="imu-btn imu-btn-teal" style="font-size:10px;padding:5px 11px" onclick="toggleInlineMsForm()">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add
+            </button>
+          </div>
+          <div class="imu-add-form" id="inlineMsAddForm">
+            <div style="margin-bottom:7px">
+              <div class="mu-label" style="margin-bottom:3px">Title <span style="color:var(--coral)">*</span></div>
+              <input class="imu-input" type="text" id="imsNewTitle" placeholder="e.g. Phase 1 Complete, Go Live…"/>
+            </div>
+            <div style="margin-bottom:7px">
+              <div class="mu-label" style="margin-bottom:3px">Description</div>
+              <textarea class="imu-input imu-textarea" id="imsNewDesc" placeholder="Optional…" style="min-height:44px"></textarea>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:7px">
+              <div><div class="mu-label" style="margin-bottom:3px">Due Date</div><input class="imu-input" type="date" id="imsNewDue"/></div>
+              <div><div class="mu-label" style="margin-bottom:3px">Status</div>
+                <select class="imu-input" id="imsNewStatus">
+                  <option value="Pending">Pending</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Completed">Completed</option>
+                </select>
+              </div>
+            </div>
+            <div style="display:flex;justify-content:flex-end;gap:5px">
+              <button class="imu-btn imu-btn-teal" style="font-size:10px" onclick="saveInlineMilestone(${idx})">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Save
+              </button>
+              <button class="imu-btn imu-btn-sec" style="font-size:10px" onclick="toggleInlineMsForm()">Cancel</button>
+            </div>
+          </div>
+          <div id="inlineMsList"><div class="imu-loader"><div class="mu-spin"></div> Loading…</div></div>
+        </div>
+
+      </div>
+    </div>`;
+
   document.getElementById('processModal').style.display = 'flex';
   document.body.style.overflow = 'hidden';
-  // Load meeting count for badge
-  loadMeetingCountForModal(idx);
-  loadMilestoneCountForModal(idx);
+
+  const now = new Date();
+  const dateEl = document.getElementById('imuNewDate');
+  const timeEl = document.getElementById('imuNewTime');
+  if(dateEl) dateEl.value = now.toISOString().split('T')[0];
+  if(timeEl) timeEl.value = now.toTimeString().slice(0,5);
+
+  if(p._id) {
+    loadInlineMeetingUpdates(idx);
+    loadInlineMilestones(idx);
+  } else {
+    const muList = document.getElementById('inlineMuList');
+    const msList = document.getElementById('inlineMsList');
+    if(muList) muList.innerHTML = '<div class="imu-empty"><div>Not linked to database. Import data first.</div></div>';
+    if(msList) msList.innerHTML = '<div class="imu-empty"><div>Not linked to database. Import data first.</div></div>';
+    const c1 = document.getElementById('mu-inline-count');
+    const c2 = document.getElementById('ms-inline-count');
+    if(c1) c1.textContent = '0';
+    if(c2) c2.textContent = '0';
+  }
 }
 
-async function loadMeetingCountForModal(idx) {
+
+
+
+// ── INLINE MEETING UPDATES ────────────────────────────────────────────────────
+function toggleInlineMuForm() {
+  const form = document.getElementById('inlineMuAddForm');
+  if(form) {
+    form.classList.toggle('open');
+    if(form.classList.contains('open')) document.getElementById('imuNewNote').focus();
+  }
+}
+
+async function loadInlineMeetingUpdates(idx) {
   const p = (window._projects||[])[idx];
-  if(!p || !p._id) return;
+  const container = document.getElementById('inlineMuList');
+  if(!container || !p || !p._id) return;
   try {
     const resp = await fetch(`${API_BASE}/api/meeting-updates/${p._id}`);
     const data = await resp.json();
-    if(data.success) {
-      const badge = document.getElementById(`muCountBadge_${idx}`);
-      if(badge) {
-        const cnt = data.data.length;
-        badge.textContent = cnt;
-        badge.style.display = cnt > 0 ? 'inline-flex' : 'none';
-      }
-    }
-  } catch(e) {}
+    if(!data.success) throw new Error(data.error);
+    renderInlineMeetingUpdates(data.data, idx);
+    const badge = document.getElementById('mu-inline-count');
+    if(badge) badge.textContent = data.data.length;
+  } catch(err) {
+    if(container) container.innerHTML = `<div class="imu-empty"><div>Could not load: ${err.message}</div></div>`;
+  }
 }
+
+function renderInlineMeetingUpdates(updates, idx) {
+  const container = document.getElementById('inlineMuList');
+  if(!container) return;
+  if(!updates.length) {
+    container.innerHTML = `<div class="imu-empty">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <div>No meeting updates yet. Click <strong>Add Update</strong> above.</div>
+    </div>`;
+    return;
+  }
+  container.innerHTML = updates.map(u => {
+    const dateStr = u.date ? u.date.split('T')[0] : '';
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    let dateFmt = dateStr;
+    if(dateStr) { const d = new Date(dateStr+'T00:00:00'); if(!isNaN(d)) dateFmt = months[d.getMonth()]+' '+d.getDate()+', '+d.getFullYear(); }
+    return `<div class="inline-mu-card ${u.is_done ? 'done-card' : ''}" id="imuCard_${u._id}">
+      <div class="imu-meta">
+        ${dateStr ? `<span class="mu-date-time" style="font-size:10px">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          ${dateFmt}
+        </span>` : ''}
+        ${u.time ? `<span class="mu-date-time" style="font-size:10px">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          ${u.time}
+        </span>` : ''}
+        ${u.is_done
+          ? '<span class="mu-done-badge" style="font-size:9px">✓ Done</span>'
+          : '<span class="mu-pending-badge" style="font-size:9px">⏳ Pending</span>'}
+      </div>
+      <div class="imu-note">${escapeHtml(u.note)}</div>
+      <div class="imu-actions">
+        <button class="imu-btn ${u.is_done ? 'imu-btn-pending' : 'imu-btn-done'}" onclick="inlineToggleDone('${u._id}', ${!u.is_done}, ${idx})">
+          ${u.is_done ? '↩ Mark Pending' : '✓ Mark Done'}
+        </button>
+        <button class="imu-btn imu-btn-sec" onclick="toggleInlineMuEdit('${u._id}')">Edit</button>
+        <button class="imu-btn imu-btn-del" onclick="inlineDeleteMu('${u._id}', ${idx})">Delete</button>
+      </div>
+      <div class="imu-edit-form" id="imuEdit_${u._id}">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+          <div><div class="mu-label" style="margin-bottom:4px">Date</div><input class="imu-input" type="date" id="imuED_${u._id}" value="${dateStr}"/></div>
+          <div><div class="mu-label" style="margin-bottom:4px">Time</div><input class="imu-input" type="time" id="imuET_${u._id}" value="${u.time||''}"/></div>
+        </div>
+        <div style="margin-bottom:8px"><div class="mu-label" style="margin-bottom:4px">Note</div>
+          <textarea class="imu-input imu-textarea" id="imuEN_${u._id}">${escapeHtml(u.note)}</textarea>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+          <label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer">
+            <input type="checkbox" id="imuEDone_${u._id}" ${u.is_done?'checked':''} style="accent-color:var(--teal);width:13px;height:13px"/> Done
+          </label>
+          <div style="display:flex;gap:6px">
+            <button class="imu-btn imu-btn-primary" style="font-size:10px" onclick="inlineSaveEditMu('${u._id}', ${idx})">Save</button>
+            <button class="imu-btn imu-btn-sec" style="font-size:10px" onclick="toggleInlineMuEdit('${u._id}')">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleInlineMuEdit(id) {
+  const f = document.getElementById(`imuEdit_${id}`);
+  if(f) f.classList.toggle('open');
+}
+
+async function saveInlineMeetingUpdate(idx) {
+  const p = (window._projects||[])[idx];
+  if(!p || !p._id) { alert('Project not linked to database.'); return; }
+  const date = document.getElementById('imuNewDate').value;
+  const time = document.getElementById('imuNewTime').value;
+  const note = document.getElementById('imuNewNote').value.trim();
+  const is_done = document.getElementById('imuNewDone').checked;
+  if(!note) { alert('Please enter a note.'); return; }
+  try {
+    const resp = await fetch(`${API_BASE}/api/meeting-updates`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ progress_id: p._id, date, time, note, is_done })
+    });
+    const data = await resp.json();
+    if(!data.success) throw new Error(data.error);
+    document.getElementById('imuNewNote').value = '';
+    document.getElementById('imuNewDone').checked = false;
+    document.getElementById('inlineMuAddForm').classList.remove('open');
+    loadInlineMeetingUpdates(idx);
+  } catch(err) { alert('Error: ' + err.message); }
+}
+
+async function inlineSaveEditMu(id, idx) {
+  const p = (window._projects||[])[idx];
+  const date = document.getElementById(`imuED_${id}`).value;
+  const time = document.getElementById(`imuET_${id}`).value;
+  const note = document.getElementById(`imuEN_${id}`).value.trim();
+  const is_done = document.getElementById(`imuEDone_${id}`).checked;
+  if(!note) { alert('Note cannot be empty.'); return; }
+  try {
+    const resp = await fetch(`${API_BASE}/api/meeting-updates/${id}`, {
+      method:'PUT', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ date, time, note, is_done })
+    });
+    const data = await resp.json();
+    if(!data.success) throw new Error(data.error);
+    loadInlineMeetingUpdates(idx);
+  } catch(err) { alert('Error: ' + err.message); }
+}
+
+async function inlineToggleDone(id, newDone, idx) {
+  try {
+    const resp = await fetch(`${API_BASE}/api/meeting-updates/${id}`, {
+      method:'PUT', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ is_done: newDone })
+    });
+    const data = await resp.json();
+    if(!data.success) throw new Error(data.error);
+    loadInlineMeetingUpdates(idx);
+  } catch(err) { alert('Error: ' + err.message); }
+}
+
+async function inlineDeleteMu(id, idx) {
+  if(!confirm('Delete this meeting update?')) return;
+  try {
+    const resp = await fetch(`${API_BASE}/api/meeting-updates/${id}`, { method:'DELETE' });
+    const data = await resp.json();
+    if(!data.success) throw new Error(data.error);
+    loadInlineMeetingUpdates(idx);
+  } catch(err) { alert('Error: ' + err.message); }
+}
+
+// ── INLINE MILESTONES ─────────────────────────────────────────────────────────
+function toggleInlineMsForm() {
+  const form = document.getElementById('inlineMsAddForm');
+  if(form) {
+    form.classList.toggle('open');
+    if(form.classList.contains('open')) document.getElementById('imsNewTitle').focus();
+  }
+}
+
+async function loadInlineMilestones(idx) {
+  const p = (window._projects||[])[idx];
+  const container = document.getElementById('inlineMsList');
+  if(!container || !p || !p._id) return;
+  try {
+    const resp = await fetch(`${API_BASE}/api/milestones/${p._id}`);
+    const data = await resp.json();
+    if(!data.success) throw new Error(data.error);
+    renderInlineMilestones(data.data, idx);
+    const badge = document.getElementById('ms-inline-count');
+    if(badge) badge.textContent = data.data.length;
+  } catch(err) {
+    if(container) container.innerHTML = `<div class="imu-empty"><div>Could not load: ${err.message}</div></div>`;
+  }
+}
+
+function getImsPillClass(status) {
+  if(status==='Completed') return 'ims-pill-completed';
+  if(status==='In Progress') return 'ims-pill-inprogress';
+  return 'ims-pill-pending';
+}
+
+function getImsDueDisplay(due) {
+  if(!due) return '';
+  const d = new Date(due+'T00:00:00');
+  if(isNaN(d)) return '';
+  const today = new Date(); today.setHours(0,0,0,0);
+  const diff = Math.round((d-today)/86400000);
+  const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const str = months[d.getMonth()]+' '+d.getDate()+', '+d.getFullYear();
+  let cls = ''; let suffix = '';
+  if(diff<0){cls='overdue';suffix=' ⚠';}
+  else if(diff<=7){cls='soon';suffix=' · Soon';}
+  return `<span class="ims-due ${cls}"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${str}${suffix}</span>`;
+}
+
+function renderInlineMilestones(milestones, idx) {
+  const container = document.getElementById('inlineMsList');
+  if(!container) return;
+  if(!milestones.length) {
+    container.innerHTML = `<div class="imu-empty">
+      <svg viewBox="0 0 24 24"><path d="M3 12h18M3 6l9-3 9 3M3 18l9 3 9-3"/></svg>
+      <div>No milestones yet. Click <strong>Add Milestone</strong> above.</div>
+    </div>`;
+    return;
+  }
+  container.innerHTML = milestones.map(m => {
+    const isCompleted = m.status === 'Completed';
+    return `<div class="ims-card ${isCompleted ? 'ims-done' : ''}" id="imsCard_${m._id}">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:${m.description||m.due_date?'5px':'0'}">
+        <div class="ims-title">${escapeHtml(m.title)}</div>
+        <span class="ims-status-pill ${getImsPillClass(m.status)}">${m.status}</span>
+      </div>
+      ${m.description ? `<div class="ims-desc">${escapeHtml(m.description)}</div>` : ''}
+      ${m.due_date ? `<div style="margin-top:5px">${getImsDueDisplay(m.due_date)}</div>` : ''}
+      <div class="imu-actions" style="margin-top:8px">
+        <select class="imu-input" style="font-size:10px;padding:3px 7px;max-width:130px;height:26px" onchange="inlineUpdateMsStatus('${m._id}', this.value, ${idx})">
+          ${['Pending','In Progress','Completed'].map(s=>`<option value="${s}" ${m.status===s?'selected':''}>${s}</option>`).join('')}
+        </select>
+        <button class="imu-btn imu-btn-sec" onclick="toggleInlineMsEdit('${m._id}')">Edit</button>
+        <button class="imu-btn imu-btn-del" onclick="inlineDeleteMs('${m._id}', ${idx})">Delete</button>
+      </div>
+      <div class="imu-edit-form" id="imsEdit_${m._id}">
+        <div style="margin-bottom:7px"><div class="mu-label" style="margin-bottom:3px">Title</div>
+          <input class="imu-input" type="text" id="imsET_${m._id}" value="${escapeHtml(m.title)}"/>
+        </div>
+        <div style="margin-bottom:7px"><div class="mu-label" style="margin-bottom:3px">Description</div>
+          <textarea class="imu-input imu-textarea" id="imsED_${m._id}" style="min-height:50px">${escapeHtml(m.description||'')}</textarea>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+          <div><div class="mu-label" style="margin-bottom:3px">Due Date</div>
+            <input class="imu-input" type="date" id="imsEDue_${m._id}" value="${m.due_date||''}"/>
+          </div>
+          <div><div class="mu-label" style="margin-bottom:3px">Status</div>
+            <select class="imu-input" id="imsES_${m._id}">
+              ${['Pending','In Progress','Completed'].map(s=>`<option value="${s}" ${m.status===s?'selected':''}>${s}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:6px">
+          <button class="imu-btn imu-btn-teal" style="font-size:10px" onclick="inlineSaveEditMs('${m._id}', ${idx})">Save</button>
+          <button class="imu-btn imu-btn-sec" style="font-size:10px" onclick="toggleInlineMsEdit('${m._id}')">Cancel</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleInlineMsEdit(id) {
+  const f = document.getElementById(`imsEdit_${id}`);
+  if(f) f.classList.toggle('open');
+}
+
+async function saveInlineMilestone(idx) {
+  const p = (window._projects||[])[idx];
+  if(!p || !p._id) { alert('Project not linked to database.'); return; }
+  const title = document.getElementById('imsNewTitle').value.trim();
+  const desc = document.getElementById('imsNewDesc').value.trim();
+  const due = document.getElementById('imsNewDue').value;
+  const status = document.getElementById('imsNewStatus').value;
+  if(!title) { alert('Please enter a milestone title.'); return; }
+  try {
+    const resp = await fetch(`${API_BASE}/api/milestones`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ progress_id: p._id, title, description: desc, due_date: due||null, status })
+    });
+    const data = await resp.json();
+    if(!data.success) throw new Error(data.error);
+    document.getElementById('imsNewTitle').value = '';
+    document.getElementById('imsNewDesc').value = '';
+    document.getElementById('imsNewDue').value = '';
+    document.getElementById('imsNewStatus').value = 'Pending';
+    document.getElementById('inlineMsAddForm').classList.remove('open');
+    loadInlineMilestones(idx);
+  } catch(err) { alert('Error: ' + err.message); }
+}
+
+async function inlineSaveEditMs(id, idx) {
+  const title = document.getElementById(`imsET_${id}`).value.trim();
+  const desc = document.getElementById(`imsED_${id}`).value.trim();
+  const due = document.getElementById(`imsEDue_${id}`).value;
+  const status = document.getElementById(`imsES_${id}`).value;
+  if(!title) { alert('Title cannot be empty.'); return; }
+  try {
+    const resp = await fetch(`${API_BASE}/api/milestones/${id}`, {
+      method:'PUT', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ title, description: desc, due_date: due||null, status })
+    });
+    const data = await resp.json();
+    if(!data.success) throw new Error(data.error);
+    loadInlineMilestones(idx);
+  } catch(err) { alert('Error: ' + err.message); }
+}
+
+async function inlineUpdateMsStatus(id, status, idx) {
+  try {
+    const resp = await fetch(`${API_BASE}/api/milestones/${id}`, {
+      method:'PUT', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ status })
+    });
+    const data = await resp.json();
+    if(!data.success) throw new Error(data.error);
+    loadInlineMilestones(idx);
+  } catch(err) { alert('Error: ' + err.message); }
+}
+
+async function inlineDeleteMs(id, idx) {
+  if(!confirm('Delete this milestone?')) return;
+  try {
+    const resp = await fetch(`${API_BASE}/api/milestones/${id}`, { method:'DELETE' });
+    const data = await resp.json();
+    if(!data.success) throw new Error(data.error);
+    loadInlineMilestones(idx);
+  } catch(err) { alert('Error: ' + err.message); }
+}
+
+
+// loadMeetingCountForModal: handled inline by loadInlineMeetingUpdates
+function loadMeetingCountForModal(idx) {}
 
 function openMeetingUpdatesFromModal(idx) {
   closeModal();
@@ -2085,19 +2569,8 @@ function setType(t){
 // ══════════════════════════════════════════════════════════════════════════════
 let _currentMilestoneProjectIdx = null;
 
-async function loadMilestoneCountForModal(idx) {
-  const p = (window._projects||[])[idx];
-  if(!p || !p._id) return;
-  try {
-    const resp = await fetch(`${API_BASE}/api/milestones/${p._id}`);
-    const data = await resp.json();
-    if(data.success) {
-      const badge = document.getElementById(`msCountBadge_${idx}`);
-      if(badge) { badge.textContent = data.data.length; badge.style.display = data.data.length > 0 ? 'inline-flex' : 'none'; }
-    }
-  } catch(e) {}
-}
-
+// loadMilestoneCountForModal: handled inline by loadInlineMilestones
+function loadMilestoneCountForModal(idx) {}
 function openMilestonesFromModal(idx) {
   closeModal();
   openMilestonesPage(idx);
