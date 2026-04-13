@@ -328,6 +328,35 @@ td{padding:9px 14px;font-size:12px;white-space:nowrap;overflow:hidden;text-overf
 .mu-stat-pill{background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px 18px;font-size:12px;display:flex;align-items:center;gap:8px;box-shadow:0 1px 6px rgba(60,100,200,0.05)}
 .mu-stat-pill strong{font-family:var(--font-d);font-size:22px;color:var(--text);line-height:1}
 
+/* ── MILESTONES PAGE ────────────────────────────────────────────────────── */
+#page-milestones{display:none}
+#page-milestones.active{display:block;animation:fadeUp .35s ease both}
+.ms-status-pill{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:600;padding:3px 10px;border-radius:20px}
+.ms-status-pending{background:rgba(107,115,148,0.12);color:#6b7394}
+.ms-status-inprogress{background:rgba(59,125,232,0.12);color:var(--blue)}
+.ms-status-completed{background:rgba(23,185,138,0.12);color:var(--teal)}
+.ms-card{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px;transition:border-color .15s,box-shadow .15s;position:relative}
+.ms-card:hover{border-color:rgba(23,185,138,0.3);box-shadow:0 3px 14px rgba(23,185,138,0.1)}
+.ms-card.completed{background:#f0fbf7;border-color:rgba(23,185,138,0.2)}
+.ms-card.completed .ms-title{text-decoration:line-through;opacity:.6}
+.ms-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px}
+.ms-desc{font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:8px;word-break:break-word}
+.ms-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.ms-due{font-size:11px;color:var(--muted2);background:var(--surface3);padding:2px 8px;border-radius:8px;display:inline-flex;align-items:center;gap:4px}
+.ms-due.overdue{background:rgba(232,92,92,0.1);color:var(--coral)}
+.ms-due.soon{background:rgba(240,168,50,0.1);color:var(--amber)}
+.ms-actions{display:flex;gap:6px}
+.ms-edit-form{display:none;margin-top:10px;padding-top:10px;border-top:1px dashed var(--border2)}
+.ms-edit-form.open{display:block}
+
+/* milestone overview table */
+.ms-table-wrap{overflow-x:auto;border-radius:12px;border:1px solid var(--border)}
+.ms-table{width:100%;border-collapse:collapse;font-size:12px}
+.ms-table th{padding:10px 14px;text-align:left;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-weight:500;border-bottom:1px solid var(--border);background:#f8faff;white-space:nowrap}
+.ms-table td{padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:top}
+.ms-table tr:last-child td{border-bottom:none}
+.ms-table tr:hover td{background:#f2f6ff}
+
 </style>
 </head>
 <body>
@@ -516,6 +545,16 @@ td{padding:9px 14px;font-size:12px;white-space:nowrap;overflow:hidden;text-overf
       </div>
     </div>
 
+    <!-- MILESTONES PAGE -->
+    <div class="page" id="page-milestones">
+      <div id="milestonesPageContent">
+        <div style="text-align:center;padding:60px;color:var(--muted)">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin:0 auto 14px;display:block;opacity:.4"><path d="M3 12h18M3 6l9-3 9 3M3 18l9 3 9-3"/></svg>
+          <div style="font-size:14px">Open a project from the <b>Type Breakdown</b> page and click <b>Milestones</b> to get started.</div>
+        </div>
+      </div>
+    </div>
+
     <div class="page" id="page-charts">
       <div class="page-head">
         <h1>Performance Charts</h1>
@@ -570,7 +609,7 @@ td{padding:9px 14px;font-size:12px;white-space:nowrap;overflow:hidden;text-overf
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
 // ── NAVIGATION ────────────────────────────────────────────────────────────────
-const pages = ['import','overview','team','breakdown','charts','meetings'];
+const pages = ['import','overview','team','breakdown','charts','meetings','milestones'];
 function navTo(id){
   pages.forEach(p=>{
     const pageEl = document.getElementById('page-'+p);
@@ -1602,7 +1641,6 @@ function openModal(idx){
   const col = getTypeColor(p.type);
   const sc = getStatus(p.status);
   document.getElementById('modalTitle').textContent = p.process;
-  const isAutomation = p.type.toLowerCase() === 'automation';
   const peopleHTML = p.people.map(n=>{
     const c = getPersonColor(n);
     return `<div class="modal-av" style="background:${hexToRgba(c,.18)};color:${c}">${getPersonInit(n)}</div><span style="font-size:13px;font-weight:500">${n}</span>`;
@@ -1655,11 +1693,11 @@ function openModal(idx){
         <div class="modal-field-value">${p.priority || '—'}</div>
       </div>
     </div>
-    ${isAutomation ? `
+
     <div style="margin-top:4px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="font-size:10px;color:var(--blue);text-transform:uppercase;letter-spacing:.8px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
-        Automation Details
+        ${p.type} Details
       </div>
       <div class="modal-grid" style="margin-bottom:0">
         <div style="background:rgba(59,125,232,0.05);border:1px solid rgba(59,125,232,0.13);border-radius:10px;padding:12px 14px">
@@ -1669,7 +1707,7 @@ function openModal(idx){
         <div style="display:grid;gap:8px">
           <div style="background:rgba(39,201,154,0.07);border:1px solid rgba(39,201,154,0.18);border-radius:10px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between">
             <div>
-              <div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.7px;font-weight:500;margin-bottom:3px">Automation FTE Covered</div>
+              <div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.7px;font-weight:500;margin-bottom:3px">FTE Savings from Automation</div>
               <div style="font-size:20px;font-family:var(--font-d);color:#27c99a;line-height:1">${p.autoFTE !== null && !isNaN(p.autoFTE) ? p.autoFTE : '—'}</div>
             </div>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#27c99a" stroke-width="1.8" opacity=".5"><path d="M12 2a5 5 0 1 0 0 10A5 5 0 0 0 12 2zm0 12c-5.33 0-8 2.67-8 4v2h16v-2c0-1.33-2.67-4-8-4z"/></svg>
@@ -1683,17 +1721,24 @@ function openModal(idx){
           </div>
         </div>
       </div>
-    </div>` : ''}
+    </div>
     <button class="mu-meeting-btn" onclick="openMeetingUpdatesFromModal(${idx})">
       <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="14" x2="16" y2="14"/></svg>
       Meeting Updates
       <span id="muCountBadge_${idx}" class="mu-count-badge" style="display:none"></span>
+      <span style="margin-left:auto;font-size:10px;opacity:.6">View / Add →</span>
+    </button>
+    <button class="mu-meeting-btn" style="background:linear-gradient(135deg,rgba(23,185,138,0.12),rgba(23,185,138,0.06));border-color:rgba(23,185,138,0.3);color:var(--teal);margin-top:8px" onclick="openMilestonesFromModal(${idx})">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18M3 6l9-3 9 3M3 18l9 3 9-3"/></svg>
+      Milestones
+      <span id="msCountBadge_${idx}" class="mu-count-badge" style="display:none;background:rgba(23,185,138,0.15);color:var(--teal)"></span>
       <span style="margin-left:auto;font-size:10px;opacity:.6">View / Add →</span>
     </button>`;
   document.getElementById('processModal').style.display = 'flex';
   document.body.style.overflow = 'hidden';
   // Load meeting count for badge
   loadMeetingCountForModal(idx);
+  loadMilestoneCountForModal(idx);
 }
 
 async function loadMeetingCountForModal(idx) {
@@ -2034,6 +2079,298 @@ function setType(t){
   renderTypeSummary(projects);
   renderTypeGrid(projects);
 }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// MILESTONES
+// ══════════════════════════════════════════════════════════════════════════════
+let _currentMilestoneProjectIdx = null;
+
+async function loadMilestoneCountForModal(idx) {
+  const p = (window._projects||[])[idx];
+  if(!p || !p._id) return;
+  try {
+    const resp = await fetch(`${API_BASE}/api/milestones/${p._id}`);
+    const data = await resp.json();
+    if(data.success) {
+      const badge = document.getElementById(`msCountBadge_${idx}`);
+      if(badge) { badge.textContent = data.data.length; badge.style.display = data.data.length > 0 ? 'inline-flex' : 'none'; }
+    }
+  } catch(e) {}
+}
+
+function openMilestonesFromModal(idx) {
+  closeModal();
+  openMilestonesPage(idx);
+}
+
+function openMilestonesPage(idx) {
+  _currentMilestoneProjectIdx = idx;
+  const p = (window._projects||[])[idx];
+  if(!p) return;
+  navTo('milestones');
+  renderMilestonesPage(p);
+}
+
+async function renderMilestonesPage(p) {
+  const col = getTypeColor(p.type);
+  const container = document.getElementById('milestonesPageContent');
+  container.innerHTML = `
+    <div class="mu-page-header">
+      <div>
+        <button class="mu-back-btn" onclick="goBackFromMilestones()">
+          <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+          Back to Breakdown
+        </button>
+      </div>
+      <span class="mu-process-tag" style="background:${hexToRgba(col,.12)};color:${col}">${p.type}</span>
+    </div>
+    <div style="margin-bottom:20px">
+      <h1 style="font-family:var(--font-d);font-size:22px;letter-spacing:-0.4px;margin-bottom:4px">${p.process}</h1>
+      <div style="font-size:12px;color:var(--muted)">Milestones — track key deliverables and progress checkpoints</div>
+    </div>
+    <div class="mu-stats-row" id="msStatsRow">
+      <div class="mu-stat-pill"><strong id="msTotalStat">—</strong><span style="color:var(--muted)">Total</span></div>
+      <div class="mu-stat-pill"><strong id="msCompletedStat" style="color:var(--teal)">—</strong><span style="color:var(--muted)">Completed</span></div>
+      <div class="mu-stat-pill"><strong id="msInProgressStat" style="color:var(--blue)">—</strong><span style="color:var(--muted)">In Progress</span></div>
+      <div class="mu-stat-pill"><strong id="msPendingStat" style="color:var(--muted)">—</strong><span style="color:var(--muted)">Pending</span></div>
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+        <div style="font-family:var(--font-d);font-size:16px">Milestones</div>
+        <button class="mu-btn mu-btn-primary" style="background:var(--teal);box-shadow:0 2px 10px rgba(23,185,138,0.3)" onclick="toggleMsAddForm()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add Milestone
+        </button>
+      </div>
+      <div class="mu-add-section" id="msAddSection">
+        <div class="mu-section-title" style="color:var(--teal)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6l9-3 9 3M3 18l9 3 9-3"/></svg>
+          New Milestone
+        </div>
+        <div class="mu-form-group">
+          <label class="mu-label">Milestone Title <span style="color:var(--coral)">*</span></label>
+          <input class="mu-input" type="text" id="msNewTitle" placeholder="e.g. Phase 1 Complete, UAT Sign-off, Go Live…"/>
+        </div>
+        <div class="mu-form-group">
+          <label class="mu-label">Description</label>
+          <textarea class="mu-input mu-textarea" id="msNewDesc" placeholder="Details about this milestone…" style="min-height:60px"></textarea>
+        </div>
+        <div class="mu-form-row">
+          <div class="mu-form-group" style="margin-bottom:0">
+            <label class="mu-label">Due Date</label>
+            <input class="mu-input" type="date" id="msNewDue"/>
+          </div>
+          <div class="mu-form-group" style="margin-bottom:0">
+            <label class="mu-label">Status</label>
+            <select class="mu-input" id="msNewStatus">
+              <option value="Pending">Pending</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Completed">Completed</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button class="mu-btn mu-btn-primary" style="background:var(--teal)" onclick="saveMilestone()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            Save Milestone
+          </button>
+          <button class="mu-btn mu-btn-secondary" onclick="toggleMsAddForm()">Cancel</button>
+        </div>
+      </div>
+    </div>
+    <div id="msListContainer">
+      <div class="mu-loader"><div class="mu-spin"></div> Loading milestones...</div>
+    </div>`;
+  await loadMilestones(p);
+}
+
+function goBackFromMilestones() { navTo('breakdown'); }
+
+function toggleMsAddForm() {
+  const sec = document.getElementById('msAddSection');
+  sec.classList.toggle('open');
+  if(sec.classList.contains('open')) document.getElementById('msNewTitle').focus();
+}
+
+function getMsStatusClass(status) {
+  if(status === 'Completed') return 'ms-status-completed';
+  if(status === 'In Progress') return 'ms-status-inprogress';
+  return 'ms-status-pending';
+}
+
+function getMsDueDisplay(due) {
+  if(!due) return '';
+  const d = new Date(due);
+  if(isNaN(d)) return '';
+  const today = new Date(); today.setHours(0,0,0,0);
+  const diff = Math.round((d - today) / 86400000);
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const str = months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+  let cls = '';
+  if(diff < 0) cls = 'overdue';
+  else if(diff <= 7) cls = 'soon';
+  return `<span class="ms-due ${cls}">
+    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    ${str}${diff < 0 ? ' ⚠ Overdue' : diff <= 7 ? ' · Due soon' : ''}
+  </span>`;
+}
+
+async function loadMilestones(p) {
+  const container = document.getElementById('msListContainer');
+  if(!p._id) {
+    container.innerHTML = `<div class="mu-empty"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg><div>No database connection.</div></div>`;
+    return;
+  }
+  try {
+    const resp = await fetch(`${API_BASE}/api/milestones/${p._id}`);
+    const data = await resp.json();
+    if(!data.success) throw new Error(data.error);
+    renderMilestonesList(data.data, p);
+  } catch(err) {
+    container.innerHTML = `<div class="mu-empty"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><div>Could not load milestones: ${err.message}</div></div>`;
+  }
+}
+
+function renderMilestonesList(milestones, p) {
+  const total = milestones.length;
+  const completed = milestones.filter(m=>m.status==='Completed').length;
+  const inProg = milestones.filter(m=>m.status==='In Progress').length;
+  const pending = milestones.filter(m=>m.status==='Pending').length;
+  const setStat = (id, v) => { const el = document.getElementById(id); if(el) el.textContent = v; };
+  setStat('msTotalStat', total); setStat('msCompletedStat', completed);
+  setStat('msInProgressStat', inProg); setStat('msPendingStat', pending);
+
+  const container = document.getElementById('msListContainer');
+  if(!milestones.length) {
+    container.innerHTML = `<div class="mu-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 12h18M3 6l9-3 9 3M3 18l9 3 9-3"/></svg><div>No milestones yet.<br>Click <strong>Add Milestone</strong> to track your first one.</div></div>`;
+    return;
+  }
+  container.innerHTML = milestones.map(m => {
+    const isCompleted = m.status === 'Completed';
+    return `<div class="ms-card ${isCompleted ? 'completed' : ''}" id="msCard_${m._id}">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px">
+        <div class="ms-title">${escapeHtml(m.title)}</div>
+        <span class="ms-status-pill ${getMsStatusClass(m.status)}">${m.status}</span>
+      </div>
+      ${m.description ? `<div class="ms-desc">${escapeHtml(m.description)}</div>` : ''}
+      <div class="ms-meta">${getMsDueDisplay(m.due_date)}</div>
+      <div class="ms-actions">
+        <button class="mu-btn mu-btn-secondary" style="font-size:11px;padding:6px 12px" onclick="toggleMsEditForm('${m._id}')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Edit
+        </button>
+        <select class="mu-input" style="font-size:11px;padding:5px 8px;max-width:140px;height:32px" onchange="updateMilestoneStatus('${m._id}', this.value)">
+          ${['Pending','In Progress','Completed'].map(s=>`<option value="${s}" ${m.status===s?'selected':''}>${s}</option>`).join('')}
+        </select>
+        <button class="mu-btn mu-btn-danger" style="font-size:11px;padding:6px 12px;margin-left:auto" onclick="deleteMilestone('${m._id}')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+          Delete
+        </button>
+      </div>
+      <div class="ms-edit-form" id="msEdit_${m._id}">
+        <div class="mu-form-group">
+          <label class="mu-label">Title</label>
+          <input class="mu-input" type="text" id="msEditTitle_${m._id}" value="${escapeHtml(m.title)}"/>
+        </div>
+        <div class="mu-form-group">
+          <label class="mu-label">Description</label>
+          <textarea class="mu-input mu-textarea" id="msEditDesc_${m._id}" style="min-height:60px">${escapeHtml(m.description||'')}</textarea>
+        </div>
+        <div class="mu-form-row">
+          <div class="mu-form-group" style="margin-bottom:0">
+            <label class="mu-label">Due Date</label>
+            <input class="mu-input" type="date" id="msEditDue_${m._id}" value="${m.due_date||''}"/>
+          </div>
+          <div class="mu-form-group" style="margin-bottom:0">
+            <label class="mu-label">Status</label>
+            <select class="mu-input" id="msEditStatus_${m._id}">
+              ${['Pending','In Progress','Completed'].map(s=>`<option value="${s}" ${m.status===s?'selected':''}>${s}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button class="mu-btn mu-btn-primary" style="font-size:11px;background:var(--teal)" onclick="saveEditMilestone('${m._id}')">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            Save
+          </button>
+          <button class="mu-btn mu-btn-secondary" style="font-size:11px" onclick="toggleMsEditForm('${m._id}')">Cancel</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleMsEditForm(id) {
+  const form = document.getElementById(`msEdit_${id}`);
+  if(form) form.classList.toggle('open');
+}
+
+async function saveMilestone() {
+  const p = (window._projects||[])[_currentMilestoneProjectIdx];
+  if(!p || !p._id) { alert('Project not linked to database.'); return; }
+  const title = document.getElementById('msNewTitle').value.trim();
+  const desc = document.getElementById('msNewDesc').value.trim();
+  const due = document.getElementById('msNewDue').value;
+  const status = document.getElementById('msNewStatus').value;
+  if(!title) { alert('Please enter a milestone title.'); return; }
+  try {
+    const resp = await fetch(`${API_BASE}/api/milestones`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ progress_id: p._id, title, description: desc, due_date: due||null, status })
+    });
+    const data = await resp.json();
+    if(!data.success) throw new Error(data.error);
+    document.getElementById('msNewTitle').value = '';
+    document.getElementById('msNewDesc').value = '';
+    document.getElementById('msNewDue').value = '';
+    document.getElementById('msNewStatus').value = 'Pending';
+    document.getElementById('msAddSection').classList.remove('open');
+    await loadMilestones(p);
+  } catch(err) { alert('Error saving milestone: ' + err.message); }
+}
+
+async function saveEditMilestone(id) {
+  const p = (window._projects||[])[_currentMilestoneProjectIdx];
+  const title = document.getElementById(`msEditTitle_${id}`).value.trim();
+  const desc = document.getElementById(`msEditDesc_${id}`).value.trim();
+  const due = document.getElementById(`msEditDue_${id}`).value;
+  const status = document.getElementById(`msEditStatus_${id}`).value;
+  if(!title) { alert('Title cannot be empty.'); return; }
+  try {
+    const resp = await fetch(`${API_BASE}/api/milestones/${id}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, description: desc, due_date: due||null, status })
+    });
+    const data = await resp.json();
+    if(!data.success) throw new Error(data.error);
+    await loadMilestones(p);
+  } catch(err) { alert('Error updating: ' + err.message); }
+}
+
+async function updateMilestoneStatus(id, status) {
+  const p = (window._projects||[])[_currentMilestoneProjectIdx];
+  try {
+    const resp = await fetch(`${API_BASE}/api/milestones/${id}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status })
+    });
+    const data = await resp.json();
+    if(!data.success) throw new Error(data.error);
+    await loadMilestones(p);
+  } catch(err) { alert('Error: ' + err.message); }
+}
+
+async function deleteMilestone(id) {
+  if(!confirm('Delete this milestone?')) return;
+  const p = (window._projects||[])[_currentMilestoneProjectIdx];
+  try {
+    const resp = await fetch(`${API_BASE}/api/milestones/${id}`, { method: 'DELETE' });
+    const data = await resp.json();
+    if(!data.success) throw new Error(data.error);
+    await loadMilestones(p);
+  } catch(err) { alert('Error deleting: ' + err.message); }
+}
+
 // ── AUTO-LOAD FROM DB ON PAGE START ──────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
   loadFromMongoDB();
