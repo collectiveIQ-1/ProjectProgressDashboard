@@ -1,24 +1,24 @@
 generator client {
   provider = "prisma-client-js"
 }
- 
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
- 
+
 model Progress {
-  id              Int              @id @default(autoincrement())
-  process         String           @unique
-  data            Json             @default("{}")
-  created_at      DateTime         @default(now())
-  updated_at      DateTime         @updatedAt
+  id              Int             @id @default(autoincrement())
+  process         String          @unique
+  data            Json            @default("{}")
+  created_at      DateTime        @default(now())
+  updated_at      DateTime        @updatedAt
   meeting_updates MeetingUpdate[]
   milestones      Milestone[]
- 
+
   @@map("progress")
 }
- 
+
 model MeetingUpdate {
   id          Int      @id @default(autoincrement())
   progress_id Int
@@ -29,10 +29,10 @@ model MeetingUpdate {
   is_done     Boolean  @default(false)
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
- 
+
   @@map("meeting_updates")
 }
- 
+
 model Milestone {
   id          Int      @id @default(autoincrement())
   progress_id Int
@@ -43,6 +43,6 @@ model Milestone {
   status      String   @default("Pending")
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
- 
+
   @@map("milestones")
 }
