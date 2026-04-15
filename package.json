@@ -1,7 +1,7 @@
 {
   "name": "progress-dashboard",
   "version": "1.0.0",
-  "description": "Progress Dashboard with MongoDB Atlas backend",
+  "description": "Progress Dashboard with PostgreSQL (AWS RDS) backend",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -11,7 +11,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.18.2",
-    "mongodb": "^6.3.0"
+    "pg": "^8.11.3"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"

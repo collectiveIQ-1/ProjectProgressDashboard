@@ -1,95 +1,238 @@
 require('dotenv').config();
 const express = require('express');
-const { MongoClient, ObjectId } = require('mongodb');
-const cors = require('cors');
-const path = require('path');
+const { Pool }  = require('pg');
+const cors      = require('cors');
+const path      = require('path');
 
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ── MONGO CONNECTION ───────────────────────────────────────────────────────────
-const MONGO_URI = process.env.MONGO_URI;
-const DB_NAME   = process.env.DB_NAME || 'progress_dashboard';
+// ── PostgreSQL CONNECTION ──────────────────────────────────────────────────────
+const pool = new Pool({
+  host:     process.env.PG_HOST,
+  port:     parseInt(process.env.PG_PORT || '5432'),
+  database: process.env.PG_DATABASE,
+  user:     process.env.PG_USER,
+  password: process.env.PG_PASSWORD,
+  ssl: { rejectUnauthorized: false },   // required for AWS RDS
+  max: 10,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
+});
 
-if (!MONGO_URI) {
-  console.error('❌  MONGO_URI is not set. Create a .env file with MONGO_URI=mongodb+srv://...');
-  process.exit(1);
+// Helper — run a query and return rows
+const query = (text, params) => pool.query(text, params);
+
+// ── CREATE TABLES ON STARTUP ──────────────────────────────────────────────────
+async function initDB() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS progress (
+      id            SERIAL PRIMARY KEY,
+      process       TEXT NOT NULL UNIQUE,
+      type          TEXT,
+      status        TEXT,
+      completion    NUMERIC(5,4) DEFAULT 0,
+      doc           NUMERIC(5,4) DEFAULT 0,
+      people        TEXT[],
+      dept          TEXT,
+      priority      TEXT,
+      start_date    TEXT,
+      deadline      TEXT,
+      frequency     TEXT,
+      auto_fte      NUMERIC(10,4),
+      manual_fte    NUMERIC(10,4),
+      created_at    TIMESTAMPTZ DEFAULT NOW(),
+      updated_at    TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS meeting_updates (
+      id            SERIAL PRIMARY KEY,
+      progress_id   INTEGER NOT NULL REFERENCES progress(id) ON DELETE CASCADE,
+      date          TEXT,
+      time          TEXT,
+      note          TEXT NOT NULL,
+      is_done       BOOLEAN DEFAULT FALSE,
+      created_at    TIMESTAMPTZ DEFAULT NOW(),
+      updated_at    TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS milestones (
+      id            SERIAL PRIMARY KEY,
+      progress_id   INTEGER NOT NULL REFERENCES progress(id) ON DELETE CASCADE,
+      title         TEXT NOT NULL,
+      description   TEXT DEFAULT '',
+      due_date      TEXT,
+      status        TEXT DEFAULT 'Pending',
+      created_at    TIMESTAMPTZ DEFAULT NOW(),
+      updated_at    TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
+
+  // Indexes for foreign keys
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_meeting_updates_progress_id ON meeting_updates(progress_id);
+    CREATE INDEX IF NOT EXISTS idx_milestones_progress_id ON milestones(progress_id);
+  `);
+
+  console.log('✅  Tables ready — progress, meeting_updates, milestones');
 }
 
-let db;
-async function connectDB() {
-  const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 8000, connectTimeoutMS: 10000 });
-  await client.connect();
-  await client.db('admin').command({ ping: 1 });
-  db = client.db(DB_NAME);
-  console.log(`✅  Connected to MongoDB Atlas — database: "${DB_NAME}"`);
-  await db.collection('progress').createIndex({ process: 1 }, { unique: true });
-  await db.collection('meeting_updates').createIndex({ progress_id: 1 });
-  await db.collection('meeting_updates').createIndex({ created_at: -1 });
-  await db.collection('milestones').createIndex({ progress_id: 1 });
-  await db.collection('milestones').createIndex({ created_at: -1 });
+// Helper: convert a DB row to the shape the frontend expects
+function rowToProject(r) {
+  return {
+    _id:        String(r.id),
+    process:    r.process,
+    type:       r.type       || 'Unknown',
+    status:     r.status     || '',
+    completion: parseFloat(r.completion) || 0,
+    doc:        parseFloat(r.doc)        || 0,
+    people:     r.people     || [],
+    dept:       r.dept       || '',
+    priority:   r.priority   || '',
+    startDate:  r.start_date || null,
+    deadline:   r.deadline   || null,
+    frequency:  r.frequency  || '',
+    autoFTE:    r.auto_fte   != null ? parseFloat(r.auto_fte)   : null,
+    manualFTE:  r.manual_fte != null ? parseFloat(r.manual_fte) : null,
+    created_at: r.created_at,
+    updated_at: r.updated_at,
+  };
 }
 
-function toObjectId(id) {
-  try { return new ObjectId(id); } catch { return null; }
+function rowToMeetingUpdate(r) {
+  return {
+    _id:         String(r.id),
+    progress_id: String(r.progress_id),
+    date:        r.date    || '',
+    time:        r.time    || '',
+    note:        r.note,
+    is_done:     Boolean(r.is_done),
+    created_at:  r.created_at,
+    updated_at:  r.updated_at,
+  };
+}
+
+function rowToMilestone(r) {
+  return {
+    _id:         String(r.id),
+    progress_id: String(r.progress_id),
+    title:       r.title,
+    description: r.description || '',
+    due_date:    r.due_date    || null,
+    status:      r.status      || 'Pending',
+    created_at:  r.created_at,
+    updated_at:  r.updated_at,
+  };
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
 // PROGRESS ROUTES
 // ══════════════════════════════════════════════════════════════════════════════
+
+// GET all progress records
 app.get('/api/progress', async (req, res) => {
   try {
-    const records = await db.collection('progress').find({}).sort({ process: 1 }).toArray();
-    res.json({ success: true, data: records });
+    const { rows } = await query('SELECT * FROM progress ORDER BY process ASC');
+    res.json({ success: true, data: rows.map(rowToProject) });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
+// GET single progress record
 app.get('/api/progress/:id', async (req, res) => {
   try {
-    const id = toObjectId(req.params.id);
-    if (!id) return res.status(400).json({ success: false, error: 'Invalid ID' });
-    const record = await db.collection('progress').findOne({ _id: id });
-    if (!record) return res.status(404).json({ success: false, error: 'Not found' });
-    res.json({ success: true, data: record });
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ success: false, error: 'Invalid ID' });
+    const { rows } = await query('SELECT * FROM progress WHERE id = $1', [id]);
+    if (!rows.length) return res.status(404).json({ success: false, error: 'Not found' });
+    res.json({ success: true, data: rowToProject(rows[0]) });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
+// POST - bulk import/upsert from Excel upload
 app.post('/api/progress/import', async (req, res) => {
   try {
     const { projects } = req.body;
     if (!Array.isArray(projects) || !projects.length)
       return res.status(400).json({ success: false, error: 'No projects provided' });
-    const ops = projects.map(p => {
-      const { _id, ...fields } = p;
-      return { updateOne: { filter: { process: fields.process }, update: { $set: { ...fields, updated_at: new Date() }, $setOnInsert: { created_at: new Date() } }, upsert: true } };
-    });
-    const result = await db.collection('progress').bulkWrite(ops);
-    res.json({ success: true, inserted: result.upsertedCount, updated: result.modifiedCount });
+
+    let inserted = 0, updated = 0;
+    for (const p of projects) {
+      const people = Array.isArray(p.people) ? p.people : [p.people || 'Unknown'];
+      // Convert Date objects / ISO strings to plain text for storage
+      const startDate = p.startDate instanceof Object
+        ? (p.startDate.toISOString ? p.startDate.toISOString() : String(p.startDate))
+        : (p.startDate || null);
+      const deadline = p.deadline instanceof Object
+        ? (p.deadline.toISOString ? p.deadline.toISOString() : String(p.deadline))
+        : (p.deadline || null);
+
+      const result = await query(`
+        INSERT INTO progress
+          (process, type, status, completion, doc, people, dept, priority,
+           start_date, deadline, frequency, auto_fte, manual_fte, updated_at)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,NOW())
+        ON CONFLICT (process) DO UPDATE SET
+          type        = EXCLUDED.type,
+          status      = EXCLUDED.status,
+          completion  = EXCLUDED.completion,
+          doc         = EXCLUDED.doc,
+          people      = EXCLUDED.people,
+          dept        = EXCLUDED.dept,
+          priority    = EXCLUDED.priority,
+          start_date  = EXCLUDED.start_date,
+          deadline    = EXCLUDED.deadline,
+          frequency   = EXCLUDED.frequency,
+          auto_fte    = EXCLUDED.auto_fte,
+          manual_fte  = EXCLUDED.manual_fte,
+          updated_at  = NOW()
+        RETURNING (xmax = 0) AS was_inserted
+      `, [
+        p.process, p.type || 'Unknown', p.status || '',
+        p.completion || 0, p.doc || 0,
+        people,
+        p.dept || '', p.priority || '',
+        startDate, deadline,
+        p.frequency || '',
+        p.autoFTE != null && !isNaN(p.autoFTE) ? p.autoFTE : null,
+        p.manualFTE != null && !isNaN(p.manualFTE) ? p.manualFTE : null,
+      ]);
+      if (result.rows[0].was_inserted) inserted++; else updated++;
+    }
+    res.json({ success: true, inserted, updated });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
+// PUT - update a progress record
 app.put('/api/progress/:id', async (req, res) => {
   try {
-    const id = toObjectId(req.params.id);
-    if (!id) return res.status(400).json({ success: false, error: 'Invalid ID' });
-    const { _id, ...update } = req.body;
-    update.updated_at = new Date();
-    const result = await db.collection('progress').findOneAndUpdate({ _id: id }, { $set: update }, { returnDocument: 'after' });
-    if (!result) return res.status(404).json({ success: false, error: 'Not found' });
-    res.json({ success: true, data: result });
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ success: false, error: 'Invalid ID' });
+    const { process, type, status, completion, doc, people, dept, priority,
+            startDate, deadline, frequency, autoFTE, manualFTE } = req.body;
+    const { rows } = await query(`
+      UPDATE progress SET
+        process=$1, type=$2, status=$3, completion=$4, doc=$5, people=$6,
+        dept=$7, priority=$8, start_date=$9, deadline=$10,
+        frequency=$11, auto_fte=$12, manual_fte=$13, updated_at=NOW()
+      WHERE id=$14 RETURNING *`,
+      [process, type, status, completion, doc,
+       Array.isArray(people) ? people : [people],
+       dept, priority, startDate||null, deadline||null,
+       frequency, autoFTE||null, manualFTE||null, id]);
+    if (!rows.length) return res.status(404).json({ success: false, error: 'Not found' });
+    res.json({ success: true, data: rowToProject(rows[0]) });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
+// DELETE a progress record (cascades to meeting_updates + milestones via FK)
 app.delete('/api/progress/:id', async (req, res) => {
   try {
-    const id = toObjectId(req.params.id);
-    if (!id) return res.status(400).json({ success: false, error: 'Invalid ID' });
-    await db.collection('meeting_updates').deleteMany({ progress_id: id });
-    await db.collection('milestones').deleteMany({ progress_id: id });
-    const result = await db.collection('progress').deleteOne({ _id: id });
-    if (!result.deletedCount) return res.status(404).json({ success: false, error: 'Not found' });
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ success: false, error: 'Invalid ID' });
+    const { rowCount } = await query('DELETE FROM progress WHERE id=$1', [id]);
+    if (!rowCount) return res.status(404).json({ success: false, error: 'Not found' });
     res.json({ success: true });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
@@ -97,45 +240,57 @@ app.delete('/api/progress/:id', async (req, res) => {
 // ══════════════════════════════════════════════════════════════════════════════
 // MEETING UPDATES ROUTES
 // ══════════════════════════════════════════════════════════════════════════════
+
 app.get('/api/meeting-updates/:progressId', async (req, res) => {
   try {
-    const progressId = toObjectId(req.params.progressId);
-    if (!progressId) return res.status(400).json({ success: false, error: 'Invalid progress ID' });
-    const updates = await db.collection('meeting_updates').find({ progress_id: progressId }).sort({ date: -1, time: -1 }).toArray();
-    res.json({ success: true, data: updates });
+    const progressId = parseInt(req.params.progressId);
+    if (isNaN(progressId)) return res.status(400).json({ success: false, error: 'Invalid progress ID' });
+    const { rows } = await query(
+      'SELECT * FROM meeting_updates WHERE progress_id=$1 ORDER BY date DESC, time DESC',
+      [progressId]);
+    res.json({ success: true, data: rows.map(rowToMeetingUpdate) });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 app.post('/api/meeting-updates', async (req, res) => {
   try {
     const { progress_id, date, time, note, is_done } = req.body;
-    const pid = toObjectId(progress_id);
-    if (!pid) return res.status(400).json({ success: false, error: 'Invalid progress ID' });
+    const pid = parseInt(progress_id);
+    if (isNaN(pid)) return res.status(400).json({ success: false, error: 'Invalid progress ID' });
     if (!note || !String(note).trim()) return res.status(400).json({ success: false, error: 'Note is required' });
-    const doc = { progress_id: pid, date: date || new Date().toISOString().split('T')[0], time: time || new Date().toTimeString().slice(0, 5), note: String(note).trim(), is_done: Boolean(is_done), created_at: new Date(), updated_at: new Date() };
-    const result = await db.collection('meeting_updates').insertOne(doc);
-    res.json({ success: true, data: { ...doc, _id: result.insertedId } });
+    const { rows } = await query(
+      `INSERT INTO meeting_updates (progress_id, date, time, note, is_done)
+       VALUES ($1,$2,$3,$4,$5) RETURNING *`,
+      [pid,
+       date || new Date().toISOString().split('T')[0],
+       time || new Date().toTimeString().slice(0,5),
+       String(note).trim(),
+       Boolean(is_done)]);
+    res.json({ success: true, data: rowToMeetingUpdate(rows[0]) });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 app.put('/api/meeting-updates/:id', async (req, res) => {
   try {
-    const id = toObjectId(req.params.id);
-    if (!id) return res.status(400).json({ success: false, error: 'Invalid ID' });
-    const { _id, progress_id, created_at, ...update } = req.body;
-    update.updated_at = new Date();
-    const result = await db.collection('meeting_updates').findOneAndUpdate({ _id: id }, { $set: update }, { returnDocument: 'after' });
-    if (!result) return res.status(404).json({ success: false, error: 'Not found' });
-    res.json({ success: true, data: result });
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ success: false, error: 'Invalid ID' });
+    const { date, time, note, is_done } = req.body;
+    const { rows } = await query(
+      `UPDATE meeting_updates
+       SET date=$1, time=$2, note=COALESCE($3,note), is_done=$4, updated_at=NOW()
+       WHERE id=$5 RETURNING *`,
+      [date, time, note ? String(note).trim() : null, Boolean(is_done), id]);
+    if (!rows.length) return res.status(404).json({ success: false, error: 'Not found' });
+    res.json({ success: true, data: rowToMeetingUpdate(rows[0]) });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 app.delete('/api/meeting-updates/:id', async (req, res) => {
   try {
-    const id = toObjectId(req.params.id);
-    if (!id) return res.status(400).json({ success: false, error: 'Invalid ID' });
-    const result = await db.collection('meeting_updates').deleteOne({ _id: id });
-    if (!result.deletedCount) return res.status(404).json({ success: false, error: 'Not found' });
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ success: false, error: 'Invalid ID' });
+    const { rowCount } = await query('DELETE FROM meeting_updates WHERE id=$1', [id]);
+    if (!rowCount) return res.status(404).json({ success: false, error: 'Not found' });
     res.json({ success: true });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
@@ -144,87 +299,91 @@ app.delete('/api/meeting-updates/:id', async (req, res) => {
 // MILESTONES ROUTES
 // ══════════════════════════════════════════════════════════════════════════════
 
-// GET all milestones for a project
 app.get('/api/milestones/:progressId', async (req, res) => {
   try {
-    const progressId = toObjectId(req.params.progressId);
-    if (!progressId) return res.status(400).json({ success: false, error: 'Invalid progress ID' });
-    const milestones = await db.collection('milestones').find({ progress_id: progressId }).sort({ due_date: 1, created_at: 1 }).toArray();
-    res.json({ success: true, data: milestones });
+    const progressId = parseInt(req.params.progressId);
+    if (isNaN(progressId)) return res.status(400).json({ success: false, error: 'Invalid progress ID' });
+    const { rows } = await query(
+      'SELECT * FROM milestones WHERE progress_id=$1 ORDER BY due_date ASC NULLS LAST, created_at ASC',
+      [progressId]);
+    res.json({ success: true, data: rows.map(rowToMilestone) });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
-// GET all milestones (for the milestones overview table - project + milestone view)
 app.get('/api/milestones', async (req, res) => {
   try {
-    const milestones = await db.collection('milestones').find({}).sort({ created_at: -1 }).toArray();
-    // Populate process name from progress collection
-    const progressIds = [...new Set(milestones.map(m => m.progress_id.toString()))];
-    const progressDocs = await db.collection('progress').find({ _id: { $in: progressIds.map(id => toObjectId(id)) } }).toArray();
-    const progressMap = {};
-    progressDocs.forEach(p => { progressMap[p._id.toString()] = p.process; });
-    const enriched = milestones.map(m => ({ ...m, process_name: progressMap[m.progress_id.toString()] || 'Unknown' }));
-    res.json({ success: true, data: enriched });
+    const { rows } = await query(`
+      SELECT m.*, p.process AS process_name
+      FROM milestones m
+      LEFT JOIN progress p ON p.id = m.progress_id
+      ORDER BY m.created_at DESC`);
+    res.json({ success: true, data: rows.map(r => ({ ...rowToMilestone(r), process_name: r.process_name || 'Unknown' })) });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
-// POST - create a new milestone
 app.post('/api/milestones', async (req, res) => {
   try {
     const { progress_id, title, description, due_date, status } = req.body;
-    const pid = toObjectId(progress_id);
-    if (!pid) return res.status(400).json({ success: false, error: 'Invalid progress ID' });
+    const pid = parseInt(progress_id);
+    if (isNaN(pid)) return res.status(400).json({ success: false, error: 'Invalid progress ID' });
     if (!title || !String(title).trim()) return res.status(400).json({ success: false, error: 'Title is required' });
-    const doc = {
-      progress_id: pid,
-      title: String(title).trim(),
-      description: String(description || '').trim(),
-      due_date: due_date || null,
-      status: status || 'Pending',   // Pending | In Progress | Completed
-      created_at: new Date(),
-      updated_at: new Date()
-    };
-    const result = await db.collection('milestones').insertOne(doc);
-    res.json({ success: true, data: { ...doc, _id: result.insertedId } });
+    const { rows } = await query(
+      `INSERT INTO milestones (progress_id, title, description, due_date, status)
+       VALUES ($1,$2,$3,$4,$5) RETURNING *`,
+      [pid, String(title).trim(), String(description||'').trim(), due_date||null, status||'Pending']);
+    res.json({ success: true, data: rowToMilestone(rows[0]) });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
-// PUT - update a milestone
 app.put('/api/milestones/:id', async (req, res) => {
   try {
-    const id = toObjectId(req.params.id);
-    if (!id) return res.status(400).json({ success: false, error: 'Invalid ID' });
-    const { _id, progress_id, created_at, ...update } = req.body;
-    update.updated_at = new Date();
-    const result = await db.collection('milestones').findOneAndUpdate({ _id: id }, { $set: update }, { returnDocument: 'after' });
-    if (!result) return res.status(404).json({ success: false, error: 'Not found' });
-    res.json({ success: true, data: result });
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ success: false, error: 'Invalid ID' });
+    const { title, description, due_date, status } = req.body;
+    const { rows } = await query(
+      `UPDATE milestones
+       SET title=COALESCE($1,title), description=COALESCE($2,description),
+           due_date=$3, status=COALESCE($4,status), updated_at=NOW()
+       WHERE id=$5 RETURNING *`,
+      [title ? String(title).trim() : null,
+       description != null ? String(description).trim() : null,
+       due_date || null, status || null, id]);
+    if (!rows.length) return res.status(404).json({ success: false, error: 'Not found' });
+    res.json({ success: true, data: rowToMilestone(rows[0]) });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
-// DELETE - delete a milestone
 app.delete('/api/milestones/:id', async (req, res) => {
   try {
-    const id = toObjectId(req.params.id);
-    if (!id) return res.status(400).json({ success: false, error: 'Invalid ID' });
-    const result = await db.collection('milestones').deleteOne({ _id: id });
-    if (!result.deletedCount) return res.status(404).json({ success: false, error: 'Not found' });
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ success: false, error: 'Invalid ID' });
+    const { rowCount } = await query('DELETE FROM milestones WHERE id=$1', [id]);
+    if (!rowCount) return res.status(404).json({ success: false, error: 'Not found' });
     res.json({ success: true });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
-// ── Fallback ─────────────────────────────────────────────────────────────────
+// ── Fallback ──────────────────────────────────────────────────────────────────
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// ── START ─────────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
-connectDB().then(() => {
-  app.listen(PORT, () => {
-    console.log(`🚀  Server running  →  http://localhost:${PORT}`);
-    console.log(`📊  Open dashboard  →  http://localhost:${PORT}`);
+pool.connect()
+  .then(client => {
+    client.release();
+    console.log(`✅  Connected to PostgreSQL — ${process.env.PG_DATABASE} @ ${process.env.PG_HOST}`);
+    return initDB();
+  })
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`🚀  Server running  →  http://localhost:${PORT}`);
+      console.log(`📊  Open dashboard  →  http://localhost:${PORT}`);
+    });
+  })
+  .catch(err => {
+    console.error('❌  Failed to connect to PostgreSQL:', err.message);
+    console.error('    Check your PG_* variables in the .env file');
+    process.exit(1);
   });
-}).catch(err => {
-  console.error('❌  Failed to connect to MongoDB Atlas:', err.message);
-  process.exit(1);
-});
