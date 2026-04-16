@@ -16,7 +16,7 @@ const pool = new Pool({
   database: process.env.PG_DATABASE,
   user:     process.env.PG_USER,
   password: process.env.PG_PASSWORD,
-  ssl: { rejectUnauthorized: false },   // required for AWS RDS
+  ssl: process.env.PG_SSL === 'true' ? { rejectUnauthorized: false } : false,
   max: 10,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000,
@@ -27,6 +27,42 @@ const query = (text, params) => pool.query(text, params);
 
 // ── CREATE TABLES ON STARTUP ──────────────────────────────────────────────────
 async function initDB() {
+  // Credentials table
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS credentials (
+      id         SERIAL PRIMARY KEY,
+      username   TEXT NOT NULL UNIQUE,
+      password   TEXT NOT NULL,
+      role       TEXT NOT NULL DEFAULT 'Member',
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
+
+  // Seed credentials from Excel data (insert only if not exists)
+  const users = [
+    { username: 'sruhunage@collectivercm.com', password: 'Shashani123@Admin', role: 'Admin' },
+    { username: 'amilab@botmedfusion.com',     password: 'Amila123@Admin',    role: 'Admin' },
+    { username: 'nranasinghe@collectivercm.com', password: 'Nirman123@Admin', role: 'Admin' },
+    { username: 'bherath@collectivercm.com',   password: 'Bimsara123@',       role: 'Member' },
+    { username: 'dfernando@collectivercm.com', password: 'Dilmi123@',         role: 'Member' },
+    { username: 'palwis@collectivercm.com',    password: 'Piyum123@',         role: 'Member' },
+    { username: 'vihangam@botmedfusion.com',   password: 'Vihanga123@',       role: 'Member' },
+    { username: 'aranasinghe@collectivercm.com', password: 'Amandi123@',      role: 'Member' },
+    { username: 'CVithanage@collectivercm.com', password: 'Chamath123@',      role: 'Member' },
+    { username: 'imalshar@botmedfusion.com',   password: 'Imalsha123@',       role: 'Member' },
+    { username: 'shanka@collectivercm.com',    password: 'Shanka123@',        role: 'Member' },
+  ];
+  for (const u of users) {
+    await pool.query(`
+      INSERT INTO credentials (username, password, role)
+      VALUES ($1, $2, $3)
+      ON CONFLICT (username) DO NOTHING
+    `, [u.username, u.password, u.role]);
+  }
+
+  console.log('✅  Credentials table ready and seeded');
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS progress (
       id            SERIAL PRIMARY KEY,
@@ -70,13 +106,67 @@ async function initDB() {
     );
   `);
 
+  // Add missing columns to progress table (safe for existing tables)
+  const progressCols = [
+    `ALTER TABLE progress ADD COLUMN IF NOT EXISTS type         TEXT`,
+    `ALTER TABLE progress ADD COLUMN IF NOT EXISTS status       TEXT`,
+    `ALTER TABLE progress ADD COLUMN IF NOT EXISTS completion   NUMERIC(5,4) DEFAULT 0`,
+    `ALTER TABLE progress ADD COLUMN IF NOT EXISTS doc          NUMERIC(5,4) DEFAULT 0`,
+    `ALTER TABLE progress ADD COLUMN IF NOT EXISTS people       TEXT[]`,
+    `ALTER TABLE progress ADD COLUMN IF NOT EXISTS dept         TEXT`,
+    `ALTER TABLE progress ADD COLUMN IF NOT EXISTS priority     TEXT`,
+    `ALTER TABLE progress ADD COLUMN IF NOT EXISTS start_date   TEXT`,
+    `ALTER TABLE progress ADD COLUMN IF NOT EXISTS deadline     TEXT`,
+    `ALTER TABLE progress ADD COLUMN IF NOT EXISTS frequency    TEXT`,
+    `ALTER TABLE progress ADD COLUMN IF NOT EXISTS auto_fte     NUMERIC(10,4)`,
+    `ALTER TABLE progress ADD COLUMN IF NOT EXISTS manual_fte   NUMERIC(10,4)`,
+    `ALTER TABLE progress ADD COLUMN IF NOT EXISTS updated_at   TIMESTAMPTZ DEFAULT NOW()`,
+  ];
+  for (const sql of progressCols) {
+    await pool.query(sql);
+  }
+
   // Indexes for foreign keys
   await pool.query(`
     CREATE INDEX IF NOT EXISTS idx_meeting_updates_progress_id ON meeting_updates(progress_id);
     CREATE INDEX IF NOT EXISTS idx_milestones_progress_id ON milestones(progress_id);
   `);
 
-  console.log('✅  Tables ready — progress, meeting_updates, milestones');
+  console.log('✅  Tables ready — credentials, progress, meeting_updates, milestones');
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// AUTH ROUTES
+// ══════════════════════════════════════════════════════════════════════════════
+
+// POST /api/login — authenticate user
+app.post('/api/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    if (!username || !password)
+      return res.status(400).json({ success: false, error: 'Username and password are required' });
+
+    const { rows } = await query(
+      'SELECT id, username, role FROM credentials WHERE username=$1 AND password=$2',
+      [String(username).trim(), String(password)]
+    );
+
+    if (!rows.length)
+      return res.status(401).json({ success: false, error: 'Invalid username or password' });
+
+    res.json({ success: true, user: { id: rows[0].id, username: rows[0].username, role: rows[0].role } });
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+});
+
+// ── ROLE GUARD MIDDLEWARE ────────────────────────────────────────────────────
+// Reads X-User-Role header sent by the frontend on every mutating request.
+// Members (non-Admin) receive 403 for any write operation.
+function adminOnly(req, res, next) {
+  const role = req.headers['x-user-role'] || '';
+  if (role.toLowerCase() !== 'admin') {
+    return res.status(403).json({ success: false, error: 'Permission denied. Admin access required.' });
+  }
+  next();
 }
 
 // Helper: convert a DB row to the shape the frontend expects
@@ -151,7 +241,7 @@ app.get('/api/progress/:id', async (req, res) => {
 });
 
 // POST - bulk import/upsert from Excel upload
-app.post('/api/progress/import', async (req, res) => {
+app.post('/api/progress/import', adminOnly, async (req, res) => {
   try {
     const { projects } = req.body;
     if (!Array.isArray(projects) || !projects.length)
@@ -205,7 +295,7 @@ app.post('/api/progress/import', async (req, res) => {
 });
 
 // PUT - update a progress record
-app.put('/api/progress/:id', async (req, res) => {
+app.put('/api/progress/:id', adminOnly, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ success: false, error: 'Invalid ID' });
@@ -227,7 +317,7 @@ app.put('/api/progress/:id', async (req, res) => {
 });
 
 // DELETE a progress record (cascades to meeting_updates + milestones via FK)
-app.delete('/api/progress/:id', async (req, res) => {
+app.delete('/api/progress/:id', adminOnly, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ success: false, error: 'Invalid ID' });
@@ -241,6 +331,49 @@ app.delete('/api/progress/:id', async (req, res) => {
 // MEETING UPDATES ROUTES
 // ══════════════════════════════════════════════════════════════════════════════
 
+// POST - bulk import from Excel (matches process name case-insensitively)
+app.post('/api/meeting-updates/import', adminOnly, async (req, res) => {
+  try {
+    const { rows } = req.body;
+    if (!Array.isArray(rows) || !rows.length)
+      return res.status(400).json({ success: false, error: 'No rows provided' });
+
+    let imported = 0, skipped = 0;
+    const skippedNames = [];
+
+    for (const row of rows) {
+      const processName = String(row.process_name || '').trim();
+      if (!processName) { skipped++; continue; }
+
+      // Case-insensitive match — normalise whitespace on both sides
+      const { rows: found } = await query(
+        `SELECT id FROM progress WHERE LOWER(TRIM(process)) = LOWER($1)`,
+        [processName]
+      );
+
+      if (!found.length) {
+        skipped++;
+        if (!skippedNames.includes(processName)) skippedNames.push(processName);
+        continue;
+      }
+
+      const progress_id = found[0].id;
+      await query(
+        `INSERT INTO meeting_updates (progress_id, date, time, note, is_done, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, NOW(), NOW())`,
+        [progress_id,
+         row.date  || new Date().toISOString().split('T')[0],
+         row.time  || '',
+         String(row.note || '').trim(),
+         Boolean(row.is_done)]
+      );
+      imported++;
+    }
+
+    res.json({ success: true, imported, skipped, skippedNames });
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+});
+
 app.get('/api/meeting-updates/:progressId', async (req, res) => {
   try {
     const progressId = parseInt(req.params.progressId);
@@ -252,15 +385,15 @@ app.get('/api/meeting-updates/:progressId', async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
-app.post('/api/meeting-updates', async (req, res) => {
+app.post('/api/meeting-updates', adminOnly, async (req, res) => {
   try {
     const { progress_id, date, time, note, is_done } = req.body;
     const pid = parseInt(progress_id);
     if (isNaN(pid)) return res.status(400).json({ success: false, error: 'Invalid progress ID' });
     if (!note || !String(note).trim()) return res.status(400).json({ success: false, error: 'Note is required' });
     const { rows } = await query(
-      `INSERT INTO meeting_updates (progress_id, date, time, note, is_done)
-       VALUES ($1,$2,$3,$4,$5) RETURNING *`,
+      `INSERT INTO meeting_updates (progress_id, date, time, note, is_done, created_at, updated_at)
+       VALUES ($1,$2,$3,$4,$5,NOW(),NOW()) RETURNING *`,
       [pid,
        date || new Date().toISOString().split('T')[0],
        time || new Date().toTimeString().slice(0,5),
@@ -270,7 +403,7 @@ app.post('/api/meeting-updates', async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
-app.put('/api/meeting-updates/:id', async (req, res) => {
+app.put('/api/meeting-updates/:id', adminOnly, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ success: false, error: 'Invalid ID' });
@@ -285,7 +418,7 @@ app.put('/api/meeting-updates/:id', async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
-app.delete('/api/meeting-updates/:id', async (req, res) => {
+app.delete('/api/meeting-updates/:id', adminOnly, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ success: false, error: 'Invalid ID' });
@@ -321,21 +454,21 @@ app.get('/api/milestones', async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
-app.post('/api/milestones', async (req, res) => {
+app.post('/api/milestones', adminOnly, async (req, res) => {
   try {
     const { progress_id, title, description, due_date, status } = req.body;
     const pid = parseInt(progress_id);
     if (isNaN(pid)) return res.status(400).json({ success: false, error: 'Invalid progress ID' });
     if (!title || !String(title).trim()) return res.status(400).json({ success: false, error: 'Title is required' });
     const { rows } = await query(
-      `INSERT INTO milestones (progress_id, title, description, due_date, status)
-       VALUES ($1,$2,$3,$4,$5) RETURNING *`,
+      `INSERT INTO milestones (progress_id, title, description, due_date, status, created_at, updated_at)
+       VALUES ($1,$2,$3,$4,$5,NOW(),NOW()) RETURNING *`,
       [pid, String(title).trim(), String(description||'').trim(), due_date||null, status||'Pending']);
     res.json({ success: true, data: rowToMilestone(rows[0]) });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
-app.put('/api/milestones/:id', async (req, res) => {
+app.put('/api/milestones/:id', adminOnly, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ success: false, error: 'Invalid ID' });
@@ -353,7 +486,7 @@ app.put('/api/milestones/:id', async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
-app.delete('/api/milestones/:id', async (req, res) => {
+app.delete('/api/milestones/:id', adminOnly, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ success: false, error: 'Invalid ID' });
@@ -361,6 +494,11 @@ app.delete('/api/milestones/:id', async (req, res) => {
     if (!rowCount) return res.status(404).json({ success: false, error: 'Not found' });
     res.json({ success: true });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+});
+
+// ── Login page ────────────────────────────────────────────────────────────────
+app.get('/login', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
 // ── Fallback ──────────────────────────────────────────────────────────────────

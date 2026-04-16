@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign In — Progress Dashboard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      overflow: hidden;
+    }
+
+    /* ── Gradient background ── */
+    .bg {
+      position: fixed; inset: 0; z-index: 0;
+      background: linear-gradient(135deg, #b8a9c9 0%, #a78fa8 25%, #8e7fa0 50%, #c4a0b0 75%, #d4a8b8 100%);
+    }
+    /* Soft blurred blobs */
+    .blob {
+      position: absolute; border-radius: 50%;
+      filter: blur(60px); opacity: 0.55;
+    }
+    .blob-1 { width: 420px; height: 420px; background: #c49ec4; top: -100px; left: -80px; }
+    .blob-2 { width: 350px; height: 350px; background: #8878a8; bottom: -80px; right: -60px; }
+    .blob-3 { width: 250px; height: 250px; background: #d4a0b8; top: 40%; left: 55%; }
+
+    /* ── Page centre ── */
+    .page {
+      position: relative; z-index: 1;
+      display: flex; height: 100vh;
+      align-items: center; justify-content: center;
+    }
+
+    /* ── Card ── */
+    .card {
+      width: 320px;
+      background: rgba(220, 215, 235, 0.55);
+      backdrop-filter: blur(22px) saturate(160%);
+      -webkit-backdrop-filter: blur(22px) saturate(160%);
+      border: 1px solid rgba(255, 255, 255, 0.45);
+      border-radius: 20px;
+      padding: 52px 32px 36px;
+      box-shadow: 0 8px 40px rgba(60, 40, 90, 0.22);
+      position: relative;
+      text-align: center;
+    }
+
+    /* ── Avatar circle ── */
+    .avatar {
+      width: 76px; height: 76px;
+      border-radius: 50%;
+      background: #1e2a44;
+      display: flex; align-items: center; justify-content: center;
+      position: absolute;
+      top: -38px;
+      left: 50%; transform: translateX(-50%);
+      box-shadow: 0 4px 20px rgba(20, 30, 60, 0.35);
+    }
+    .avatar svg {
+      width: 38px; height: 38px;
+      fill: none; stroke: #fff;
+      stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round;
+    }
+
+    /* ── Error message ── */
+    .error-msg {
+      display: none;
+      background: rgba(220, 80, 80, 0.18);
+      border: 1px solid rgba(220, 80, 80, 0.35);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 12px;
+      color: #8b1a1a;
+      margin-bottom: 14px;
+      text-align: left;
+    }
+    .error-msg.show { display: block; }
+
+    /* ── Input rows ── */
+    .input-row {
+      display: flex; align-items: center;
+      background: rgba(30, 42, 68, 0.72);
+      border-radius: 8px;
+      margin-bottom: 10px;
+      padding: 0 12px;
+      border: 1px solid transparent;
+      transition: border-color 0.2s;
+    }
+    .input-row:focus-within {
+      border-color: rgba(255, 255, 255, 0.4);
+    }
+    .input-row .icon {
+      color: rgba(255,255,255,0.55);
+      flex-shrink: 0;
+      margin-right: 10px;
+      display: flex; align-items: center;
+    }
+    .input-row .icon svg {
+      width: 15px; height: 15px;
+      fill: none; stroke: currentColor;
+      stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+    }
+    .input-row input {
+      flex: 1;
+      background: transparent;
+      border: none; outline: none;
+      color: #fff;
+      font-size: 13px;
+      padding: 13px 0;
+      font-family: inherit;
+    }
+    .input-row input::placeholder { color: rgba(255,255,255,0.45); }
+
+    /* eye toggle */
+    .eye-btn {
+      background: none; border: none; cursor: pointer;
+      color: rgba(255,255,255,0.45); padding: 0; margin-left: 6px;
+      display: flex; align-items: center;
+      transition: color 0.15s;
+    }
+    .eye-btn:hover { color: rgba(255,255,255,0.8); }
+    .eye-btn svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* ── Bottom row: remember me ── */
+    .bottom-row {
+      display: flex; align-items: center;
+      margin: 4px 0 20px;
+      text-align: left;
+    }
+    .remember {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 11px; color: rgba(30,42,68,0.75);
+      cursor: pointer; user-select: none;
+    }
+    .remember input[type="checkbox"] {
+      width: 13px; height: 13px;
+      accent-color: #1e2a44; cursor: pointer;
+    }
+
+    /* ── Login button ── */
+    .btn-login {
+      width: 100%;
+      background: rgba(220, 215, 235, 0.45);
+      border: 1px solid rgba(255,255,255,0.5);
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: #1e2a44;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.2s, box-shadow 0.2s;
+      position: relative; overflow: hidden;
+    }
+    .btn-login:hover:not(:disabled) {
+      background: rgba(220, 215, 235, 0.65);
+      box-shadow: 0 4px 18px rgba(60,40,90,0.18);
+    }
+    .btn-login:disabled { opacity: 0.65; cursor: not-allowed; }
+    .btn-login .spinner {
+      display: none;
+      width: 16px; height: 16px;
+      border: 2px solid rgba(30,42,68,0.25);
+      border-top-color: #1e2a44;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto;
+    }
+    .btn-login.loading .btn-text { display: none; }
+    .btn-login.loading .spinner { display: block; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<div class="bg">
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
+</div>
+
+<div class="page">
+  <div class="card">
+
+    <!-- Avatar -->
+    <div class="avatar">
+      <svg viewBox="0 0 24 24">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+        <circle cx="12" cy="7" r="4"/>
+      </svg>
+    </div>
+
+    <!-- Error -->
+    <div class="error-msg" id="errorMsg"><span id="errorText"></span></div>
+
+    <!-- Email -->
+    <div class="input-row">
+      <span class="icon">
+        <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </span>
+      <input type="text" id="username" placeholder="Email ID" autocomplete="username" />
+    </div>
+
+    <!-- Password -->
+    <div class="input-row">
+      <span class="icon">
+        <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </span>
+      <input type="password" id="password" placeholder="Password" autocomplete="current-password" />
+      <button class="eye-btn" id="togglePw" type="button" tabindex="-1">
+        <svg id="eyeIcon" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
+
+    <!-- Remember me -->
+    <div class="bottom-row">
+      <label class="remember">
+        <input type="checkbox" id="rememberMe" /> Remember me
+      </label>
+    </div>
+
+    <!-- Login button -->
+    <button class="btn-login" id="loginBtn" type="button">
+      <span class="btn-text">Login</span>
+      <div class="spinner"></div>
+    </button>
+
+  </div>
+</div>
+
+<script>
+  const btn      = document.getElementById('loginBtn');
+  const errBox   = document.getElementById('errorMsg');
+  const errText  = document.getElementById('errorText');
+  const pwInput  = document.getElementById('password');
+  const togglePw = document.getElementById('togglePw');
+  const eyeIcon  = document.getElementById('eyeIcon');
+
+  const eyeShow = `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>`;
+  const eyeHide = `<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>`;
+
+  togglePw.addEventListener('click', () => {
+    const isText = pwInput.type === 'text';
+    pwInput.type = isText ? 'password' : 'text';
+    eyeIcon.innerHTML = isText ? eyeShow : eyeHide;
+  });
+
+  // Pre-fill from localStorage if remember me was checked
+  const saved = localStorage.getItem('rememberedUser');
+  if (saved) {
+    document.getElementById('username').value = saved;
+    document.getElementById('rememberMe').checked = true;
+  }
+
+  function showError(msg) { errText.textContent = msg; errBox.classList.add('show'); }
+  function hideError()    { errBox.classList.remove('show'); }
+
+  async function doLogin() {
+    hideError();
+    const username = document.getElementById('username').value.trim();
+    const password = pwInput.value;
+    const remember = document.getElementById('rememberMe').checked;
+
+    if (!username || !password) { showError('Please enter your email and password.'); return; }
+
+    btn.classList.add('loading'); btn.disabled = true;
+
+    try {
+      const res  = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        if (remember) localStorage.setItem('rememberedUser', username);
+        else          localStorage.removeItem('rememberedUser');
+        sessionStorage.setItem('user', JSON.stringify(data.user));
+        window.location.href = '/';
+      } else {
+        showError(data.error || 'Invalid email or password.');
+        btn.classList.remove('loading'); btn.disabled = false;
+      }
+    } catch (e) {
+      showError('Network error — please try again.');
+      btn.classList.remove('loading'); btn.disabled = false;
+    }
+  }
+
+  btn.addEventListener('click', doLogin);
+  document.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+</script>
+</body>
+</html>

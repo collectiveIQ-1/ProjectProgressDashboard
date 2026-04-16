@@ -3,6 +3,19 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<script>
+  // Auth guard + role bootstrap
+  (function() {
+    try {
+      const raw = sessionStorage.getItem('user');
+      if (!raw) { window.location.replace('/login'); return; }
+      const user = JSON.parse(raw);
+      window._userRole    = (user.role || 'Member').toLowerCase();
+      window._userName    = user.username || '';
+      window._isAdmin     = window._userRole === 'admin';
+    } catch(e) { window.location.replace('/login'); }
+  })();
+</script>
 <title>Progress Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <style>
@@ -270,9 +283,9 @@ td{padding:9px 14px;font-size:12px;white-space:nowrap;overflow:hidden;text-overf
 .modal-3col{display:flex;flex:1;overflow:hidden;min-height:0}
 .modal-col-left{width:340px;flex-shrink:0;border-right:1px solid var(--border);overflow-y:auto;padding:20px 22px 24px;background:#fff}
 .modal-col-right{flex:1;display:flex;flex-direction:column;min-width:0;background:#f8faff}
-.modal-col-mu{flex:1;overflow-y:auto;padding:16px 18px;border-bottom:1px solid var(--border);min-height:0}
-.modal-col-ms{flex:1;overflow-y:auto;padding:16px 18px;min-height:0}
-.modal-panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px}
+.modal-col-mu{flex:1;display:flex;flex-direction:column;padding:16px 18px;border-bottom:1px solid var(--border);min-height:0;overflow:hidden}
+.modal-col-ms{flex:1;display:flex;flex-direction:column;padding:16px 18px;min-height:0;overflow:hidden}
+.modal-panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px;flex-shrink:0}
 .modal-panel-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.9px;display:flex;align-items:center;gap:6px}
 .modal-panel-title svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2.2;flex-shrink:0}
 .modal-panel-count{font-size:10px;font-weight:700;padding:1px 7px;border-radius:10px;min-width:18px;text-align:center}
@@ -305,7 +318,7 @@ td{padding:9px 14px;font-size:12px;white-space:nowrap;overflow:hidden;text-overf
 .imu-btn-primary:hover{opacity:.88}
 .imu-btn-teal{background:var(--teal);color:#fff}
 .imu-btn-teal:hover{opacity:.88}
-.imu-add-form{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px;display:none}
+.imu-add-form{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px;display:none;flex-shrink:0}
 .imu-add-form.open{display:block}
 .imu-input{padding:7px 10px;border:1px solid var(--border2);border-radius:8px;font-size:12px;font-family:var(--font-b);color:var(--text);background:#fff;outline:none;transition:border-color .15s;width:100%}
 .imu-input:focus{border-color:var(--blue)}
@@ -425,6 +438,54 @@ td{padding:9px 14px;font-size:12px;white-space:nowrap;overflow:hidden;text-overf
 .ms-table tr:last-child td{border-bottom:none}
 .ms-table tr:hover td{background:#f2f6ff}
 
+
+/* ── RBAC: hide admin-only elements for members ── */
+body.role-member .admin-only { display: none !important; }
+/* Read-only overlay for interactive controls in member mode */
+body.role-member .member-readonly {
+  pointer-events: none !important;
+  opacity: 0.45 !important;
+  user-select: none !important;
+}
+/* Role badge in topbar */
+.role-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 10px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+  padding: 3px 10px; border-radius: 20px;
+}
+.role-badge.admin  { background: rgba(79,70,229,0.12); color: #4f46e5; border: 1px solid rgba(79,70,229,0.25); }
+.role-badge.member { background: rgba(107,114,128,0.1); color: #6b7280; border: 1px solid rgba(107,114,128,0.2); }
+/* User info pill */
+.user-pill {
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 12px 4px 6px;
+  background: rgba(59,125,232,0.06); border: 1px solid var(--border2);
+  border-radius: 20px; font-size: 11px; color: var(--muted2);
+}
+.user-av {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: linear-gradient(135deg,#4f46e5,#7c3aed);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; color: #fff; flex-shrink: 0;
+}
+.signout-btn {
+  background: none; border: none; cursor: pointer;
+  color: var(--muted); font-size: 10px; padding: 0 0 0 6px;
+  font-family: var(--font-b); transition: color .15s;
+  border-left: 1px solid var(--border2); margin-left: 4px; padding-left: 8px;
+}
+.signout-btn:hover { color: var(--coral); }
+/* View-only banner */
+.view-only-banner {
+  display: none;
+  align-items: center; gap: 8px;
+  background: rgba(240,168,50,0.1); border: 1px solid rgba(240,168,50,0.3);
+  color: #7a5200; border-radius: 8px; padding: 6px 14px; font-size: 11px;
+  margin: 0 32px 16px;
+}
+.view-only-banner svg { width: 14px; height: 14px; flex-shrink: 0; }
+body.role-member .view-only-banner { display: flex; }
+
 </style>
 </head>
 <body>
@@ -441,10 +502,18 @@ td{padding:9px 14px;font-size:12px;white-space:nowrap;overflow:hidden;text-overf
       <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
       <span id="fileChipName"></span>
     </div>
-    <button class="upload-top-btn" onclick="navTo('import');document.getElementById('uploadHero').click()">
+    <!-- Admin-only upload button -->
+    <button class="upload-top-btn admin-only" onclick="navTo('import');document.getElementById('uploadHero').click()">
       <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
       Upload Excel
     </button>
+    <!-- User identity pill -->
+    <div class="user-pill">
+      <div class="user-av" id="userAv"></div>
+      <span id="userNameDisplay"></span>
+      <span class="role-badge" id="roleBadge"></span>
+      <button class="signout-btn" onclick="signOut()" title="Sign out">Sign out</button>
+    </div>
   </div>
 </header>
 
@@ -453,7 +522,7 @@ td{padding:9px 14px;font-size:12px;white-space:nowrap;overflow:hidden;text-overf
   <!-- SIDEBAR -->
   <nav class="sidebar">
     <div class="nav-section-label">Data</div>
-    <a class="nav-item active" onclick="navTo('import')" id="nav-import">
+    <a class="nav-item active admin-only" onclick="navTo('import')" id="nav-import">
       <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>
       Import File
       <span class="nav-badge" id="nb-import">xlsx</span>
@@ -496,6 +565,11 @@ td{padding:9px 14px;font-size:12px;white-space:nowrap;overflow:hidden;text-overf
 
   <!-- PAGES -->
   <div class="content">
+    <!-- Shown only for Member role -->
+    <div class="view-only-banner">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <strong>View-only mode</strong> — You are signed in as a Member. Contact an Admin to make changes.
+    </div>
 
     <!-- ① IMPORT FILE -->
     <div class="page active" id="page-import">
@@ -516,7 +590,7 @@ td{padding:9px 14px;font-size:12px;white-space:nowrap;overflow:hidden;text-overf
         </button>
       </div>
 
-      <div class="upload-hero" id="uploadHero" onclick="document.getElementById('fileInput').click()">
+      <div class="upload-hero admin-only" id="uploadHero" onclick="document.getElementById('fileInput').click()">
         <div class="upload-hero-icon">
           <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg>
         </div>
@@ -556,7 +630,7 @@ td{padding:9px 14px;font-size:12px;white-space:nowrap;overflow:hidden;text-overf
             <div class="upload-status-meta" id="muUploadStatusMeta"></div>
           </div>
         </div>
-        <div class="upload-hero" id="muUploadHero" style="border-color:rgba(124,95,230,0.3)" onclick="document.getElementById('muFileInput').click()">
+        <div class="upload-hero admin-only" id="muUploadHero" style="border-color:rgba(124,95,230,0.3)" onclick="document.getElementById('muFileInput').click()">
           <div class="upload-hero-icon" style="background:rgba(124,95,230,0.08);border-color:rgba(124,95,230,0.2)">
             <svg viewBox="0 0 24 24" style="stroke:var(--purple)"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="14" x2="16" y2="14"/></svg>
           </div>
@@ -972,55 +1046,37 @@ function parseMeetingRows(raw) {
 }
 
 async function appendMeetingUpdatesToDB(rows) {
-  let progressMap = {};
   try {
-    const resp = await fetch(`${API_BASE}/api/progress`, { signal: AbortSignal.timeout(8000) });
-    if (!resp.ok) throw new Error('Server returned ' + resp.status);
+    // Send all rows in one request — server does case-insensitive process name matching
+    const payload = rows.map(r => ({
+      process_name: r.processName,
+      date:         r.date,
+      time:         r.time,
+      note:         r.note,
+      is_done:      r.is_done,
+    }));
+
+    const resp = await authFetch(`${API_BASE}/api/meeting-updates/import`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rows: payload }),
+      signal: AbortSignal.timeout(30000)
+    });
+
+    if (!resp.ok) {
+      const errData = await resp.json().catch(() => ({}));
+      return { imported: 0, skipped: rows.length, skippedNames: rows.map(r => r.processName), serverError: errData.error || 'Server error ' + resp.status };
+    }
+
     const data = await resp.json();
     if (data.success) {
-      // Build case-insensitive map for robust matching
-      data.data.forEach(p => {
-        const key = p.process.trim();
-        progressMap[key] = p._id;
-        progressMap[key.toLowerCase()] = p._id;  // also store lowercase for fallback
-      });
+      return { imported: data.imported, skipped: data.skipped, skippedNames: data.skippedNames || [], serverError: null };
     }
-  } catch (err) {
-    return { imported: 0, skipped: rows.length, skippedNames: rows.map(r=>r.processName), serverError: err.message };
-  }
+    return { imported: 0, skipped: rows.length, skippedNames: rows.map(r => r.processName), serverError: data.error || 'Unknown error' };
 
-  let imported = 0, skipped = 0;
-  const skippedNames = [];
-  for (const row of rows) {
-    // Try exact match first, then case-insensitive
-    const progressId = progressMap[row.processName] || progressMap[row.processName.toLowerCase()];
-    if (!progressId) {
-      skipped++;
-      if (!skippedNames.includes(row.processName)) skippedNames.push(row.processName);
-      continue;
-    }
-    try {
-      const resp = await fetch(`${API_BASE}/api/meeting-updates`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          progress_id: progressId,
-          date: row.date,
-          time: row.time,
-          note: row.note,
-          is_done: row.is_done
-        }),
-        signal: AbortSignal.timeout(8000)
-      });
-      const data = await resp.json();
-      if (data.success) imported++;
-      else { skipped++; if (!skippedNames.includes(row.processName)) skippedNames.push(row.processName); }
-    } catch (err) {
-      skipped++;
-      if (!skippedNames.includes(row.processName)) skippedNames.push(row.processName);
-    }
+  } catch (err) {
+    return { imported: 0, skipped: rows.length, skippedNames: rows.map(r => r.processName), serverError: err.message };
   }
-  return { imported, skipped, skippedNames, serverError: null };
 }
 
 function parseProjects(raw){
@@ -1585,6 +1641,79 @@ function renderTypeGrid(projects){
 // ── API CONFIG ────────────────────────────────────────────────────────────────
 const API_BASE = '';  // same origin — served by Express
 
+// ── ROLE-AWARE FETCH WRAPPER ────────────────────────────────────────────────
+// Automatically injects X-User-Role header on every mutating request.
+// Also blocks the call client-side if user is not Admin, showing a friendly toast.
+async function authFetch(url, options = {}) {
+  const role = window._userRole || 'member';
+  const method = (options.method || 'GET').toUpperCase();
+  const isMutating = ['POST','PUT','DELETE','PATCH'].includes(method);
+
+  if (isMutating && role !== 'admin') {
+    showToast('🔒 View-only mode — Admins only can make changes.', 'warn');
+    throw new Error('Permission denied');
+  }
+
+  const headers = Object.assign({}, options.headers || {});
+  if (isMutating) headers['X-User-Role'] = window._userRole || 'member';
+
+  return fetch(url, { ...options, headers });
+}
+
+function showToast(msg, type = 'info') {
+  let toast = document.getElementById('_rbacToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = '_rbacToast';
+    toast.style.cssText = 'position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(20px);z-index:9999;border-radius:10px;padding:11px 22px;font-size:12px;font-weight:500;font-family:var(--font-b);box-shadow:0 8px 24px rgba(0,0,0,0.15);transition:all .3s;opacity:0;pointer-events:none';
+    document.body.appendChild(toast);
+  }
+  const styles = {
+    warn:  'background:#fffbf0;border:1px solid rgba(240,168,50,0.4);color:#7a5200',
+    error: 'background:#fff5f5;border:1px solid rgba(232,92,92,0.3);color:#b03030',
+    info:  'background:#f0f5ff;border:1px solid rgba(59,125,232,0.25);color:#2d5db5',
+  };
+  toast.style.cssText += ';' + (styles[type] || styles.info);
+  toast.textContent = msg;
+  toast.style.opacity = '1';
+  toast.style.transform = 'translateX(-50%) translateY(0)';
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateX(-50%) translateY(20px)';
+  }, 3200);
+}
+
+function signOut() {
+  sessionStorage.removeItem('user');
+  window.location.replace('/login');
+}
+
+// ── APPLY ROLE TO DOM ────────────────────────────────────────────────────────
+function applyRoleToDOM() {
+  const isAdmin = window._isAdmin;
+  const role = window._userRole || 'member';
+  // Body class drives .admin-only visibility via CSS
+  document.body.classList.add(isAdmin ? 'role-admin' : 'role-member');
+  // User pill
+  const uname = window._userName || '';
+  const initials = uname.split('@')[0].slice(0, 2).toUpperCase();
+  const avEl = document.getElementById('userAv');
+  const nameEl = document.getElementById('userNameDisplay');
+  const badgeEl = document.getElementById('roleBadge');
+  if (avEl) avEl.textContent = initials;
+  if (nameEl) nameEl.textContent = uname.split('@')[0];
+  if (badgeEl) {
+    badgeEl.textContent = isAdmin ? 'Admin' : 'Member';
+    badgeEl.className = 'role-badge ' + (isAdmin ? 'admin' : 'member');
+  }
+  // If Member, redirect import nav to overview
+  if (!isAdmin) {
+    const navImport = document.getElementById('nav-import');
+    if (navImport) navImport.style.display = 'none';
+  }
+}
+
 // ── LOAD FROM MONGODB ON PAGE START ──────────────────────────────────────────
 async function loadFromMongoDB() {
   try {
@@ -1669,7 +1798,7 @@ function updateImportUIFromDB(count) {
   document.getElementById('nb-import').style.color = 'var(--teal)';
 }
 
-// ── IMPORT TO MONGODB (only called when Excel is uploaded) ────────────────────
+// ── IMPORT TO DB (only called when Excel is uploaded) ────────────────────
 async function importToMongoDB(projects) {
   try {
     // Prepare serializable versions (convert Date objects to ISO strings)
@@ -1678,7 +1807,7 @@ async function importToMongoDB(projects) {
       startDate: p.startDate instanceof Date ? p.startDate.toISOString() : (p.startDate || null),
       deadline: p.deadline instanceof Date ? p.deadline.toISOString() : (p.deadline || null),
     }));
-    const resp = await fetch(`${API_BASE}/api/progress/import`, {
+    const resp = await authFetch(`${API_BASE}/api/progress/import`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ projects: serializable })
@@ -1692,11 +1821,25 @@ async function importToMongoDB(projects) {
         const idMap = {};
         allData.data.forEach(r => { idMap[r.process] = r._id; });
         (window._projects || []).forEach(p => { p._id = idMap[p.process] || null; });
-        console.log(`✅ Synced to MongoDB: ${data.inserted} new, ${data.updated} updated`);
+        console.log(`✅ Saved to database: ${data.inserted} new, ${data.updated} updated`);
+        showToast(`✅ ${data.inserted} added · ${data.updated} updated — saved to database`, 'success');
       }
+    } else {
+      // Server returned an error — show it visibly
+      const msg = data.error || 'Unknown server error';
+      console.error('❌ Import failed:', msg);
+      showToast('❌ Database save failed: ' + msg, 'error');
+      alert('Data was NOT saved to the database.\n\nError: ' + msg + '\n\nCheck the server terminal for details.');
     }
   } catch (err) {
-    console.warn('MongoDB sync failed (running offline mode):', err.message);
+    // Only show alert for non-permission errors (permission toast is shown by authFetch)
+    if (err.message !== 'Permission denied') {
+      console.error('❌ Import error:', err.message);
+      showToast('❌ Could not save to database: ' + err.message, 'error');
+      alert('Data was NOT saved to the database.\n\nError: ' + err.message);
+    } else {
+      console.warn('Import blocked — not logged in as Admin');
+    }
   }
 }
 
@@ -1821,7 +1964,7 @@ function openModal(idx){
               Meeting Updates
               <span class="modal-panel-count" style="background:rgba(124,95,230,0.12);color:var(--purple)" id="mu-inline-count">…</span>
             </div>
-            <button class="imu-btn imu-btn-primary" style="font-size:10px;padding:5px 11px" onclick="toggleInlineMuForm()">
+            <button class="imu-btn imu-btn-primary admin-only" style="font-size:10px;padding:5px 11px" onclick="toggleInlineMuForm()">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               Add
             </button>
@@ -1847,7 +1990,7 @@ function openModal(idx){
               </div>
             </div>
           </div>
-          <div id="inlineMuList"><div class="imu-loader"><div class="mu-spin"></div> Loading…</div></div>
+          <div id="inlineMuList" style="flex:1;overflow-y:auto;min-height:0"><div class="imu-loader"><div class="mu-spin"></div> Loading…</div></div>
         </div>
 
         <!-- Milestones section -->
@@ -1858,7 +2001,7 @@ function openModal(idx){
               Milestones
               <span class="modal-panel-count" style="background:rgba(23,185,138,0.12);color:var(--teal)" id="ms-inline-count">…</span>
             </div>
-            <button class="imu-btn imu-btn-teal" style="font-size:10px;padding:5px 11px" onclick="toggleInlineMsForm()">
+            <button class="imu-btn imu-btn-teal admin-only" style="font-size:10px;padding:5px 11px" onclick="toggleInlineMsForm()">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               Add
             </button>
@@ -1889,7 +2032,7 @@ function openModal(idx){
               <button class="imu-btn imu-btn-sec" style="font-size:10px" onclick="toggleInlineMsForm()">Cancel</button>
             </div>
           </div>
-          <div id="inlineMsList"><div class="imu-loader"><div class="mu-spin"></div> Loading…</div></div>
+          <div id="inlineMsList" style="flex:1;overflow-y:auto;min-height:0"><div class="imu-loader"><div class="mu-spin"></div> Loading…</div></div>
         </div>
 
       </div>
@@ -2020,7 +2163,7 @@ async function saveInlineMeetingUpdate(idx) {
   const is_done = document.getElementById('imuNewDone').checked;
   if(!note) { alert('Please enter a note.'); return; }
   try {
-    const resp = await fetch(`${API_BASE}/api/meeting-updates`, {
+    const resp = await authFetch(`${API_BASE}/api/meeting-updates`, {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ progress_id: p._id, date, time, note, is_done })
     });
@@ -2041,7 +2184,7 @@ async function inlineSaveEditMu(id, idx) {
   const is_done = document.getElementById(`imuEDone_${id}`).checked;
   if(!note) { alert('Note cannot be empty.'); return; }
   try {
-    const resp = await fetch(`${API_BASE}/api/meeting-updates/${id}`, {
+    const resp = await authFetch(`${API_BASE}/api/meeting-updates/${id}`, {
       method:'PUT', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ date, time, note, is_done })
     });
@@ -2053,7 +2196,7 @@ async function inlineSaveEditMu(id, idx) {
 
 async function inlineToggleDone(id, newDone, idx) {
   try {
-    const resp = await fetch(`${API_BASE}/api/meeting-updates/${id}`, {
+    const resp = await authFetch(`${API_BASE}/api/meeting-updates/${id}`, {
       method:'PUT', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ is_done: newDone })
     });
@@ -2066,7 +2209,7 @@ async function inlineToggleDone(id, newDone, idx) {
 async function inlineDeleteMu(id, idx) {
   if(!confirm('Delete this meeting update?')) return;
   try {
-    const resp = await fetch(`${API_BASE}/api/meeting-updates/${id}`, { method:'DELETE' });
+    const resp = await authFetch(`${API_BASE}/api/meeting-updates/${id}`, { method:'DELETE' });
     const data = await resp.json();
     if(!data.success) throw new Error(data.error);
     loadInlineMeetingUpdates(idx);
@@ -2184,7 +2327,7 @@ async function saveInlineMilestone(idx) {
   const status = document.getElementById('imsNewStatus').value;
   if(!title) { alert('Please enter a milestone title.'); return; }
   try {
-    const resp = await fetch(`${API_BASE}/api/milestones`, {
+    const resp = await authFetch(`${API_BASE}/api/milestones`, {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ progress_id: p._id, title, description: desc, due_date: due||null, status })
     });
@@ -2206,7 +2349,7 @@ async function inlineSaveEditMs(id, idx) {
   const status = document.getElementById(`imsES_${id}`).value;
   if(!title) { alert('Title cannot be empty.'); return; }
   try {
-    const resp = await fetch(`${API_BASE}/api/milestones/${id}`, {
+    const resp = await authFetch(`${API_BASE}/api/milestones/${id}`, {
       method:'PUT', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ title, description: desc, due_date: due||null, status })
     });
@@ -2218,7 +2361,7 @@ async function inlineSaveEditMs(id, idx) {
 
 async function inlineUpdateMsStatus(id, status, idx) {
   try {
-    const resp = await fetch(`${API_BASE}/api/milestones/${id}`, {
+    const resp = await authFetch(`${API_BASE}/api/milestones/${id}`, {
       method:'PUT', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ status })
     });
@@ -2231,7 +2374,7 @@ async function inlineUpdateMsStatus(id, status, idx) {
 async function inlineDeleteMs(id, idx) {
   if(!confirm('Delete this milestone?')) return;
   try {
-    const resp = await fetch(`${API_BASE}/api/milestones/${id}`, { method:'DELETE' });
+    const resp = await authFetch(`${API_BASE}/api/milestones/${id}`, { method:'DELETE' });
     const data = await resp.json();
     if(!data.success) throw new Error(data.error);
     loadInlineMilestones(idx);
@@ -2291,7 +2434,7 @@ async function renderMeetingsPage(p, col) {
     <div class="card" style="margin-bottom:16px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0;flex-wrap:wrap;gap:10px">
         <div style="font-family:var(--font-d);font-size:16px">Meeting Updates</div>
-        <button class="mu-btn mu-btn-primary" onclick="toggleAddForm()">
+        <button class="mu-btn mu-btn-primary admin-only" onclick="toggleAddForm()">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Add Update
         </button>
@@ -2482,7 +2625,7 @@ async function saveMeetingUpdate() {
   const is_done = document.getElementById('muNewIsDone').checked;
   if(!note) { alert('Please enter a note.'); return; }
   try {
-    const resp = await fetch(`${API_BASE}/api/meeting-updates`, {
+    const resp = await authFetch(`${API_BASE}/api/meeting-updates`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ progress_id: p._id, date, time, note, is_done })
@@ -2508,7 +2651,7 @@ async function saveEditMeetingUpdate(id) {
   const is_done = document.getElementById(`muEditDone_${id}`).checked;
   if(!note) { alert('Note cannot be empty.'); return; }
   try {
-    const resp = await fetch(`${API_BASE}/api/meeting-updates/${id}`, {
+    const resp = await authFetch(`${API_BASE}/api/meeting-updates/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ date, time, note, is_done })
@@ -2524,7 +2667,7 @@ async function saveEditMeetingUpdate(id) {
 async function toggleDone(id, newDone) {
   const p = (window._projects||[])[_currentMeetingProjectIdx];
   try {
-    const resp = await fetch(`${API_BASE}/api/meeting-updates/${id}`, {
+    const resp = await authFetch(`${API_BASE}/api/meeting-updates/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ is_done: newDone })
@@ -2541,7 +2684,7 @@ async function deleteMeetingUpdate(id) {
   if(!confirm('Delete this meeting update? This cannot be undone.')) return;
   const p = (window._projects||[])[_currentMeetingProjectIdx];
   try {
-    const resp = await fetch(`${API_BASE}/api/meeting-updates/${id}`, { method: 'DELETE' });
+    const resp = await authFetch(`${API_BASE}/api/meeting-updates/${id}`, { method: 'DELETE' });
     const data = await resp.json();
     if(!data.success) throw new Error(data.error);
     await loadMeetingUpdates(p);
@@ -2787,7 +2930,7 @@ async function saveMilestone() {
   const status = document.getElementById('msNewStatus').value;
   if(!title) { alert('Please enter a milestone title.'); return; }
   try {
-    const resp = await fetch(`${API_BASE}/api/milestones`, {
+    const resp = await authFetch(`${API_BASE}/api/milestones`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ progress_id: p._id, title, description: desc, due_date: due||null, status })
     });
@@ -2810,7 +2953,7 @@ async function saveEditMilestone(id) {
   const status = document.getElementById(`msEditStatus_${id}`).value;
   if(!title) { alert('Title cannot be empty.'); return; }
   try {
-    const resp = await fetch(`${API_BASE}/api/milestones/${id}`, {
+    const resp = await authFetch(`${API_BASE}/api/milestones/${id}`, {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title, description: desc, due_date: due||null, status })
     });
@@ -2823,7 +2966,7 @@ async function saveEditMilestone(id) {
 async function updateMilestoneStatus(id, status) {
   const p = (window._projects||[])[_currentMilestoneProjectIdx];
   try {
-    const resp = await fetch(`${API_BASE}/api/milestones/${id}`, {
+    const resp = await authFetch(`${API_BASE}/api/milestones/${id}`, {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status })
     });
@@ -2837,7 +2980,7 @@ async function deleteMilestone(id) {
   if(!confirm('Delete this milestone?')) return;
   const p = (window._projects||[])[_currentMilestoneProjectIdx];
   try {
-    const resp = await fetch(`${API_BASE}/api/milestones/${id}`, { method: 'DELETE' });
+    const resp = await authFetch(`${API_BASE}/api/milestones/${id}`, { method: 'DELETE' });
     const data = await resp.json();
     if(!data.success) throw new Error(data.error);
     await loadMilestones(p);
@@ -2846,6 +2989,7 @@ async function deleteMilestone(id) {
 
 // ── AUTO-LOAD FROM DB ON PAGE START ──────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
+  applyRoleToDOM();
   loadFromMongoDB();
 });
 </script>
