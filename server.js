@@ -410,9 +410,10 @@ app.put('/api/meeting-updates/:id', adminOnly, async (req, res) => {
     const { date, time, note, is_done } = req.body;
     const { rows } = await query(
       `UPDATE meeting_updates
-       SET date=$1, time=$2, note=COALESCE($3,note), is_done=$4, updated_at=NOW()
+       SET date=COALESCE($1,date), time=COALESCE($2,time), note=COALESCE($3,note),
+           is_done=$4, updated_at=NOW()
        WHERE id=$5 RETURNING *`,
-      [date, time, note ? String(note).trim() : null, Boolean(is_done), id]);
+      [date || null, time || null, note ? String(note).trim() : null, Boolean(is_done), id]);
     if (!rows.length) return res.status(404).json({ success: false, error: 'Not found' });
     res.json({ success: true, data: rowToMeetingUpdate(rows[0]) });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }

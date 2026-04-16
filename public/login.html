@@ -7,27 +7,34 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    html, body {
-      height: 100%;
-      font-family: 'Segoe UI', Arial, sans-serif;
-      overflow: hidden;
-    }
+    html, body { height: 100%; font-family: 'Segoe UI', Arial, sans-serif; overflow: hidden; }
 
-    /* ── Gradient background ── */
+    /* ── Animated background ── */
     .bg {
       position: fixed; inset: 0; z-index: 0;
-      background: linear-gradient(135deg, #b8a9c9 0%, #a78fa8 25%, #8e7fa0 50%, #c4a0b0 75%, #d4a8b8 100%);
+      background: linear-gradient(140deg, #9b8ec4 0%, #b08ab0 30%, #c490a8 60%, #a87ea0 100%);
+      animation: bgShift 12s ease-in-out infinite alternate;
     }
-    /* Soft blurred blobs */
+    @keyframes bgShift {
+      0%   { filter: hue-rotate(0deg) brightness(1); }
+      100% { filter: hue-rotate(20deg) brightness(1.08); }
+    }
+
+    /* Animated blobs */
     .blob {
       position: absolute; border-radius: 50%;
-      filter: blur(60px); opacity: 0.55;
+      filter: blur(72px); opacity: 0.6;
+      animation: drift 10s ease-in-out infinite alternate;
     }
-    .blob-1 { width: 420px; height: 420px; background: #c49ec4; top: -100px; left: -80px; }
-    .blob-2 { width: 350px; height: 350px; background: #8878a8; bottom: -80px; right: -60px; }
-    .blob-3 { width: 250px; height: 250px; background: #d4a0b8; top: 40%; left: 55%; }
+    .blob-1 { width: 500px; height: 500px; background: #c49ec4; top: -160px; left: -120px; animation-delay: 0s; }
+    .blob-2 { width: 420px; height: 420px; background: #7868a8; bottom: -120px; right: -80px; animation-delay: -4s; }
+    .blob-3 { width: 300px; height: 300px; background: #e0a0c0; top: 35%; left: 50%; animation-delay: -7s; }
+    @keyframes drift {
+      from { transform: translate(0, 0) scale(1); }
+      to   { transform: translate(24px, 18px) scale(1.06); }
+    }
 
-    /* ── Page centre ── */
+    /* ── Page ── */
     .page {
       position: relative; z-index: 1;
       display: flex; height: 100vh;
@@ -36,143 +43,183 @@
 
     /* ── Card ── */
     .card {
-      width: 320px;
-      background: rgba(220, 215, 235, 0.55);
-      backdrop-filter: blur(22px) saturate(160%);
-      -webkit-backdrop-filter: blur(22px) saturate(160%);
-      border: 1px solid rgba(255, 255, 255, 0.45);
-      border-radius: 20px;
-      padding: 52px 32px 36px;
-      box-shadow: 0 8px 40px rgba(60, 40, 90, 0.22);
+      width: 420px;
+      background: rgba(230, 224, 245, 0.52);
+      backdrop-filter: blur(28px) saturate(180%);
+      -webkit-backdrop-filter: blur(28px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.55);
+      border-radius: 28px;
+      padding: 64px 44px 44px;
+      box-shadow:
+        0 8px 48px rgba(60, 30, 90, 0.28),
+        0 2px 0 rgba(255,255,255,0.6) inset;
       position: relative;
       text-align: center;
+      animation: cardIn 0.55s cubic-bezier(0.22,1,0.36,1) both;
+    }
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(32px) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
     }
 
-    /* ── Avatar circle ── */
+    /* ── Avatar ── */
     .avatar {
-      width: 76px; height: 76px;
+      width: 90px; height: 90px;
       border-radius: 50%;
-      background: #1e2a44;
+      background: linear-gradient(145deg, #253050, #1a2240);
       display: flex; align-items: center; justify-content: center;
       position: absolute;
-      top: -38px;
+      top: -45px;
       left: 50%; transform: translateX(-50%);
-      box-shadow: 0 4px 20px rgba(20, 30, 60, 0.35);
+      box-shadow:
+        0 6px 28px rgba(20, 30, 70, 0.45),
+        0 0 0 4px rgba(255,255,255,0.3);
     }
     .avatar svg {
-      width: 38px; height: 38px;
-      fill: none; stroke: #fff;
-      stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round;
+      width: 44px; height: 44px;
+      fill: none; stroke: rgba(255,255,255,0.9);
+      stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round;
     }
 
-    /* ── Error message ── */
+    /* ── Title ── */
+    .card-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: #1e2a44;
+      letter-spacing: -0.3px;
+      margin-bottom: 4px;
+    }
+    .card-sub {
+      font-size: 12px;
+      color: rgba(40, 50, 80, 0.55);
+      margin-bottom: 28px;
+      letter-spacing: 0.3px;
+    }
+
+    /* ── Error ── */
     .error-msg {
       display: none;
-      background: rgba(220, 80, 80, 0.18);
-      border: 1px solid rgba(220, 80, 80, 0.35);
-      border-radius: 8px;
-      padding: 8px 12px;
-      font-size: 12px;
-      color: #8b1a1a;
-      margin-bottom: 14px;
-      text-align: left;
+      background: rgba(200, 50, 50, 0.14);
+      border: 1px solid rgba(200, 50, 50, 0.3);
+      border-radius: 10px;
+      padding: 9px 14px;
+      font-size: 12px; color: #7a1515;
+      margin-bottom: 16px; text-align: left;
+      animation: shake 0.32s ease;
     }
     .error-msg.show { display: block; }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      25%      { transform: translateX(-6px); }
+      75%      { transform: translateX(6px); }
+    }
 
     /* ── Input rows ── */
     .input-row {
       display: flex; align-items: center;
-      background: rgba(30, 42, 68, 0.72);
-      border-radius: 8px;
-      margin-bottom: 10px;
-      padding: 0 12px;
-      border: 1px solid transparent;
-      transition: border-color 0.2s;
+      background: rgba(22, 34, 60, 0.70);
+      border-radius: 12px;
+      margin-bottom: 13px;
+      padding: 0 16px;
+      border: 1px solid rgba(255,255,255,0.08);
+      transition: border-color 0.2s, box-shadow 0.2s;
     }
     .input-row:focus-within {
-      border-color: rgba(255, 255, 255, 0.4);
+      border-color: rgba(255, 255, 255, 0.35);
+      box-shadow: 0 0 0 3px rgba(160,130,210,0.25);
     }
     .input-row .icon {
-      color: rgba(255,255,255,0.55);
-      flex-shrink: 0;
-      margin-right: 10px;
+      color: rgba(255,255,255,0.5);
+      flex-shrink: 0; margin-right: 12px;
       display: flex; align-items: center;
     }
     .input-row .icon svg {
-      width: 15px; height: 15px;
+      width: 17px; height: 17px;
       fill: none; stroke: currentColor;
       stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
     }
     .input-row input {
-      flex: 1;
-      background: transparent;
+      flex: 1; background: transparent;
       border: none; outline: none;
-      color: #fff;
-      font-size: 13px;
-      padding: 13px 0;
+      color: #fff; font-size: 14px;
+      padding: 16px 0;
       font-family: inherit;
     }
-    .input-row input::placeholder { color: rgba(255,255,255,0.45); }
+    .input-row input::placeholder { color: rgba(255,255,255,0.38); }
 
     /* eye toggle */
     .eye-btn {
       background: none; border: none; cursor: pointer;
-      color: rgba(255,255,255,0.45); padding: 0; margin-left: 6px;
-      display: flex; align-items: center;
-      transition: color 0.15s;
+      color: rgba(255,255,255,0.4); padding: 0; margin-left: 8px;
+      display: flex; align-items: center; transition: color 0.15s;
     }
-    .eye-btn:hover { color: rgba(255,255,255,0.8); }
-    .eye-btn svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .eye-btn:hover { color: rgba(255,255,255,0.85); }
+    .eye-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
-    /* ── Bottom row: remember me ── */
+    /* ── Remember me ── */
     .bottom-row {
       display: flex; align-items: center;
-      margin: 4px 0 20px;
-      text-align: left;
+      margin: 2px 0 22px; text-align: left;
     }
     .remember {
-      display: flex; align-items: center; gap: 6px;
-      font-size: 11px; color: rgba(30,42,68,0.75);
+      display: flex; align-items: center; gap: 7px;
+      font-size: 12px; color: rgba(25, 35, 65, 0.7);
       cursor: pointer; user-select: none;
     }
     .remember input[type="checkbox"] {
-      width: 13px; height: 13px;
-      accent-color: #1e2a44; cursor: pointer;
+      width: 14px; height: 14px;
+      accent-color: #253050; cursor: pointer;
     }
 
     /* ── Login button ── */
     .btn-login {
       width: 100%;
-      background: rgba(220, 215, 235, 0.45);
-      border: 1px solid rgba(255,255,255,0.5);
-      border-radius: 8px;
-      padding: 12px;
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: 2.5px;
+      background: linear-gradient(135deg, rgba(35,48,80,0.82) 0%, rgba(55,38,90,0.78) 100%);
+      border: 1px solid rgba(255,255,255,0.22);
+      border-radius: 12px;
+      padding: 15px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 3px;
       text-transform: uppercase;
-      color: #1e2a44;
+      color: rgba(255,255,255,0.92);
       cursor: pointer;
       font-family: inherit;
-      transition: background 0.2s, box-shadow 0.2s;
+      transition: opacity 0.2s, box-shadow 0.2s, transform 0.15s;
+      box-shadow: 0 4px 22px rgba(40,25,80,0.35);
       position: relative; overflow: hidden;
     }
-    .btn-login:hover:not(:disabled) {
-      background: rgba(220, 215, 235, 0.65);
-      box-shadow: 0 4px 18px rgba(60,40,90,0.18);
+    .btn-login::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.10), transparent);
+      pointer-events: none;
     }
-    .btn-login:disabled { opacity: 0.65; cursor: not-allowed; }
+    .btn-login:hover:not(:disabled) {
+      opacity: 0.9;
+      transform: translateY(-1px);
+      box-shadow: 0 8px 30px rgba(40,25,80,0.45);
+    }
+    .btn-login:active:not(:disabled) { transform: translateY(0); }
+    .btn-login:disabled { opacity: 0.6; cursor: not-allowed; }
     .btn-login .spinner {
-      display: none;
-      width: 16px; height: 16px;
-      border: 2px solid rgba(30,42,68,0.25);
-      border-top-color: #1e2a44;
+      display: none; width: 17px; height: 17px;
+      border: 2px solid rgba(255,255,255,0.25);
+      border-top-color: #fff;
       border-radius: 50%;
       animation: spin 0.7s linear infinite;
       margin: 0 auto;
     }
     .btn-login.loading .btn-text { display: none; }
-    .btn-login.loading .spinner { display: block; }
+    .btn-login.loading .spinner   { display: block; }
+
+    /* ── Footer label ── */
+    .card-footer {
+      margin-top: 22px;
+      font-size: 11px;
+      color: rgba(30,42,68,0.45);
+      letter-spacing: 0.3px;
+    }
 
     @keyframes spin { to { transform: rotate(360deg); } }
   </style>
@@ -196,6 +243,10 @@
       </svg>
     </div>
 
+    <!-- Title -->
+    <div class="card-title">Project Progress Dashboard</div>
+    <div class="card-sub">Sign in to Your Account</div>
+
     <!-- Error -->
     <div class="error-msg" id="errorMsg"><span id="errorText"></span></div>
 
@@ -204,7 +255,7 @@
       <span class="icon">
         <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       </span>
-      <input type="text" id="username" placeholder="Email ID" autocomplete="username" />
+      <input type="text" id="username" placeholder="Username" autocomplete="username" />
     </div>
 
     <!-- Password -->
@@ -231,6 +282,8 @@
       <div class="spinner"></div>
     </button>
 
+    <!-- <div class="card-footer">Collective RCM &amp; BotMed Fusion &copy; 2025</div> -->
+
   </div>
 </div>
 
@@ -251,7 +304,6 @@
     eyeIcon.innerHTML = isText ? eyeShow : eyeHide;
   });
 
-  // Pre-fill from localStorage if remember me was checked
   const saved = localStorage.getItem('rememberedUser');
   if (saved) {
     document.getElementById('username').value = saved;
