@@ -202,6 +202,10 @@ td{padding:9px 14px;font-size:12px;white-space:nowrap;overflow:hidden;text-overf
 .pcard:hover{border-color:rgba(59,125,232,0.3);transform:translateY(-2px);box-shadow:0 4px 14px rgba(60,100,200,0.1)}
 .pcard-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:9px}
 .pcard-name{font-size:12px;font-weight:500;line-height:1.4;flex:1}
+.pcard-metrics{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px;padding-top:8px;border-top:1px solid var(--border)}
+.pcm-chip{display:inline-flex;flex-direction:column;gap:1px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:4px 8px;min-width:0}
+.pcm-label{font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;font-weight:500;white-space:nowrap}
+.pcm-value{font-size:11px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px}
 .tpill{font-size:9px;padding:2px 8px;border-radius:20px;font-weight:600;white-space:nowrap;flex-shrink:0}
 .ppeople{display:flex;align-items:center;gap:6px;margin-bottom:10px;flex-wrap:wrap}
 .pav{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700}
@@ -281,7 +285,54 @@ td{padding:9px 14px;font-size:12px;white-space:nowrap;overflow:hidden;text-overf
 }
 /* ── MODAL TABS ─────────────────────────────────────────────────────────── */
 .modal-3col{display:flex;flex:1;overflow:hidden;min-height:0}
-.modal-col-left{width:340px;flex-shrink:0;border-right:1px solid var(--border);overflow-y:auto;padding:20px 22px 24px;background:#fff}
+.modal-col-left{width:340px;flex-shrink:0;border-right:1px solid var(--border);overflow-y:auto;padding:20px 22px 24px;background:#fff;position:relative}
+/* ── PROJECT EDIT FORM (full-screen modal redesign) ── */
+.pe-overlay{
+  display:none;position:fixed;inset:0;z-index:600;
+  background:rgba(15,25,55,0.5);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  align-items:center;justify-content:center;padding:20px;
+}
+.pe-overlay.open{display:flex;animation:peIn .22s ease both}
+@keyframes peIn{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
+.pe-card{
+  background:#fff;border-radius:20px;
+  width:100%;max-width:700px;max-height:90vh;
+  display:flex;flex-direction:column;
+  box-shadow:0 24px 70px rgba(15,25,70,0.28),0 0 0 1px rgba(100,130,200,0.1);
+  overflow:hidden;
+}
+.pe-card-header{
+  padding:18px 24px 16px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
+  background:linear-gradient(135deg,rgba(59,125,232,0.05) 0%,rgba(124,95,230,0.05) 100%);
+}
+.pe-card-title{font-family:var(--font-d);font-size:18px;letter-spacing:-.3px;color:var(--text);display:flex;align-items:center;gap:9px}
+.pe-card-title svg{width:18px;height:18px;stroke:var(--blue);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.pe-card-close{width:30px;height:30px;border:1px solid var(--border2);border-radius:8px;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px;transition:all .15s}
+.pe-card-close:hover{background:var(--surface3);color:var(--text)}
+.pe-card-body{flex:1;overflow-y:auto;padding:0}
+.pe-section{padding:18px 24px;border-bottom:1px solid var(--border)}
+.pe-section:last-child{border-bottom:none}
+.pe-section-label{
+  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.9px;
+  margin-bottom:12px;display:flex;align-items:center;gap:7px;
+  padding:6px 10px;border-radius:8px;border-left:3px solid;
+}
+.pe-section-label svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.pe-field{margin-bottom:10px}
+.pe-field:last-child{margin-bottom:0}
+.pe-label{font-size:10px;color:var(--muted2);text-transform:uppercase;letter-spacing:.8px;font-weight:600;margin-bottom:4px;display:flex;align-items:center;gap:4px}
+.pe-input{width:100%;padding:9px 12px;border:1.5px solid var(--border2);border-radius:9px;font-size:13px;font-family:var(--font-b);color:var(--text);outline:none;transition:border-color .15s,box-shadow .15s;background:#fff;line-height:1.4}
+.pe-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(59,125,232,0.1)}
+.pe-input::placeholder{color:var(--muted);font-size:12px}
+.pe-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pe-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.pe-card-footer{
+  padding:14px 24px;border-top:1px solid var(--border);
+  display:flex;gap:8px;flex-shrink:0;
+  background:linear-gradient(135deg,#f8faff,#f0f4ff);
+}
 .modal-col-right{flex:1;display:flex;flex-direction:column;min-width:0;background:#f8faff}
 .modal-col-mu{flex:1;display:flex;flex-direction:column;padding:16px 18px;border-bottom:1px solid var(--border);min-height:0;overflow:hidden}
 .modal-col-ms{flex:1;display:flex;flex-direction:column;padding:16px 18px;min-height:0;overflow:hidden}
@@ -1622,6 +1673,14 @@ function renderTypeGrid(projects){
       const sc=getStatus(p.status);
       const pidx=(window._projects||[]).indexOf(p);
       const avs=p.people.map((n,i)=>{const c=getPersonColor(n);return`<div class="pav" style="background:${hexToRgba(c,.2)};color:${c};${i>0?'margin-left:-6px;border:1.5px solid var(--surface2)':''};" title="${n}">${getPersonInit(n)}</div>`;}).join('');
+      const isAuto = p.type.toLowerCase()==='automation';
+      const chips = [];
+      if (p.frequency)                                chips.push({label:'Frequency',          value:p.frequency,                              color:'var(--blue)'});
+      if (p.autoFTE!=null)                            chips.push({label:isAuto?'FTE Savings':'Auto FTE', value:p.autoFTE,                     color:'#27c99a'});
+      if (p.manualFTE!=null)                          chips.push({label:'Manual FTE',          value:p.manualFTE,                              color:'#f0a832'});
+      if (isAuto && p.lastRunDate)                    chips.push({label:'Last Run Date',       value:p.lastRunDate,                            color:'var(--purple)'});
+      if (isAuto && p.lastRunCount!=null)             chips.push({label:'Last Run Count',      value:p.lastRunCount.toLocaleString(),           color:'var(--blue)'});
+      const metricsHTML = chips.length ? `<div class="pcard-metrics">${chips.map(c=>`<div class="pcm-chip"><span class="pcm-label">${c.label}</span><span class="pcm-value" style="color:${c.color}">${c.value}</span></div>`).join('')}</div>` : '';
       h+=`<div class="pcard" style="cursor:pointer" onclick="openModal(${pidx})" title="Click to view full details">
         <div class="pcard-top"><div class="pcard-name">${p.process}</div><span class="tpill" style="background:${hexToRgba(col,.15)};color:${col}">${short}</span></div>
         <div class="ppeople"><div style="display:flex">${avs}</div><span class="pav-name" style="margin-left:${p.people.length>1?'8':'6'}px">${p.people.join(' & ')}</span>${p.people.length>1?'<span style="font-size:9px;color:var(--muted);background:var(--surface3);padding:1px 6px;border-radius:8px;margin-left:4px">Collab</span>':''}<span class="pdept">${p.dept}</span></div>
@@ -1629,6 +1688,7 @@ function renderTypeGrid(projects){
         <div class="pbar-bg"><div class="pbar-fill" style="width:${p.completion*100}%;background:${pc(p.completion)}"></div></div>
         <div class="pbar-row"><span class="pbar-lbl">Documentation</span><span class="pbar-pct" style="color:${pc(p.doc)}">${Math.round(p.doc*100)}%</span></div>
         <div class="pbar-bg"><div class="pbar-fill" style="width:${p.doc*100}%;background:${pc(p.doc)}"></div></div>
+        ${metricsHTML}
         <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">
           <span class="pst" style="background:${sc.bg};color:${sc.color}"><span class="psdot" style="background:${sc.color}"></span>${sc.label}</span>
           <span style="font-size:9px;color:var(--muted2)">View details →</span>
@@ -1775,8 +1835,13 @@ function dbRecordsToProjects(records) {
       startDate: parseStoredDate(r.startDate),
       deadline: parseStoredDate(r.deadline),
       frequency: r.frequency || '',
-      autoFTE: r.autoFTE != null ? r.autoFTE : null,
-      manualFTE: r.manualFTE != null ? r.manualFTE : null,
+      autoFTE:      r.autoFTE      != null ? r.autoFTE      : null,
+      manualFTE:    r.manualFTE    != null ? r.manualFTE    : null,
+      lastRunDate:  r.lastRunDate  || null,
+      lastRunCount: r.lastRunCount != null ? r.lastRunCount : null,
+      purpose:        r.purpose        || null,
+      expectedResults: r.expectedResults || null,
+      betaTestingDate: r.betaTestingDate || null,
     };
   });
 }
@@ -1937,6 +2002,60 @@ function openModal(idx){
                 <div style="font-size:18px;font-family:var(--font-d);color:#f0a832;line-height:1">${p.manualFTE !== null && !isNaN(p.manualFTE) ? p.manualFTE : '—'}</div>
               </div>
             </div>
+
+            ${p.type.toLowerCase() === 'automation' ? `
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:7px">
+              <div style="background:rgba(124,95,230,0.07);border:1px solid rgba(124,95,230,0.2);border-radius:9px;padding:9px 12px">
+                <div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.6px;font-weight:500;margin-bottom:2px">Last Run Date</div>
+                <div style="font-size:14px;font-weight:600;color:var(--purple);line-height:1.3">${p.lastRunDate || '—'}</div>
+              </div>
+              <div style="background:rgba(59,125,232,0.07);border:1px solid rgba(59,125,232,0.18);border-radius:9px;padding:9px 12px">
+                <div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.6px;font-weight:500;margin-bottom:2px">Last Total Run Count</div>
+                <div style="font-size:18px;font-family:var(--font-d);color:var(--blue);line-height:1">${p.lastRunCount != null ? p.lastRunCount.toLocaleString() : '—'}</div>
+              </div>
+            </div>` : ''}
+          </div>
+        </div>
+
+        <!-- ── Purpose / Expected Results / Beta Testing Date ── -->
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+          <div style="font-size:10px;color:var(--pink);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            Project Insight
+          </div>
+          <div style="display:grid;gap:8px">
+
+            <!-- Purpose card -->
+            <div style="background:linear-gradient(135deg,rgba(59,125,232,0.08),rgba(124,95,230,0.08));border:1px solid rgba(59,125,232,0.2);border-radius:11px;padding:11px 14px;position:relative;overflow:hidden">
+              <div style="position:absolute;top:-10px;right:-10px;width:52px;height:52px;background:rgba(59,125,232,0.07);border-radius:50%"></div>
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#3b7de8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/><line x1="9" y1="21" x2="15" y2="21"/></svg>
+                <div style="font-size:10px;font-weight:700;color:#3b7de8;text-transform:uppercase;letter-spacing:.7px">Purpose</div>
+              </div>
+              <div style="font-size:12px;color:${p.purpose ? 'var(--text)' : 'var(--muted)'};line-height:1.55;font-weight:400;font-style:${p.purpose ? 'normal' : 'italic'}">${p.purpose ? escapeHtml(p.purpose) : 'Not set — click Edit Details to add'}</div>
+            </div>
+
+            <!-- Expected Results card -->
+            <div style="background:linear-gradient(135deg,rgba(23,185,138,0.08),rgba(39,201,154,0.05));border:1px solid rgba(23,185,138,0.22);border-radius:11px;padding:11px 14px;position:relative;overflow:hidden">
+              <div style="position:absolute;top:-10px;right:-10px;width:52px;height:52px;background:rgba(23,185,138,0.07);border-radius:50%"></div>
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#17b98a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="16 12 12 8 8 12"/><line x1="12" y1="16" x2="12" y2="8"/></svg>
+                <div style="font-size:10px;font-weight:700;color:#17b98a;text-transform:uppercase;letter-spacing:.7px">Expected Results</div>
+              </div>
+              <div style="font-size:12px;color:${p.expectedResults ? 'var(--text)' : 'var(--muted)'};line-height:1.55;font-weight:400;font-style:${p.expectedResults ? 'normal' : 'italic'}">${p.expectedResults ? escapeHtml(p.expectedResults) : 'Not set — click Edit Details to add'}</div>
+            </div>
+
+            <!-- Beta Testing Date badge -->
+            <div style="display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,rgba(240,168,50,0.1),rgba(232,92,92,0.06));border:1px solid rgba(240,168,50,0.25);border-radius:11px;padding:10px 14px">
+              <div style="width:36px;height:36px;border-radius:9px;background:rgba(240,168,50,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f0a832" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              </div>
+              <div>
+                <div style="font-size:10px;font-weight:700;color:#f0a832;text-transform:uppercase;letter-spacing:.7px;margin-bottom:2px">Beta Testing Date</div>
+                <div style="font-size:${p.betaTestingDate ? '14px' : '12px'};font-weight:${p.betaTestingDate ? '600' : '400'};color:${p.betaTestingDate ? 'var(--text)' : 'var(--muted)'};font-style:${p.betaTestingDate ? 'normal' : 'italic'}">${p.betaTestingDate ? escapeHtml(p.betaTestingDate) : 'Not set — click Edit Details to add'}</div>
+              </div>
+            </div>
+
           </div>
         </div>
 
@@ -1950,6 +2069,193 @@ function openModal(idx){
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6l9-3 9 3M3 18l9 3 9-3"/></svg>
             Milestones Full View
           </button>
+        </div>
+
+        <!-- Edit Details button (admin only) -->
+        <button class="admin-only imu-btn imu-btn-primary" style="width:100%;margin-top:10px;justify-content:center;padding:9px 12px;font-size:11px;border-radius:9px" onclick="openProjectEditForm(${idx})">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Edit Details
+        </button>
+
+      </div>
+
+      <!-- ══ EDIT DETAILS FULL-SCREEN OVERLAY ══ -->
+      <div class="pe-overlay" id="projEditPanel" onclick="if(event.target===this)closeProjectEditForm()">
+        <div class="pe-card">
+
+          <!-- Header -->
+          <div class="pe-card-header">
+            <div class="pe-card-title">
+              <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              Edit Project Details
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="font-size:11px;color:var(--muted);background:var(--surface3);padding:3px 10px;border-radius:20px;font-weight:500">${escapeHtml(p.process)}</div>
+              <button class="pe-card-close" onclick="closeProjectEditForm()">✕</button>
+            </div>
+          </div>
+
+          <!-- Scrollable body -->
+          <div class="pe-card-body">
+
+            <!-- ① Basic Information -->
+            <div class="pe-section">
+              <div class="pe-section-label" style="color:var(--blue);background:rgba(59,125,232,0.06);border-color:var(--blue)">
+                <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 13h4"/></svg>
+                Basic Information
+              </div>
+              <div class="pe-field">
+                <div class="pe-label">Process Name</div>
+                <input class="pe-input" id="peProcess" type="text" value="${escapeHtml(p.process)}" placeholder="Enter process name"/>
+              </div>
+              <div class="pe-row">
+                <div class="pe-field">
+                  <div class="pe-label">Process Type</div>
+                  <input class="pe-input" id="peType" type="text" value="${escapeHtml(p.type)}" placeholder="e.g. Automation"/>
+                </div>
+                <div class="pe-field">
+                  <div class="pe-label">Status</div>
+                  <select class="pe-input" id="peStatus">
+                    <option value="Production"      ${p.status==='Production'?'selected':''}>Production</option>
+                    <option value="Developing"      ${p.status==='Developing'?'selected':''}>Developing</option>
+                    <option value="Production-Hold" ${p.status==='Production-Hold'?'selected':''}>Production-Hold</option>
+                    <option value="To Do"           ${p.status==='To Do'?'selected':''}>To Do</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- ② Progress & Timeline -->
+            <div class="pe-section">
+              <div class="pe-section-label" style="color:var(--teal);background:rgba(23,185,138,0.06);border-color:var(--teal)">
+                <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                Progress &amp; Timeline
+              </div>
+              <div class="pe-row" style="margin-bottom:10px">
+                <div class="pe-field">
+                  <div class="pe-label">Completion %</div>
+                  <input class="pe-input" id="peCompletion" type="number" min="0" max="100" step="1" value="${Math.round(p.completion*100)}" placeholder="0–100"/>
+                </div>
+                <div class="pe-field">
+                  <div class="pe-label">Documentation %</div>
+                  <input class="pe-input" id="peDoc" type="number" min="0" max="100" step="1" value="${Math.round(p.doc*100)}" placeholder="0–100"/>
+                </div>
+              </div>
+              <div class="pe-row">
+                <div class="pe-field">
+                  <div class="pe-label">Start Date</div>
+                  <input class="pe-input" id="peStartDate" type="date" value="${toInputDate(p.startDate)}"/>
+                </div>
+                <div class="pe-field">
+                  <div class="pe-label">Deadline</div>
+                  <input class="pe-input" id="peDeadline" type="date" value="${toInputDate(p.deadline)}"/>
+                </div>
+              </div>
+            </div>
+
+            <!-- ③ Team & Organisation -->
+            <div class="pe-section">
+              <div class="pe-section-label" style="color:var(--purple);background:rgba(124,95,230,0.06);border-color:var(--purple)">
+                <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                Team &amp; Organisation
+              </div>
+              <div class="pe-field">
+                <div class="pe-label">Assign Person(s) <span style="color:var(--muted);font-size:9px;text-transform:none;font-weight:400">(separate multiple with /)</span></div>
+                <input class="pe-input" id="pePeople" type="text" value="${(p.people||[]).join(' / ')}" placeholder="e.g. Alice / Bob"/>
+              </div>
+              <div class="pe-row">
+                <div class="pe-field">
+                  <div class="pe-label">Department</div>
+                  <input class="pe-input" id="peDept" type="text" value="${escapeHtml(p.dept||'')}" placeholder="e.g. Finance"/>
+                </div>
+                <div class="pe-field">
+                  <div class="pe-label">Priority</div>
+                  <input class="pe-input" id="pePriority" type="text" value="${escapeHtml(p.priority||'')}" placeholder="e.g. High"/>
+                </div>
+              </div>
+            </div>
+
+            <!-- ④ Metrics -->
+            <div class="pe-section">
+              <div class="pe-section-label" style="color:var(--amber);background:rgba(240,168,50,0.07);border-color:var(--amber)">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+                Metrics &amp; Frequency
+              </div>
+              <div class="pe-row-3">
+                <div class="pe-field">
+                  <div class="pe-label">Frequency</div>
+                  <input class="pe-input" id="peFrequency" type="text" value="${escapeHtml(p.frequency||'')}" placeholder="e.g. Daily"/>
+                </div>
+                <div class="pe-field">
+                  <div class="pe-label">Automation FTE</div>
+                  <input class="pe-input" id="peAutoFTE" type="number" step="0.01" value="${p.autoFTE!=null?p.autoFTE:''}" placeholder="0.00"/>
+                </div>
+                <div class="pe-field">
+                  <div class="pe-label">Manual FTE</div>
+                  <input class="pe-input" id="peManualFTE" type="number" step="0.01" value="${p.manualFTE!=null?p.manualFTE:''}" placeholder="0.00"/>
+                </div>
+              </div>
+            </div>
+
+            ${p.type.toLowerCase() === 'automation' ? `
+            <!-- ⑤ Automation Run Info -->
+            <div class="pe-section">
+              <div class="pe-section-label" style="color:#7c5fe6;background:rgba(124,95,230,0.07);border-color:#7c5fe6">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+                Automation Run Info
+              </div>
+              <div class="pe-row">
+                <div class="pe-field">
+                  <div class="pe-label">Last Run Date</div>
+                  <input class="pe-input" id="peLastRunDate" type="date" value="${p.lastRunDate ? toInputDate(p.lastRunDate) : ''}"/>
+                </div>
+                <div class="pe-field">
+                  <div class="pe-label">Last Total Run Count</div>
+                  <input class="pe-input" id="peLastRunCount" type="number" min="0" step="1" placeholder="e.g. 1500" value="${p.lastRunCount!=null?p.lastRunCount:''}"/>
+                </div>
+              </div>
+            </div>` : ''}
+
+            <!-- ⑥ Project Insight -->
+            <div class="pe-section">
+              <div class="pe-section-label" style="color:var(--pink);background:rgba(224,106,170,0.07);border-color:var(--pink)">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                Project Insight
+              </div>
+              <div class="pe-field">
+                <div class="pe-label">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#3b7de8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/><line x1="9" y1="21" x2="15" y2="21"/></svg>
+                  Purpose
+                </div>
+                <textarea class="pe-input" id="pePurpose" rows="3" style="resize:vertical" placeholder="What is the purpose of this project?">${escapeHtml(p.purpose||'')}</textarea>
+              </div>
+              <div class="pe-field">
+                <div class="pe-label">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#17b98a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="16 12 12 8 8 12"/><line x1="12" y1="16" x2="12" y2="8"/></svg>
+                  Expected Results
+                </div>
+                <textarea class="pe-input" id="peExpectedResults" rows="3" style="resize:vertical" placeholder="What outcomes are expected from this project?">${escapeHtml(p.expectedResults||'')}</textarea>
+              </div>
+              <div class="pe-field">
+                <div class="pe-label">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#f0a832" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                  Beta Testing Date
+                </div>
+                <input class="pe-input" id="peBetaTestingDate" type="text" placeholder="e.g. 2025-06-15 or Q3 2025" value="${escapeHtml(p.betaTestingDate||'')}"/>
+              </div>
+            </div>
+
+          </div><!-- /pe-card-body -->
+
+          <!-- Footer -->
+          <div class="pe-card-footer">
+            <button class="imu-btn imu-btn-primary" id="peSaveBtn" style="flex:1;justify-content:center;padding:11px;font-size:12px;border-radius:10px;font-weight:700" onclick="saveProjectEdit(${idx})">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              Save Changes
+            </button>
+            <button class="imu-btn imu-btn-sec" style="padding:11px 20px;font-size:12px;border-radius:10px" onclick="closeProjectEditForm()">Cancel</button>
+          </div>
+
         </div>
       </div>
 
@@ -2985,6 +3291,100 @@ async function deleteMilestone(id) {
     if(!data.success) throw new Error(data.error);
     await loadMilestones(p);
   } catch(err) { alert('Error deleting: ' + err.message); }
+}
+
+// ── PROJECT EDIT HELPERS ──────────────────────────────────────────────────────
+function toInputDate(val) {
+  if (!val) return '';
+  if (val instanceof Date) {
+    return val.getFullYear() + '-' +
+      String(val.getMonth()+1).padStart(2,'0') + '-' +
+      String(val.getDate()).padStart(2,'0');
+  }
+  const s = String(val);
+  const iso = /^(\d{4}-\d{2}-\d{2})/.exec(s);
+  if (iso) return iso[1];
+  const d = new Date(s);
+  if (!isNaN(d)) return d.getFullYear() + '-' +
+    String(d.getMonth()+1).padStart(2,'0') + '-' +
+    String(d.getDate()).padStart(2,'0');
+  return '';
+}
+
+function openProjectEditForm() {
+  const el = document.getElementById('projEditPanel');
+  if (el) el.classList.add('open');
+}
+
+function closeProjectEditForm() {
+  const el = document.getElementById('projEditPanel');
+  if (el) el.classList.remove('open');
+}
+
+async function saveProjectEdit(idx) {
+  const projects = window._projects || [];
+  const p = projects[idx];
+  if (!p || !p._id) { alert('Project not linked to database yet. Re-import the Excel first.'); return; }
+
+  const process    = document.getElementById('peProcess').value.trim();
+  const type       = document.getElementById('peType').value.trim();
+  const status     = document.getElementById('peStatus').value;
+  const completion = (parseFloat(document.getElementById('peCompletion').value) || 0) / 100;
+  const doc        = (parseFloat(document.getElementById('peDoc').value) || 0) / 100;
+  const startDate  = document.getElementById('peStartDate').value || null;
+  const deadline   = document.getElementById('peDeadline').value || null;
+  const dept       = document.getElementById('peDept').value.trim();
+  const priority   = document.getElementById('pePriority').value.trim();
+  const frequency  = document.getElementById('peFrequency').value.trim();
+  const autoFTE      = document.getElementById('peAutoFTE').value !== '' ? parseFloat(document.getElementById('peAutoFTE').value) : null;
+  const manualFTE    = document.getElementById('peManualFTE').value !== '' ? parseFloat(document.getElementById('peManualFTE').value) : null;
+  const lrdEl        = document.getElementById('peLastRunDate');
+  const lrcEl        = document.getElementById('peLastRunCount');
+  const lastRunDate  = lrdEl  ? (lrdEl.value  || null) : null;
+  const lastRunCount = lrcEl  ? (lrcEl.value !== '' ? parseInt(lrcEl.value) : null) : null;
+  const purpose         = (document.getElementById('pePurpose')?.value || '').trim() || null;
+  const expectedResults = (document.getElementById('peExpectedResults')?.value || '').trim() || null;
+  const betaTestingDate = (document.getElementById('peBetaTestingDate')?.value || '').trim() || null;
+  const peopleRaw  = document.getElementById('pePeople').value.trim();
+  const people     = peopleRaw.includes('/') ? peopleRaw.split('/').map(s=>s.trim()).filter(Boolean) : (peopleRaw ? [peopleRaw] : []);
+
+  if (!process) { alert('Process name is required.'); return; }
+
+  const saveBtn = document.getElementById('peSaveBtn');
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.innerHTML = '⏳ Saving…'; }
+
+  try {
+    const resp = await authFetch(`/api/progress/${p._id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ process, type, status, completion, doc, people, dept, priority, startDate, deadline, frequency, autoFTE, manualFTE, lastRunDate, lastRunCount, purpose, expectedResults, betaTestingDate })
+    });
+    const data = await resp.json();
+    if (data.success) {
+      // Update in-memory project
+      const r = data.data;
+      Object.assign(projects[idx], {
+        process: r.process, type: r.type, status: r.status,
+        completion: r.completion, doc: r.doc, people: r.people,
+        dept: r.dept, priority: r.priority,
+        startDate: r.startDate, deadline: r.deadline,
+        frequency: r.frequency, autoFTE: r.autoFTE, manualFTE: r.manualFTE,
+        lastRunDate: r.lastRunDate, lastRunCount: r.lastRunCount,
+        purpose: r.purpose, expectedResults: r.expectedResults, betaTestingDate: r.betaTestingDate
+      });
+      showToast('✅ Project details updated successfully', 'success');
+      // Re-render background charts/tables without closing the modal
+      renderAll(projects, true);
+      // Reopen the same modal with fresh data so user stays in the popup
+      openModal(idx);
+    } else {
+      alert('Save failed: ' + (data.error || 'Unknown error'));
+    }
+  } catch (err) {
+    if (err.message !== 'Permission denied') alert('Save failed: ' + err.message);
+  } finally {
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Save Changes'; }
+  }
 }
 
 // ── AUTO-LOAD FROM DB ON PAGE START ──────────────────────────────────────────

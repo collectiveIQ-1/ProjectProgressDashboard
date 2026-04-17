@@ -119,8 +119,13 @@ async function initDB() {
     `ALTER TABLE progress ADD COLUMN IF NOT EXISTS deadline     TEXT`,
     `ALTER TABLE progress ADD COLUMN IF NOT EXISTS frequency    TEXT`,
     `ALTER TABLE progress ADD COLUMN IF NOT EXISTS auto_fte     NUMERIC(10,4)`,
-    `ALTER TABLE progress ADD COLUMN IF NOT EXISTS manual_fte   NUMERIC(10,4)`,
-    `ALTER TABLE progress ADD COLUMN IF NOT EXISTS updated_at   TIMESTAMPTZ DEFAULT NOW()`,
+    `ALTER TABLE progress ADD COLUMN IF NOT EXISTS manual_fte        NUMERIC(10,4)`,
+    `ALTER TABLE progress ADD COLUMN IF NOT EXISTS last_run_date      TEXT`,
+    `ALTER TABLE progress ADD COLUMN IF NOT EXISTS last_run_count     INTEGER`,
+    `ALTER TABLE progress ADD COLUMN IF NOT EXISTS purpose            TEXT`,
+    `ALTER TABLE progress ADD COLUMN IF NOT EXISTS expected_results   TEXT`,
+    `ALTER TABLE progress ADD COLUMN IF NOT EXISTS beta_testing_date  TEXT`,
+    `ALTER TABLE progress ADD COLUMN IF NOT EXISTS updated_at         TIMESTAMPTZ DEFAULT NOW()`,
   ];
   for (const sql of progressCols) {
     await pool.query(sql);
@@ -184,10 +189,15 @@ function rowToProject(r) {
     startDate:  r.start_date || null,
     deadline:   r.deadline   || null,
     frequency:  r.frequency  || '',
-    autoFTE:    r.auto_fte   != null ? parseFloat(r.auto_fte)   : null,
-    manualFTE:  r.manual_fte != null ? parseFloat(r.manual_fte) : null,
-    created_at: r.created_at,
-    updated_at: r.updated_at,
+    autoFTE:      r.auto_fte    != null ? parseFloat(r.auto_fte)   : null,
+    manualFTE:    r.manual_fte  != null ? parseFloat(r.manual_fte) : null,
+    lastRunDate:      r.last_run_date     || null,
+    lastRunCount:     r.last_run_count    != null ? parseInt(r.last_run_count) : null,
+    purpose:          r.purpose           || null,
+    expectedResults:  r.expected_results  || null,
+    betaTestingDate:  r.beta_testing_date || null,
+    created_at:   r.created_at,
+    updated_at:   r.updated_at,
   };
 }
 
@@ -300,17 +310,26 @@ app.put('/api/progress/:id', adminOnly, async (req, res) => {
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ success: false, error: 'Invalid ID' });
     const { process, type, status, completion, doc, people, dept, priority,
-            startDate, deadline, frequency, autoFTE, manualFTE } = req.body;
+            startDate, deadline, frequency, autoFTE, manualFTE,
+            lastRunDate, lastRunCount,
+            purpose, expectedResults, betaTestingDate } = req.body;
     const { rows } = await query(`
       UPDATE progress SET
         process=$1, type=$2, status=$3, completion=$4, doc=$5, people=$6,
         dept=$7, priority=$8, start_date=$9, deadline=$10,
-        frequency=$11, auto_fte=$12, manual_fte=$13, updated_at=NOW()
-      WHERE id=$14 RETURNING *`,
+        frequency=$11, auto_fte=$12, manual_fte=$13,
+        last_run_date=$14, last_run_count=$15,
+        purpose=$16, expected_results=$17, beta_testing_date=$18,
+        updated_at=NOW()
+      WHERE id=$19 RETURNING *`,
       [process, type, status, completion, doc,
        Array.isArray(people) ? people : [people],
        dept, priority, startDate||null, deadline||null,
-       frequency, autoFTE||null, manualFTE||null, id]);
+       frequency, autoFTE||null, manualFTE||null,
+       lastRunDate||null,
+       lastRunCount != null && lastRunCount !== '' ? parseInt(lastRunCount) : null,
+       purpose||null, expectedResults||null, betaTestingDate||null,
+       id]);
     if (!rows.length) return res.status(404).json({ success: false, error: 'Not found' });
     res.json({ success: true, data: rowToProject(rows[0]) });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
