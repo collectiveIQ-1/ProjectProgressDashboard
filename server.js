@@ -131,10 +131,59 @@ async function initDB() {
     await pool.query(sql);
   }
 
+  // Run dates table (stores every automation run date per project)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS run_dates (
+      id          SERIAL PRIMARY KEY,
+      progress_id INTEGER NOT NULL REFERENCES progress(id) ON DELETE CASCADE,
+      run_date    TEXT NOT NULL,
+      created_at  TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_run_dates_unique ON run_dates(progress_id, run_date);
+    CREATE INDEX IF NOT EXISTS idx_run_dates_progress_id ON run_dates(progress_id);
+  `);
+
+  // New Requirements, Change Requests, Feature Add-Ons tables
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS requirements (
+      id          SERIAL PRIMARY KEY,
+      progress_id INTEGER NOT NULL REFERENCES progress(id) ON DELETE CASCADE,
+      title       TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      priority    TEXT DEFAULT 'Medium',
+      status      TEXT DEFAULT 'Open',
+      created_at  TIMESTAMPTZ DEFAULT NOW(),
+      updated_at  TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS change_requests (
+      id          SERIAL PRIMARY KEY,
+      progress_id INTEGER NOT NULL REFERENCES progress(id) ON DELETE CASCADE,
+      title       TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      priority    TEXT DEFAULT 'Medium',
+      status      TEXT DEFAULT 'Pending',
+      created_at  TIMESTAMPTZ DEFAULT NOW(),
+      updated_at  TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS feature_addons (
+      id          SERIAL PRIMARY KEY,
+      progress_id INTEGER NOT NULL REFERENCES progress(id) ON DELETE CASCADE,
+      title       TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      priority    TEXT DEFAULT 'Medium',
+      status      TEXT DEFAULT 'Requested',
+      created_at  TIMESTAMPTZ DEFAULT NOW(),
+      updated_at  TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
+
   // Indexes for foreign keys
   await pool.query(`
     CREATE INDEX IF NOT EXISTS idx_meeting_updates_progress_id ON meeting_updates(progress_id);
     CREATE INDEX IF NOT EXISTS idx_milestones_progress_id ON milestones(progress_id);
+    CREATE INDEX IF NOT EXISTS idx_requirements_progress_id   ON requirements(progress_id);
+    CREATE INDEX IF NOT EXISTS idx_change_requests_progress_id ON change_requests(progress_id);
+    CREATE INDEX IF NOT EXISTS idx_feature_addons_progress_id  ON feature_addons(progress_id);
   `);
 
   console.log('✅  Tables ready — credentials, progress, meeting_updates, milestones');
@@ -226,6 +275,15 @@ function rowToMilestone(r) {
     updated_at:  r.updated_at,
   };
 }
+function rowToRequirement(r) {
+  return { _id: String(r.id), progress_id: String(r.progress_id), title: r.title, description: r.description||'', priority: r.priority||'Medium', status: r.status||'Open', created_at: r.created_at, updated_at: r.updated_at };
+}
+function rowToChangeRequest(r) {
+  return { _id: String(r.id), progress_id: String(r.progress_id), title: r.title, description: r.description||'', priority: r.priority||'Medium', status: r.status||'Pending', created_at: r.created_at, updated_at: r.updated_at };
+}
+function rowToFeatureAddon(r) {
+  return { _id: String(r.id), progress_id: String(r.progress_id), title: r.title, description: r.description||'', priority: r.priority||'Medium', status: r.status||'Requested', created_at: r.created_at, updated_at: r.updated_at };
+}
 
 // ══════════════════════════════════════════════════════════════════════════════
 // PROGRESS ROUTES
@@ -259,7 +317,7 @@ app.post('/api/progress/import', adminOnly, async (req, res) => {
 
     let inserted = 0, updated = 0;
     for (const p of projects) {
-      const people = Array.isArray(p.people) ? p.people : [p.people || 'Unknown'];
+      const people = (Array.isArray(p.people) ? p.people : [p.people || 'Upcoming']).map(n => (!n || String(n).toLowerCase() === 'unknown') ? 'Upcoming' : n);
       // Convert Date objects / ISO strings to plain text for storage
       const startDate = p.startDate instanceof Object
         ? (p.startDate.toISOString ? p.startDate.toISOString() : String(p.startDate))
@@ -301,6 +359,37 @@ app.post('/api/progress/import', adminOnly, async (req, res) => {
       if (result.rows[0].was_inserted) inserted++; else updated++;
     }
     res.json({ success: true, inserted, updated });
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+});
+
+// POST - create a single new project
+app.post('/api/progress', adminOnly, async (req, res) => {
+  try {
+    const { process, type, status, completion, doc, people, dept, priority,
+            startDate, deadline, frequency, autoFTE, manualFTE,
+            lastRunDate, lastRunCount, purpose, expectedResults, betaTestingDate } = req.body;
+    if (!process || !String(process).trim())
+      return res.status(400).json({ success: false, error: 'Process name is required' });
+    const { rows } = await query(`
+      INSERT INTO progress
+        (process, type, status, completion, doc, people, dept, priority,
+         start_date, deadline, frequency, auto_fte, manual_fte,
+         last_run_date, last_run_count, purpose, expected_results, beta_testing_date,
+         created_at, updated_at)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,NOW(),NOW())
+      RETURNING *`,
+      [String(process).trim(), type||'Unknown', status||'To Do',
+       parseFloat(completion)||0, parseFloat(doc)||0,
+       (Array.isArray(people) ? people : (people ? [String(people)] : ['Upcoming'])).map(n => (!n || String(n).toLowerCase() === 'unknown') ? 'Upcoming' : n),
+       dept||'', priority||'',
+       startDate||null, deadline||null, frequency||'',
+       autoFTE!=null&&autoFTE!==''?parseFloat(autoFTE):null,
+       manualFTE!=null&&manualFTE!==''?parseFloat(manualFTE):null,
+       lastRunDate||null,
+       lastRunCount!=null&&lastRunCount!==''?parseInt(lastRunCount):null,
+       purpose||null, expectedResults||null, betaTestingDate||null
+      ]);
+    res.json({ success: true, data: rowToProject(rows[0]) });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
@@ -512,6 +601,189 @@ app.delete('/api/milestones/:id', adminOnly, async (req, res) => {
     if (isNaN(id)) return res.status(400).json({ success: false, error: 'Invalid ID' });
     const { rowCount } = await query('DELETE FROM milestones WHERE id=$1', [id]);
     if (!rowCount) return res.status(404).json({ success: false, error: 'Not found' });
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// REQUIREMENTS ROUTES
+// ══════════════════════════════════════════════════════════════════════════════
+app.get('/api/requirements/:progressId', async (req, res) => {
+  try {
+    const pid = parseInt(req.params.progressId);
+    if(isNaN(pid)) return res.status(400).json({success:false,error:'Invalid ID'});
+    const {rows} = await query('SELECT * FROM requirements WHERE progress_id=$1 ORDER BY created_at DESC',[pid]);
+    res.json({success:true,data:rows.map(rowToRequirement)});
+  } catch(err){res.status(500).json({success:false,error:err.message});}
+});
+app.post('/api/requirements', adminOnly, async (req,res) => {
+  try {
+    const {progress_id,title,description,priority,status}=req.body;
+    const pid=parseInt(progress_id);
+    if(isNaN(pid)||!String(title||'').trim()) return res.status(400).json({success:false,error:'progress_id and title required'});
+    const {rows}=await query(`INSERT INTO requirements (progress_id,title,description,priority,status,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,NOW(),NOW()) RETURNING *`,
+      [pid,String(title).trim(),String(description||'').trim(),priority||'Medium',status||'Open']);
+    res.json({success:true,data:rowToRequirement(rows[0])});
+  } catch(err){res.status(500).json({success:false,error:err.message});}
+});
+app.put('/api/requirements/:id', adminOnly, async (req,res) => {
+  try {
+    const id=parseInt(req.params.id);
+    const {title,description,priority,status}=req.body;
+    const {rows}=await query(`UPDATE requirements SET title=COALESCE($1,title),description=COALESCE($2,description),priority=COALESCE($3,priority),status=COALESCE($4,status),updated_at=NOW() WHERE id=$5 RETURNING *`,
+      [title?String(title).trim():null,description!=null?String(description).trim():null,priority||null,status||null,id]);
+    if(!rows.length) return res.status(404).json({success:false,error:'Not found'});
+    res.json({success:true,data:rowToRequirement(rows[0])});
+  } catch(err){res.status(500).json({success:false,error:err.message});}
+});
+app.delete('/api/requirements/:id', adminOnly, async (req,res) => {
+  try {
+    const id=parseInt(req.params.id);
+    const {rowCount}=await query('DELETE FROM requirements WHERE id=$1',[id]);
+    if(!rowCount) return res.status(404).json({success:false,error:'Not found'});
+    res.json({success:true});
+  } catch(err){res.status(500).json({success:false,error:err.message});}
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// CHANGE REQUESTS ROUTES
+// ══════════════════════════════════════════════════════════════════════════════
+app.get('/api/change-requests/:progressId', async (req, res) => {
+  try {
+    const pid = parseInt(req.params.progressId);
+    if(isNaN(pid)) return res.status(400).json({success:false,error:'Invalid ID'});
+    const {rows} = await query('SELECT * FROM change_requests WHERE progress_id=$1 ORDER BY created_at DESC',[pid]);
+    res.json({success:true,data:rows.map(rowToChangeRequest)});
+  } catch(err){res.status(500).json({success:false,error:err.message});}
+});
+app.post('/api/change-requests', adminOnly, async (req,res) => {
+  try {
+    const {progress_id,title,description,priority,status}=req.body;
+    const pid=parseInt(progress_id);
+    if(isNaN(pid)||!String(title||'').trim()) return res.status(400).json({success:false,error:'progress_id and title required'});
+    const {rows}=await query(`INSERT INTO change_requests (progress_id,title,description,priority,status,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,NOW(),NOW()) RETURNING *`,
+      [pid,String(title).trim(),String(description||'').trim(),priority||'Medium',status||'Pending']);
+    res.json({success:true,data:rowToChangeRequest(rows[0])});
+  } catch(err){res.status(500).json({success:false,error:err.message});}
+});
+app.put('/api/change-requests/:id', adminOnly, async (req,res) => {
+  try {
+    const id=parseInt(req.params.id);
+    const {title,description,priority,status}=req.body;
+    const {rows}=await query(`UPDATE change_requests SET title=COALESCE($1,title),description=COALESCE($2,description),priority=COALESCE($3,priority),status=COALESCE($4,status),updated_at=NOW() WHERE id=$5 RETURNING *`,
+      [title?String(title).trim():null,description!=null?String(description).trim():null,priority||null,status||null,id]);
+    if(!rows.length) return res.status(404).json({success:false,error:'Not found'});
+    res.json({success:true,data:rowToChangeRequest(rows[0])});
+  } catch(err){res.status(500).json({success:false,error:err.message});}
+});
+app.delete('/api/change-requests/:id', adminOnly, async (req,res) => {
+  try {
+    const id=parseInt(req.params.id);
+    const {rowCount}=await query('DELETE FROM change_requests WHERE id=$1',[id]);
+    if(!rowCount) return res.status(404).json({success:false,error:'Not found'});
+    res.json({success:true});
+  } catch(err){res.status(500).json({success:false,error:err.message});}
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// FEATURE ADD-ONS ROUTES
+// ══════════════════════════════════════════════════════════════════════════════
+app.get('/api/feature-addons/:progressId', async (req, res) => {
+  try {
+    const pid = parseInt(req.params.progressId);
+    if(isNaN(pid)) return res.status(400).json({success:false,error:'Invalid ID'});
+    const {rows} = await query('SELECT * FROM feature_addons WHERE progress_id=$1 ORDER BY created_at DESC',[pid]);
+    res.json({success:true,data:rows.map(rowToFeatureAddon)});
+  } catch(err){res.status(500).json({success:false,error:err.message});}
+});
+app.post('/api/feature-addons', adminOnly, async (req,res) => {
+  try {
+    const {progress_id,title,description,priority,status}=req.body;
+    const pid=parseInt(progress_id);
+    if(isNaN(pid)||!String(title||'').trim()) return res.status(400).json({success:false,error:'progress_id and title required'});
+    const {rows}=await query(`INSERT INTO feature_addons (progress_id,title,description,priority,status,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,NOW(),NOW()) RETURNING *`,
+      [pid,String(title).trim(),String(description||'').trim(),priority||'Medium',status||'Requested']);
+    res.json({success:true,data:rowToFeatureAddon(rows[0])});
+  } catch(err){res.status(500).json({success:false,error:err.message});}
+});
+app.put('/api/feature-addons/:id', adminOnly, async (req,res) => {
+  try {
+    const id=parseInt(req.params.id);
+    const {title,description,priority,status}=req.body;
+    const {rows}=await query(`UPDATE feature_addons SET title=COALESCE($1,title),description=COALESCE($2,description),priority=COALESCE($3,priority),status=COALESCE($4,status),updated_at=NOW() WHERE id=$5 RETURNING *`,
+      [title?String(title).trim():null,description!=null?String(description).trim():null,priority||null,status||null,id]);
+    if(!rows.length) return res.status(404).json({success:false,error:'Not found'});
+    res.json({success:true,data:rowToFeatureAddon(rows[0])});
+  } catch(err){res.status(500).json({success:false,error:err.message});}
+});
+app.delete('/api/feature-addons/:id', adminOnly, async (req,res) => {
+  try {
+    const id=parseInt(req.params.id);
+    const {rowCount}=await query('DELETE FROM feature_addons WHERE id=$1',[id]);
+    if(!rowCount) return res.status(404).json({success:false,error:'Not found'});
+    res.json({success:true});
+  } catch(err){res.status(500).json({success:false,error:err.message});}
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// RUN DATES ROUTES
+// ══════════════════════════════════════════════════════════════════════════════
+
+// GET all run dates for a project
+app.get('/api/run-dates/:progressId', async (req, res) => {
+  try {
+    const progressId = parseInt(req.params.progressId);
+    if (isNaN(progressId)) return res.status(400).json({ success: false, error: 'Invalid progress ID' });
+    const { rows } = await query(
+      'SELECT id, run_date FROM run_dates WHERE progress_id=$1 ORDER BY run_date ASC',
+      [progressId]);
+    res.json({ success: true, data: rows });
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+});
+
+// POST add a run date (toggle — inserts or deletes if already exists)
+app.post('/api/run-dates', adminOnly, async (req, res) => {
+  try {
+    const { progress_id, run_date } = req.body;
+    const pid = parseInt(progress_id);
+    if (isNaN(pid) || !run_date) return res.status(400).json({ success: false, error: 'progress_id and run_date required' });
+    // Check if already exists
+    const { rows: existing } = await query(
+      'SELECT id FROM run_dates WHERE progress_id=$1 AND run_date=$2', [pid, run_date]);
+    if (existing.length) {
+      await query('DELETE FROM run_dates WHERE id=$1', [existing[0].id]);
+    } else {
+      await query('INSERT INTO run_dates (progress_id, run_date) VALUES ($1, $2)', [pid, run_date]);
+    }
+    // Compute new latest run date and sync it back to progress.last_run_date
+    const { rows: remaining } = await query(
+      'SELECT run_date FROM run_dates WHERE progress_id=$1 ORDER BY run_date DESC LIMIT 1', [pid]);
+    const newLatest = remaining.length ? remaining[0].run_date : null;
+    await query(
+      'UPDATE progress SET last_run_date=$1, updated_at=NOW() WHERE id=$2', [newLatest, pid]);
+    const action = existing.length ? 'removed' : 'added';
+    res.json({ success: true, action, run_date, latest_run_date: newLatest });
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+});
+
+// PATCH - touch updated_at (called when run dates change)
+app.patch('/api/progress/:id/touch', adminOnly, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ success: false, error: 'Invalid ID' });
+    const { rows } = await query(
+      `UPDATE progress SET updated_at=NOW() WHERE id=$1 RETURNING updated_at`, [id]);
+    if (!rows.length) return res.status(404).json({ success: false, error: 'Not found' });
+    res.json({ success: true, updated_at: rows[0].updated_at });
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+});
+
+// DELETE a specific run date by id
+app.delete('/api/run-dates/:id', adminOnly, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ success: false, error: 'Invalid ID' });
+    await query('DELETE FROM run_dates WHERE id=$1', [id]);
     res.json({ success: true });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });

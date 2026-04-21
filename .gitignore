@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+
+# Environment variables (contains DB credentials — never commit)
+.env
+.env.*
+!.env.example
+
+# Prisma generated client
+prisma/generated/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor / IDE
+.vscode/
+.idea/
+*.suo
+*.user
+
+# Build / temp
+dist/
+tmp/
+.cache/
+
+# Claude Code working files
+.claude/
