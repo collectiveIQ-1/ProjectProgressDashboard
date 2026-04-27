@@ -3,6 +3,28 @@ const express           = require('express');
 const { PrismaClient }  = require('@prisma/client');
 const cors              = require('cors');
 const path              = require('path');
+const multer            = require('multer');
+const fs                = require('fs');
+
+// ── VIDEO UPLOAD CONFIG ───────────────────────────────────────────────────────
+const videoUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      const dir = path.join(__dirname, 'public', 'uploads', 'videos');
+      fs.mkdirSync(dir, { recursive: true });
+      cb(null, dir);
+    },
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase() || '.mp4';
+      cb(null, `demo_${req.params.id}_${Date.now()}${ext}`);
+    }
+  }),
+  limits: { fileSize: 500 * 1024 * 1024 }, // 500 MB
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('video/')) cb(null, true);
+    else cb(new Error('Only video files are allowed'));
+  }
+});
 
 const app    = express();
 const prisma = new PrismaClient();
@@ -68,6 +90,7 @@ function rowToProject(r) {
     betaTestingDate: r.beta_testing_date || null,
     assignTeam:      r.assign_team      || null,
     tags:            r.tags             || [],
+    demoVideo:       r.demo_video       || null,
     created_at:      r.created_at,
     updated_at:      r.updated_at,
   };
@@ -890,6 +913,44 @@ app.delete('/api/run-dates/:id', adminOnly, async (req, res) => {
 // ── STATIC ROUTES ─────────────────────────────────────────────────────────────
 app.get('/login', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+
+// ── DEMO VIDEO UPLOAD / DELETE ────────────────────────────────────────────────
+// POST /api/progress/:id/video — upload a demo video file (admin only)
+app.post('/api/progress/:id/video', adminOnly, (req, res) => {
+  videoUpload.single('video')(req, res, async (err) => {
+    if (err) return res.status(400).json({ success: false, error: err.message });
+    if (!req.file) return res.status(400).json({ success: false, error: 'No file uploaded' });
+    try {
+      const id = parseInt(req.params.id);
+      // Delete old video file if one already exists
+      const existing = await prisma.progress.findUnique({ where: { id }, select: { demo_video: true } });
+      if (existing?.demo_video) {
+        const oldPath = path.join(__dirname, 'public', 'uploads', 'videos', existing.demo_video);
+        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      }
+      await prisma.progress.update({ where: { id }, data: { demo_video: req.file.filename } });
+      res.json({ success: true, filename: req.file.filename });
+    } catch (e) {
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
+});
+
+// DELETE /api/progress/:id/video — remove demo video (admin only)
+app.delete('/api/progress/:id/video', adminOnly, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const existing = await prisma.progress.findUnique({ where: { id }, select: { demo_video: true } });
+    if (existing?.demo_video) {
+      const filePath = path.join(__dirname, 'public', 'uploads', 'videos', existing.demo_video);
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      await prisma.progress.update({ where: { id }, data: { demo_video: null } });
+    }
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
 });
 
 app.get('*', (req, res) => {

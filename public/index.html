@@ -1505,15 +1505,14 @@ function renderCharts(projects){
   document.getElementById('chartsContent').innerHTML=`
     <div class="g2" style="margin-bottom:14px">
       <div class="card">
-        <div class="card-title">Completion by assignee</div>
-        <div class="card-sub">Avg project completion vs documentation %</div>
+        <div class="card-title">Overall Completion by Assignee</div>
+        <div class="card-sub"></div>
         <div id="barChartWrap" style="position:relative;"><canvas id="barChart" role="img" aria-label="Completion by assignee"></canvas></div>
       </div>
-      <div class="card">
-        <div class="card-title">Status split</div>
-        <div class="card-sub" id="donutSub">All projects by status</div>
+      <div class="card" style="display:flex;flex-direction:column">
+        <div class="card-title">Status Split</div><br>
         <div class="legend" id="donutLegend"></div>
-        <div style="position:relative;height:180px">
+        <div style="flex:1;position:relative;min-height:260px">
           <canvas id="donutChart" role="img" aria-label="Status donut chart"></canvas>
           <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none">
             <div style="font-family:var(--font-d);font-size:26px;color:var(--teal)" id="donutCenter"></div>
@@ -1523,8 +1522,8 @@ function renderCharts(projects){
       </div>
     </div>
     <div class="card">
-      <div class="card-title">By process type</div>
-      <div class="card-sub">Project count per type — full names shown as horizontal bars</div>
+      <div class="card-title">By Process Type</div>
+      <div class="card-sub"></div>
       <div id="typeChartWrap" style="position:relative;"><canvas id="typeChart" role="img" aria-label="Projects by type"></canvas></div>
     </div>`;
 
@@ -1539,13 +1538,17 @@ function renderCharts(projects){
   barChartInst=new Chart(document.getElementById('barChart'),{
     type:'bar',
     data:{labels:peopleSet,datasets:[
-      {label:'Completion',data:peopleSet.map(n=>{const m=projects.filter(p=>p.people.includes(n));return m.length?Math.round(m.reduce((s,p)=>s+p.completion,0)/m.length*100):0;}),backgroundColor:colors,borderRadius:5,borderSkipped:false,barPercentage:.45},
+      {label:'Development',data:peopleSet.map(n=>{const m=projects.filter(p=>p.people.includes(n));return m.length?Math.round(m.reduce((s,p)=>s+p.completion,0)/m.length*100):0;}),backgroundColor:colors,borderRadius:5,borderSkipped:false,barPercentage:.45},
       {label:'Documentation',data:peopleSet.map(n=>{const m=projects.filter(p=>p.people.includes(n));return m.length?Math.round(m.reduce((s,p)=>s+p.doc,0)/m.length*100):0;}),backgroundColor:colors.map(c=>hexToRgba(c,.25)),borderRadius:5,borderSkipped:false,barPercentage:.45},
     ]},
-    options:{...cDef,indexAxis:'y',scales:{
-      x:{max:100,grid:{color:'rgba(59,125,232,0.07)'},ticks:{color:'#7a8db0',font:{size:10},callback:v=>v+'%'},border:{display:false}},
-      y:{grid:{display:false},ticks:{color:'#c8d8f0',font:{size:11},padding:8},border:{display:false}},
-    },plugins:{...cDef.plugins,tooltip:{...cDef.plugins.tooltip,callbacks:{label:ctx=>` ${ctx.dataset.label}: ${ctx.parsed.x}%`}}}},
+    options:{...cDef,indexAxis:'y',
+      interaction:{mode:'index',axis:'y'},
+      scales:{
+        x:{max:100,grid:{color:'rgba(59,125,232,0.07)'},ticks:{color:'#7a8db0',font:{size:10},callback:v=>v+'%'},border:{display:false}},
+        y:{grid:{display:false},ticks:{color:'#c8d8f0',font:{size:11},padding:8},border:{display:false}},
+      },
+      plugins:{...cDef.plugins,tooltip:{...cDef.plugins.tooltip,callbacks:{label:ctx=>` ${ctx.dataset.label}: ${ctx.parsed.x}%`}}}
+    },
   });
 
   const statusGroups={};
@@ -1553,7 +1556,6 @@ function renderCharts(projects){
   const sLabels=Object.keys(statusGroups),sData=Object.values(statusGroups);
   const dColors=['#27c99a','#5b8def','#f0a832','#6b7394','#e85c5c','#8b6ef0'];
   const inProd=projects.filter(p=>p.status.toLowerCase()==='production').length;
-  document.getElementById('donutSub').textContent=`All ${projects.length} projects by status`;
   document.getElementById('donutCenter').textContent=projects.length?Math.round(inProd/projects.length*100)+'%':'0%';
   document.getElementById('donutLegend').innerHTML=sLabels.map((l,i)=>`<div class="leg-item"><div class="leg-sq" style="background:${dColors[i%dColors.length]}"></div>${l} (${statusGroups[l]})</div>`).join('');
   if(donutChartInst){donutChartInst.destroy();donutChartInst=null;}
@@ -1692,16 +1694,32 @@ function filterByPersonCard(name){
 }
 
 function setStatusFilter(f,btn){
+  // Toggle: clicking the already-active filter resets to 'all'
+  if(window._activeStatus===f && f!=='all'){
+    f='all';
+    document.querySelectorAll('#statusTabs .ftab').forEach(t=>{t.classList.remove('active');t.style.background='';t.style.borderColor='';t.style.color='';});
+    const allBtn=document.querySelector('#statusTabs .ftab');
+    if(allBtn) allBtn.classList.add('active');
+  } else {
+    document.querySelectorAll('#statusTabs .ftab').forEach(t=>{t.classList.remove('active');t.style.background='';t.style.borderColor='';t.style.color='';});
+    btn.classList.add('active');
+  }
   window._activeStatus=f;
-  document.querySelectorAll('#statusTabs .ftab').forEach(t=>{t.classList.remove('active');t.style.background='';t.style.borderColor='';t.style.color='';});
-  btn.classList.add('active');
   applyTableFilters();
 }
 function setPersonFilter(name,btn){
+  // Toggle: clicking the already-active person resets to 'all'
+  if(window._activePerson===name && name!=='all'){
+    name='all';
+    document.querySelectorAll('#personTabs .ftab').forEach(t=>{t.classList.remove('active');t.style.background='';t.style.borderColor='';t.style.color='';});
+    const allBtn=document.querySelector('#personTabs .ftab');
+    if(allBtn){ const ac='#15d5f5'; allBtn.classList.add('active');allBtn.style.background=ac;allBtn.style.borderColor=ac;allBtn.style.color='#fff'; }
+  } else {
+    document.querySelectorAll('#personTabs .ftab').forEach(t=>{t.classList.remove('active');t.style.background='';t.style.borderColor='';t.style.color='';});
+    const col=name==='all'?'#15d5f5':getPersonColor(name);
+    btn.classList.add('active');btn.style.background=col;btn.style.borderColor=col;btn.style.color='#fff';
+  }
   window._activePerson=name;
-  document.querySelectorAll('#personTabs .ftab').forEach(t=>{t.classList.remove('active');t.style.background='';t.style.borderColor='';t.style.color='';});
-  const col=name==='all'?'#5b8def':getPersonColor(name);
-  btn.classList.add('active');btn.style.background=col;btn.style.borderColor=col;btn.style.color='#fff';
   applyTableFilters();
 }
 function applyTableFilters(projectsArg){
@@ -1967,7 +1985,8 @@ function renderTypeGrid(projects){
           </div>
         </div>` : ''}
         ${hasTags ? '<div class="pcard-fixed-divider"></div><div class="pcard-fixed-tags">'+tagsHtml+'</div>' : ''}
-        <div style="display:flex;align-items:center;justify-content:flex-end;margin-top:8px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">
+          ${p.demoVideo ? `<span style="display:inline-flex;align-items:center;gap:3px;font-size:9px;padding:2px 7px;border-radius:6px;background:rgba(21,213,245,0.12);color:#15d5f5;font-weight:600;border:1px solid rgba(21,213,245,0.25)"><svg width="7" height="7" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg> Demo</span>` : '<span></span>'}
           <span style="font-size:9px;color:var(--muted2)">${updatedAgo ? updatedAgo+' · ' : ''}View details →</span>
         </div>
       </div>`;
@@ -2363,6 +2382,7 @@ function dbRecordsToProjects(records) {
       betaTestingDate: r.betaTestingDate || null,
       assignTeam:      r.assignTeam      || null,
       tags:            Array.isArray(r.tags) ? r.tags : [],
+      demoVideo:       r.demoVideo       || null,
       updated_at: r.updated_at || r.created_at || null,
     };
   });
@@ -2427,6 +2447,89 @@ async function importToMongoDB(projects) {
     } else {
       console.warn('Import blocked — not logged in as Admin');
     }
+  }
+}
+
+// ── DEMO VIDEO HELPERS ────────────────────────────────────────────────────────
+function buildVideoSection(p, idx) {
+  if (p.demoVideo) {
+    const ext = (p.demoVideo.split('.').pop()||'').toLowerCase();
+    const mime = {mp4:'video/mp4',webm:'video/webm',ogg:'video/ogg',mov:'video/quicktime',avi:'video/x-msvideo'}[ext] || 'video/mp4';
+    return `
+      <div style="border-radius:10px;overflow:hidden;background:#000;margin-bottom:8px">
+        <video controls style="width:100%;max-height:220px;display:block">
+          <source src="/uploads/videos/${p.demoVideo}" type="${mime}">
+          Your browser does not support video playback.
+        </video>
+      </div>
+      <button class="admin-only imu-btn" style="width:100%;justify-content:center;padding:6px 10px;font-size:11px;border-radius:8px;border-color:rgba(232,92,92,0.35);color:#e85c5c" onclick="removeDemoVideo(${idx})">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+        Remove Video
+      </button>`;
+  } else {
+    return `
+      <div style="border:2px dashed rgba(21,213,245,0.2);border-radius:10px;padding:18px;text-align:center">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(21,213,245,0.45)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:8px;display:block;margin-left:auto;margin-right:auto"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">No demo video uploaded yet</div>
+        <div class="admin-only">
+          <input type="file" id="demoVideoInput_${idx}" accept="video/*" style="display:none" onchange="uploadDemoVideo(${idx})">
+          <button class="imu-btn imu-btn-primary" style="font-size:11px;padding:6px 14px;border-radius:8px;width:100%;justify-content:center" onclick="document.getElementById('demoVideoInput_${idx}').click()">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Upload Demo Video
+          </button>
+        </div>
+        <div class="member-only" style="font-size:11px;color:var(--muted);font-style:italic;margin-top:4px">Admins can upload a demo video here</div>
+      </div>`;
+  }
+}
+
+async function uploadDemoVideo(idx) {
+  const p = (window._projects||[])[idx];
+  if (!p || !p._id) { showToast('❌ Project not linked to database', 'error'); return; }
+  const fileInput = document.getElementById(`demoVideoInput_${idx}`);
+  const file = fileInput ? fileInput.files[0] : null;
+  if (!file) return;
+  // Show uploading spinner
+  const container = document.getElementById('modalVideoContent');
+  if (container) container.innerHTML = `<div style="text-align:center;padding:20px;color:var(--muted)"><div style="width:22px;height:22px;border:2px solid rgba(21,213,245,0.25);border-top-color:#15d5f5;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;margin-bottom:8px"></div><div style="font-size:12px">Uploading video…</div></div>`;
+  try {
+    const formData = new FormData();
+    formData.append('video', file);
+    const resp = await authFetch(`${API_BASE}/api/progress/${p._id}/video`, { method:'POST', body: formData });
+    const data = await resp.json();
+    if (data.success) {
+      p.demoVideo = data.filename;
+      showToast('✅ Demo video uploaded successfully', 'success');
+      if (container) container.innerHTML = buildVideoSection(p, idx);
+      try { renderTypeGrid(window._projects); } catch(e){}
+    } else {
+      showToast('❌ Upload failed: ' + (data.error||'Unknown error'), 'error');
+      if (container) container.innerHTML = buildVideoSection(p, idx);
+    }
+  } catch (e) {
+    if (e.message !== 'Permission denied') showToast('❌ Upload error: ' + e.message, 'error');
+    if (container) container.innerHTML = buildVideoSection(p, idx);
+  }
+}
+
+async function removeDemoVideo(idx) {
+  const p = (window._projects||[])[idx];
+  if (!p || !p._id) { showToast('❌ Project not linked to database', 'error'); return; }
+  if (!confirm('Remove the demo video for "' + p.process + '"?')) return;
+  try {
+    const resp = await authFetch(`${API_BASE}/api/progress/${p._id}/video`, { method:'DELETE' });
+    const data = await resp.json();
+    if (data.success) {
+      p.demoVideo = null;
+      showToast('✅ Demo video removed', 'success');
+      const container = document.getElementById('modalVideoContent');
+      if (container) container.innerHTML = buildVideoSection(p, idx);
+      try { renderTypeGrid(window._projects); } catch(e){}
+    } else {
+      showToast('❌ Remove failed: ' + (data.error||'Unknown error'), 'error');
+    }
+  } catch (e) {
+    if (e.message !== 'Permission denied') showToast('❌ Error: ' + e.message, 'error');
   }
 }
 
@@ -2594,6 +2697,15 @@ function openModal(idx){
             </div>
 
           </div>
+        </div>
+
+        <!-- ── Demo Video Section ── -->
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+          <div style="font-size:10px;color:#15d5f5;text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+            Demo Video
+          </div>
+          <div id="modalVideoContent">${buildVideoSection(p, idx)}</div>
         </div>
 
         <!-- Quick nav buttons -->

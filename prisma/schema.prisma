@@ -32,6 +32,7 @@ model Progress {
   beta_testing_date String?
   assign_team       String?
   tags              String[]
+  demo_video        String?
   bug_fixes         bug_fixes[]
   change_requests   change_requests[]
   feature_addons    feature_addons[]
