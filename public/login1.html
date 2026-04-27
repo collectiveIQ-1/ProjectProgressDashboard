@@ -4,35 +4,43 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sign In — Progress Dashboard</title>
-  <script>
-  (function(){
-    var c=document.createElement('canvas');
-    c.width=32;c.height=32;
-    var x=c.getContext('2d');
-    x.fillStyle='#0d2030';
-    x.beginPath();x.moveTo(6,0);x.lineTo(26,0);x.quadraticCurveTo(32,0,32,6);x.lineTo(32,26);x.quadraticCurveTo(32,32,26,32);x.lineTo(6,32);x.quadraticCurveTo(0,32,0,26);x.lineTo(0,6);x.quadraticCurveTo(0,0,6,0);x.closePath();x.fill();
-    x.fillStyle='#15d5f5';
-    x.font='bold 22px Arial';
-    x.textAlign='center';
-    x.textBaseline='middle';
-    x.fillText('P',16,17);
-    var l=document.createElement('link');
-    l.rel='icon';l.type='image/png';l.href=c.toDataURL('image/png');
-    document.querySelectorAll('link[rel~="icon"]').forEach(function(e){e.parentNode.removeChild(e);});
-    document.head.appendChild(l);
-  })();
-  </script>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     html, body { height: 100%; font-family: 'DM Sans', Arial, sans-serif; overflow: hidden; }
 
-    /* bg canvas fills viewport natively */
+    /* ── Animated background ── */
+    .bg {
+      position: fixed; inset: 0; z-index: 0;
+      background: #04111a;
+    }
 
-    /* blobs removed — canvas background used instead */
+    /* Animated blobs */
+    .blob {
+      position: absolute; border-radius: 50%;
+      filter: blur(90px); opacity: 0.55;
+      animation: drift 12s ease-in-out infinite alternate;
+    }
+    .blob-1 { width: 600px; height: 600px; background: #0a4a5a; top: -200px; left: -150px; animation-delay: 0s; }
+    .blob-2 { width: 500px; height: 500px; background: #062838; bottom: -150px; right: -100px; animation-delay: -5s; }
+    .blob-3 { width: 380px; height: 380px; background: #0d5f72; top: 40%; left: 55%; animation-delay: -8s; }
+    .blob-4 { width: 280px; height: 280px; background: #083848; top: 20%; right: 10%; animation-delay: -3s; opacity: 0.35; }
+    @keyframes drift {
+      from { transform: translate(0, 0) scale(1); }
+      to   { transform: translate(30px, 20px) scale(1.08); }
+    }
 
-    /* grid drawn on canvas */
+    /* Grid overlay */
+    .bg::after {
+      content: '';
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(rgba(21,213,245,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(21,213,245,0.04) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+    }
 
     /* ── Page ── */
     .page {
@@ -228,195 +236,12 @@
 </head>
 <body>
 
-<canvas id="bgCanvas" style="position:fixed;inset:0;width:100%;height:100%;z-index:0;display:block"></canvas>
-<script>
-(function(){
-  const canvas = document.getElementById('bgCanvas');
-  const ctx = canvas.getContext('2d');
-  let W, H, nodes, particles, dots, t = 0;
-  const CYAN='#15d5f5', TEAL='#40ddf5', MINT='#7ef0f8';
-  const COLORS=[CYAN,TEAL,MINT,'#17d9a4','#15d5f5'];
-
-  function rand(a,b){ return a+Math.random()*(b-a); }
-  function lerp(a,b,t){ return a+(b-a)*t; }
-
-  function resize(){
-    W = canvas.width = window.innerWidth;
-    H = canvas.height = window.innerHeight;
-    init();
-  }
-
-  function init(){
-    // Nodes — hub circles
-    const count = Math.min(16, Math.floor(W*H/20000)+8);
-    nodes = Array.from({length:count},(_,i)=>({
-      x:rand(80,W-80), y:rand(80,H-80),
-      r:rand(5,11),
-      vx:rand(-0.25,0.25), vy:rand(-0.25,0.25),
-      pct:rand(0.2,1.0),
-      color:COLORS[i%5],
-      pulse:rand(0,Math.PI*2),
-      pulseSpeed:rand(0.018,0.045),
-      ringRot:rand(0,Math.PI*2),
-      ringSpeed:rand(0.008,0.022)*(Math.random()>.5?1:-1),
-    }));
-
-    // Edge particles — travel along connections
-    particles=[];
-    for(let i=0;i<90;i++){
-      const a=Math.floor(rand(0,nodes.length));
-      let b=Math.floor(rand(0,nodes.length-1));
-      if(b>=a) b++;
-      particles.push({
-        a, b,
-        t:rand(0,1),
-        speed:rand(0.004,0.012),
-        color:COLORS[Math.floor(rand(0,3))],
-        r:rand(1.5,3.5)
-      });
-    }
-
-    // Free-floating ambient dots — scattered all over
-    const dotCount = Math.floor(W*H/6000);
-    dots = Array.from({length:dotCount},()=>({
-      x:rand(0,W), y:rand(0,H),
-      r:rand(0.8,2.2),
-      vx:rand(-0.3,0.3), vy:rand(-0.3,0.3),
-      alpha:rand(0.3,0.9),
-      twinkle:rand(0,Math.PI*2),
-      twinkleSpeed:rand(0.02,0.06),
-      color:COLORS[Math.floor(rand(0,3))],
-    }));
-  }
-
-  function glow(x,y,r,color,alpha){
-    const g=ctx.createRadialGradient(x,y,0,x,y,r);
-    g.addColorStop(0,color.replace('#','rgba(').replace('f5','f5,'+alpha+')').replace('df5','df5,'+alpha+')').replace('f8','f8,'+alpha+')'));
-    g.addColorStop(0,'rgba(21,213,245,'+alpha+')');
-    g.addColorStop(1,'rgba(21,213,245,0)');
-    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
-    ctx.fillStyle=g; ctx.fill();
-  }
-
-  function draw(){
-    t+=0.016;
-
-    // Background
-    const bg=ctx.createRadialGradient(W*.35,H*.25,0,W*.35,H*.25,W*.85);
-    bg.addColorStop(0,'#071e28'); bg.addColorStop(.45,'#04111a'); bg.addColorStop(1,'#020c14');
-    ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
-
-    // Grid
-    ctx.strokeStyle='rgba(21,213,245,0.035)'; ctx.lineWidth=1;
-    for(let x=0;x<W;x+=52){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
-    for(let y=0;y<H;y+=52){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
-
-    // ── AMBIENT DOTS ──────────────────────────────────────────
-    dots.forEach(d=>{
-      d.x+=d.vx; d.y+=d.vy;
-      if(d.x<0) d.x=W; if(d.x>W) d.x=0;
-      if(d.y<0) d.y=H; if(d.y>H) d.y=0;
-      d.twinkle+=d.twinkleSpeed;
-      const a=d.alpha*(0.5+0.5*Math.sin(d.twinkle));
-      // Glow halo
-      const hg=ctx.createRadialGradient(d.x,d.y,0,d.x,d.y,d.r*5);
-      hg.addColorStop(0,'rgba(21,213,245,'+(a*0.5).toFixed(3)+')');
-      hg.addColorStop(1,'rgba(21,213,245,0)');
-      ctx.beginPath(); ctx.arc(d.x,d.y,d.r*5,0,Math.PI*2);
-      ctx.fillStyle=hg; ctx.fill();
-      // Core dot
-      ctx.beginPath(); ctx.arc(d.x,d.y,d.r,0,Math.PI*2);
-      ctx.fillStyle='rgba(21,213,245,'+a.toFixed(3)+')';
-      ctx.fill();
-    });
-
-    // ── MOVE NODES ─────────────────────────────────────────────
-    nodes.forEach(n=>{
-      n.x+=n.vx; n.y+=n.vy;
-      if(n.x<50||n.x>W-50) n.vx*=-1;
-      if(n.y<50||n.y>H-50) n.vy*=-1;
-      n.pulse+=n.pulseSpeed;
-      n.ringRot+=n.ringSpeed;
-    });
-
-    // ── EDGES ──────────────────────────────────────────────────
-    nodes.forEach((a,i)=>{
-      nodes.slice(i+1).forEach(b=>{
-        const dx=b.x-a.x,dy=b.y-a.y,dist=Math.sqrt(dx*dx+dy*dy);
-        if(dist<220){
-          const alpha=Math.max(0,(0.22-dist/1000)).toFixed(3);
-          ctx.strokeStyle='rgba(21,213,245,'+alpha+')';
-          ctx.lineWidth=1;
-          ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
-        }
-      });
-    });
-
-    // ── EDGE PARTICLES ─────────────────────────────────────────
-    particles.forEach(p=>{
-      p.t+=p.speed; if(p.t>1) p.t=0;
-      const na=nodes[p.a],nb=nodes[p.b]; if(!na||!nb) return;
-      const px=lerp(na.x,nb.x,p.t),py=lerp(na.y,nb.y,p.t);
-      // Glow halo
-      const pg=ctx.createRadialGradient(px,py,0,px,py,p.r*4);
-      pg.addColorStop(0,'rgba(21,213,245,0.35)');
-      pg.addColorStop(1,'rgba(21,213,245,0)');
-      ctx.beginPath();ctx.arc(px,py,p.r*4,0,Math.PI*2);
-      ctx.fillStyle=pg; ctx.fill();
-      // Core
-      ctx.beginPath();ctx.arc(px,py,p.r,0,Math.PI*2);
-      ctx.fillStyle=p.color; ctx.fill();
-    });
-
-    // ── NODES ──────────────────────────────────────────────────
-    nodes.forEach(n=>{
-      const pulse=Math.sin(n.pulse);
-      const pAmt=pulse*.5+.5;
-
-      // Outer soft glow
-      const og=ctx.createRadialGradient(n.x,n.y,n.r,n.x,n.y,n.r+22);
-      og.addColorStop(0,'rgba(21,213,245,'+(0.12*pAmt).toFixed(3)+')');
-      og.addColorStop(1,'rgba(21,213,245,0)');
-      ctx.beginPath();ctx.arc(n.x,n.y,n.r+22,0,Math.PI*2);
-      ctx.fillStyle=og; ctx.fill();
-
-      // Spinning dashed arc (outer ring)
-      ctx.save();
-      ctx.translate(n.x,n.y);
-      ctx.rotate(n.ringRot);
-      ctx.strokeStyle='rgba(21,213,245,'+(0.45+0.3*pAmt).toFixed(2)+')';
-      ctx.lineWidth=1.5; ctx.lineCap='round';
-      ctx.setLineDash([6,5]);
-      ctx.beginPath();ctx.arc(0,0,n.r+9,0,Math.PI*2);ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.restore();
-
-      // Progress arc (solid)
-      ctx.beginPath();
-      ctx.arc(n.x,n.y,n.r+6,-Math.PI/2,-Math.PI/2+Math.PI*2*n.pct);
-      ctx.strokeStyle=n.color;
-      ctx.lineWidth=2; ctx.lineCap='round'; ctx.stroke();
-
-      // Node body gradient
-      const ng=ctx.createRadialGradient(n.x-n.r*.35,n.y-n.r*.35,0,n.x,n.y,n.r);
-      ng.addColorStop(0,'rgba(126,240,248,0.95)');
-      ng.addColorStop(0.4,n.color);
-      ng.addColorStop(1,'#0a3d4d');
-      ctx.beginPath();ctx.arc(n.x,n.y,n.r,0,Math.PI*2);
-      ctx.fillStyle=ng; ctx.fill();
-
-      // Inner bright highlight
-      ctx.beginPath();ctx.arc(n.x-n.r*.3,n.y-n.r*.3,n.r*.3,0,Math.PI*2);
-      ctx.fillStyle='rgba(200,250,255,0.3)';ctx.fill();
-    });
-
-    requestAnimationFrame(draw);
-  }
-
-  window.addEventListener('resize',resize);
-  resize(); draw();
-})();
-</script>
+<div class="bg">
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
+  <div class="blob blob-4"></div>
+</div>
 
 <div class="page">
   <div class="card">

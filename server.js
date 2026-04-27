@@ -1,252 +1,75 @@
 require('dotenv').config();
-const express = require('express');
-const { Pool }  = require('pg');
-const cors      = require('cors');
-const path      = require('path');
+const express           = require('express');
+const { PrismaClient }  = require('@prisma/client');
+const cors              = require('cors');
+const path              = require('path');
 
-const app = express();
+const app    = express();
+const prisma = new PrismaClient();
+
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ── PostgreSQL CONNECTION ──────────────────────────────────────────────────────
-const pool = new Pool({
-  host:     process.env.PG_HOST,
-  port:     parseInt(process.env.PG_PORT || '5432'),
-  database: process.env.PG_DATABASE,
-  user:     process.env.PG_USER,
-  password: process.env.PG_PASSWORD,
-  ssl: process.env.PG_SSL === 'true' ? { rejectUnauthorized: false } : false,
-  max: 10,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000,
-});
-
-// Helper — run a query and return rows
-const query = (text, params) => pool.query(text, params);
-
-// ── CREATE TABLES ON STARTUP ──────────────────────────────────────────────────
-async function initDB() {
-  // Credentials table
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS credentials (
-      id         SERIAL PRIMARY KEY,
-      username   TEXT NOT NULL UNIQUE,
-      password   TEXT NOT NULL,
-      role       TEXT NOT NULL DEFAULT 'Member',
-      created_at TIMESTAMPTZ DEFAULT NOW(),
-      updated_at TIMESTAMPTZ DEFAULT NOW()
-    );
-  `);
-
-  // Seed credentials from Excel data (insert only if not exists)
+// ── SEED CREDENTIALS ON STARTUP ───────────────────────────────────────────────
+async function seedCredentials() {
   const users = [
-    { username: 'sruhunage@collectivercm.com', password: 'Shashani123@Admin', role: 'Admin' },
-    { username: 'amilab@botmedfusion.com',     password: 'Amila123@Admin',    role: 'Admin' },
-    { username: 'nranasinghe@collectivercm.com', password: 'Nirman123@Admin', role: 'Admin' },
-    { username: 'bherath@collectivercm.com',   password: 'Bimsara123@',       role: 'Member' },
-    { username: 'dfernando@collectivercm.com', password: 'Dilmi123@',         role: 'Member' },
-    { username: 'palwis@collectivercm.com',    password: 'Piyum123@',         role: 'Member' },
-    { username: 'vihangam@botmedfusion.com',   password: 'Vihanga123@',       role: 'Member' },
-    { username: 'aranasinghe@collectivercm.com', password: 'Amandi123@',      role: 'Member' },
-    { username: 'CVithanage@collectivercm.com', password: 'Chamath123@',      role: 'Member' },
-    { username: 'imalshar@botmedfusion.com',   password: 'Imalsha123@',       role: 'Member' },
-    { username: 'shanka@collectivercm.com',    password: 'Shanka123@',        role: 'Member' },
+    { username: 'sruhunage@collectivercm.com',  password: 'Shashani123@Admin', role: 'Admin'  },
+    { username: 'amilab@botmedfusion.com',       password: 'Amila123@Admin',    role: 'Admin'  },
+    { username: 'nranasinghe@collectivercm.com', password: 'Nirman123@Admin',   role: 'Admin'  },
+    { username: 'bherath@collectivercm.com',     password: 'Bimsara123@',       role: 'Member' },
+    { username: 'dfernando@collectivercm.com',   password: 'Dilmi123@',         role: 'Member' },
+    { username: 'palwis@collectivercm.com',      password: 'Piyum123@',         role: 'Member' },
+    { username: 'vihangam@botmedfusion.com',     password: 'Vihanga123@',       role: 'Member' },
+    { username: 'aranasinghe@collectivercm.com', password: 'Amandi123@',        role: 'Member' },
+    { username: 'CVithanage@collectivercm.com',  password: 'Chamath123@',       role: 'Member' },
+    { username: 'imalshar@botmedfusion.com',     password: 'Imalsha123@',       role: 'Member' },
+    { username: 'shanka@collectivercm.com',      password: 'Shanka123@',        role: 'Member' },
   ];
   for (const u of users) {
-    await pool.query(`
-      INSERT INTO credentials (username, password, role)
-      VALUES ($1, $2, $3)
-      ON CONFLICT (username) DO NOTHING
-    `, [u.username, u.password, u.role]);
+    await prisma.credentials.upsert({
+      where:  { username: u.username },
+      update: {},
+      create: u,
+    });
   }
-
-  console.log('✅  Credentials table ready and seeded');
-
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS progress (
-      id            SERIAL PRIMARY KEY,
-      process       TEXT NOT NULL UNIQUE,
-      type          TEXT,
-      status        TEXT,
-      completion    NUMERIC(5,4) DEFAULT 0,
-      doc           NUMERIC(5,4) DEFAULT 0,
-      people        TEXT[],
-      dept          TEXT,
-      priority      TEXT,
-      start_date    TEXT,
-      deadline      TEXT,
-      frequency     TEXT,
-      auto_fte      NUMERIC(10,4),
-      manual_fte    NUMERIC(10,4),
-      created_at    TIMESTAMPTZ DEFAULT NOW(),
-      updated_at    TIMESTAMPTZ DEFAULT NOW()
-    );
-
-    CREATE TABLE IF NOT EXISTS meeting_updates (
-      id            SERIAL PRIMARY KEY,
-      progress_id   INTEGER NOT NULL REFERENCES progress(id) ON DELETE CASCADE,
-      date          TEXT,
-      time          TEXT,
-      note          TEXT NOT NULL,
-      is_done       BOOLEAN DEFAULT FALSE,
-      created_at    TIMESTAMPTZ DEFAULT NOW(),
-      updated_at    TIMESTAMPTZ DEFAULT NOW()
-    );
-
-    CREATE TABLE IF NOT EXISTS milestones (
-      id            SERIAL PRIMARY KEY,
-      progress_id   INTEGER NOT NULL REFERENCES progress(id) ON DELETE CASCADE,
-      title         TEXT NOT NULL,
-      description   TEXT DEFAULT '',
-      due_date      TEXT,
-      status        TEXT DEFAULT 'Pending',
-      created_at    TIMESTAMPTZ DEFAULT NOW(),
-      updated_at    TIMESTAMPTZ DEFAULT NOW()
-    );
-  `);
-
-  // Add missing columns to progress table (safe for existing tables)
-  const progressCols = [
-    `ALTER TABLE progress ADD COLUMN IF NOT EXISTS type         TEXT`,
-    `ALTER TABLE progress ADD COLUMN IF NOT EXISTS status       TEXT`,
-    `ALTER TABLE progress ADD COLUMN IF NOT EXISTS completion   NUMERIC(5,4) DEFAULT 0`,
-    `ALTER TABLE progress ADD COLUMN IF NOT EXISTS doc          NUMERIC(5,4) DEFAULT 0`,
-    `ALTER TABLE progress ADD COLUMN IF NOT EXISTS people       TEXT[]`,
-    `ALTER TABLE progress ADD COLUMN IF NOT EXISTS dept         TEXT`,
-    `ALTER TABLE progress ADD COLUMN IF NOT EXISTS priority     TEXT`,
-    `ALTER TABLE progress ADD COLUMN IF NOT EXISTS start_date   TEXT`,
-    `ALTER TABLE progress ADD COLUMN IF NOT EXISTS deadline     TEXT`,
-    `ALTER TABLE progress ADD COLUMN IF NOT EXISTS frequency    TEXT`,
-    `ALTER TABLE progress ADD COLUMN IF NOT EXISTS auto_fte     NUMERIC(10,4)`,
-    `ALTER TABLE progress ADD COLUMN IF NOT EXISTS manual_fte        NUMERIC(10,4)`,
-    `ALTER TABLE progress ADD COLUMN IF NOT EXISTS last_run_date      TEXT`,
-    `ALTER TABLE progress ADD COLUMN IF NOT EXISTS last_run_count     INTEGER`,
-    `ALTER TABLE progress ADD COLUMN IF NOT EXISTS purpose            TEXT`,
-    `ALTER TABLE progress ADD COLUMN IF NOT EXISTS expected_results   TEXT`,
-    `ALTER TABLE progress ADD COLUMN IF NOT EXISTS beta_testing_date  TEXT`,
-    `ALTER TABLE progress ADD COLUMN IF NOT EXISTS updated_at         TIMESTAMPTZ DEFAULT NOW()`,
-  ];
-  for (const sql of progressCols) {
-    await pool.query(sql);
-  }
-
-  // Run dates table (stores every automation run date per project)
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS run_dates (
-      id          SERIAL PRIMARY KEY,
-      progress_id INTEGER NOT NULL REFERENCES progress(id) ON DELETE CASCADE,
-      run_date    TEXT NOT NULL,
-      created_at  TIMESTAMPTZ DEFAULT NOW()
-    );
-    CREATE UNIQUE INDEX IF NOT EXISTS idx_run_dates_unique ON run_dates(progress_id, run_date);
-    CREATE INDEX IF NOT EXISTS idx_run_dates_progress_id ON run_dates(progress_id);
-  `);
-
-  // New Requirements, Change Requests, Feature Add-Ons tables
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS requirements (
-      id          SERIAL PRIMARY KEY,
-      progress_id INTEGER NOT NULL REFERENCES progress(id) ON DELETE CASCADE,
-      title       TEXT NOT NULL,
-      description TEXT DEFAULT '',
-      priority    TEXT DEFAULT 'Medium',
-      status      TEXT DEFAULT 'Open',
-      created_at  TIMESTAMPTZ DEFAULT NOW(),
-      updated_at  TIMESTAMPTZ DEFAULT NOW()
-    );
-    CREATE TABLE IF NOT EXISTS change_requests (
-      id          SERIAL PRIMARY KEY,
-      progress_id INTEGER NOT NULL REFERENCES progress(id) ON DELETE CASCADE,
-      title       TEXT NOT NULL,
-      description TEXT DEFAULT '',
-      priority    TEXT DEFAULT 'Medium',
-      status      TEXT DEFAULT 'Pending',
-      created_at  TIMESTAMPTZ DEFAULT NOW(),
-      updated_at  TIMESTAMPTZ DEFAULT NOW()
-    );
-    CREATE TABLE IF NOT EXISTS feature_addons (
-      id          SERIAL PRIMARY KEY,
-      progress_id INTEGER NOT NULL REFERENCES progress(id) ON DELETE CASCADE,
-      title       TEXT NOT NULL,
-      description TEXT DEFAULT '',
-      priority    TEXT DEFAULT 'Medium',
-      status      TEXT DEFAULT 'Requested',
-      created_at  TIMESTAMPTZ DEFAULT NOW(),
-      updated_at  TIMESTAMPTZ DEFAULT NOW()
-    );
-  `);
-
-  // Indexes for foreign keys
-  await pool.query(`
-    CREATE INDEX IF NOT EXISTS idx_meeting_updates_progress_id ON meeting_updates(progress_id);
-    CREATE INDEX IF NOT EXISTS idx_milestones_progress_id ON milestones(progress_id);
-    CREATE INDEX IF NOT EXISTS idx_requirements_progress_id   ON requirements(progress_id);
-    CREATE INDEX IF NOT EXISTS idx_change_requests_progress_id ON change_requests(progress_id);
-    CREATE INDEX IF NOT EXISTS idx_feature_addons_progress_id  ON feature_addons(progress_id);
-  `);
-
-  console.log('✅  Tables ready — credentials, progress, meeting_updates, milestones');
+  console.log('✅  Credentials seeded');
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// AUTH ROUTES
-// ══════════════════════════════════════════════════════════════════════════════
-
-// POST /api/login — authenticate user
-app.post('/api/login', async (req, res) => {
-  try {
-    const { username, password } = req.body;
-    if (!username || !password)
-      return res.status(400).json({ success: false, error: 'Username and password are required' });
-
-    const { rows } = await query(
-      'SELECT id, username, role FROM credentials WHERE username=$1 AND password=$2',
-      [String(username).trim(), String(password)]
-    );
-
-    if (!rows.length)
-      return res.status(401).json({ success: false, error: 'Invalid username or password' });
-
-    res.json({ success: true, user: { id: rows[0].id, username: rows[0].username, role: rows[0].role } });
-  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
-});
-
-// ── ROLE GUARD MIDDLEWARE ────────────────────────────────────────────────────
-// Reads X-User-Role header sent by the frontend on every mutating request.
-// Members (non-Admin) receive 403 for any write operation.
+// ── ROLE GUARD MIDDLEWARE ─────────────────────────────────────────────────────
 function adminOnly(req, res, next) {
   const role = req.headers['x-user-role'] || '';
-  if (role.toLowerCase() !== 'admin') {
+  if (role.toLowerCase() !== 'admin')
     return res.status(403).json({ success: false, error: 'Permission denied. Admin access required.' });
-  }
   next();
 }
 
-// Helper: convert a DB row to the shape the frontend expects
+// ── ROW MAPPERS ───────────────────────────────────────────────────────────────
 function rowToProject(r) {
   return {
-    _id:        String(r.id),
-    process:    r.process,
-    type:       r.type       || 'Unknown',
-    status:     r.status     || '',
-    completion: parseFloat(r.completion) || 0,
-    doc:        parseFloat(r.doc)        || 0,
-    people:     r.people     || [],
-    dept:       r.dept       || '',
-    priority:   r.priority   || '',
-    startDate:  r.start_date || null,
-    deadline:   r.deadline   || null,
-    frequency:  r.frequency  || '',
-    autoFTE:      r.auto_fte    != null ? parseFloat(r.auto_fte)   : null,
-    manualFTE:    r.manual_fte  != null ? parseFloat(r.manual_fte) : null,
-    lastRunDate:      r.last_run_date     || null,
-    lastRunCount:     r.last_run_count    != null ? parseInt(r.last_run_count) : null,
-    purpose:          r.purpose           || null,
-    expectedResults:  r.expected_results  || null,
-    betaTestingDate:  r.beta_testing_date || null,
-    created_at:   r.created_at,
-    updated_at:   r.updated_at,
+    _id:             String(r.id),
+    process:         r.process,
+    type:            r.type            || 'Unknown',
+    status:          r.status          || '',
+    completion:      r.completion      != null ? parseFloat(r.completion.toString()) : 0,
+    doc:             r.doc             != null ? parseFloat(r.doc.toString())        : 0,
+    people:          r.people          || [],
+    dept:            r.dept            || '',
+    priority:        r.priority        || '',
+    startDate:       r.start_date      || null,
+    deadline:        r.deadline        || null,
+    frequency:       r.frequency       || '',
+    autoFTE:         r.auto_fte        != null ? parseFloat(r.auto_fte.toString())   : null,
+    manualFTE:       r.manual_fte      != null ? parseFloat(r.manual_fte.toString()) : null,
+    lastRunDate:     r.last_run_date   || null,
+    lastRunCount:    r.last_run_count  != null ? parseInt(r.last_run_count)          : null,
+    purpose:         r.purpose         || null,
+    expectedResults: r.expected_results  || null,
+    betaTestingDate: r.beta_testing_date || null,
+    assignTeam:      r.assign_team      || null,
+    tags:            r.tags             || [],
+    created_at:      r.created_at,
+    updated_at:      r.updated_at,
   };
 }
 
@@ -275,40 +98,92 @@ function rowToMilestone(r) {
     updated_at:  r.updated_at,
   };
 }
+
 function rowToRequirement(r) {
-  return { _id: String(r.id), progress_id: String(r.progress_id), title: r.title, description: r.description||'', priority: r.priority||'Medium', status: r.status||'Open', created_at: r.created_at, updated_at: r.updated_at };
+  return {
+    _id:         String(r.id),
+    progress_id: String(r.progress_id),
+    title:       r.title,
+    description: r.description || '',
+    priority:    r.priority    || 'Medium',
+    status:      r.status      || 'Open',
+    created_at:  r.created_at,
+    updated_at:  r.updated_at,
+  };
 }
+
 function rowToChangeRequest(r) {
-  return { _id: String(r.id), progress_id: String(r.progress_id), title: r.title, description: r.description||'', priority: r.priority||'Medium', status: r.status||'Pending', created_at: r.created_at, updated_at: r.updated_at };
+  return {
+    _id:         String(r.id),
+    progress_id: String(r.progress_id),
+    title:       r.title,
+    description: r.description || '',
+    priority:    r.priority    || 'Medium',
+    status:      r.status      || 'Pending',
+    created_at:  r.created_at,
+    updated_at:  r.updated_at,
+  };
 }
+
 function rowToFeatureAddon(r) {
-  return { _id: String(r.id), progress_id: String(r.progress_id), title: r.title, description: r.description||'', priority: r.priority||'Medium', status: r.status||'Requested', created_at: r.created_at, updated_at: r.updated_at };
+  return {
+    _id:         String(r.id),
+    progress_id: String(r.progress_id),
+    title:       r.title,
+    description: r.description || '',
+    priority:    r.priority    || 'Medium',
+    status:      r.status      || 'Requested',
+    created_at:  r.created_at,
+    updated_at:  r.updated_at,
+  };
 }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// AUTH ROUTES
+// ══════════════════════════════════════════════════════════════════════════════
+
+app.post('/api/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    if (!username || !password)
+      return res.status(400).json({ success: false, error: 'Username and password are required' });
+
+    const user = await prisma.credentials.findFirst({
+      where:  { username: String(username).trim(), password: String(password) },
+      select: { id: true, username: true, role: true },
+    });
+
+    if (!user)
+      return res.status(401).json({ success: false, error: 'Invalid username or password' });
+
+    res.json({ success: true, user });
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+});
 
 // ══════════════════════════════════════════════════════════════════════════════
 // PROGRESS ROUTES
 // ══════════════════════════════════════════════════════════════════════════════
 
-// GET all progress records
+// GET all
 app.get('/api/progress', async (req, res) => {
   try {
-    const { rows } = await query('SELECT * FROM progress ORDER BY process ASC');
+    const rows = await prisma.progress.findMany({ orderBy: { process: 'asc' } });
     res.json({ success: true, data: rows.map(rowToProject) });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
-// GET single progress record
+// GET single
 app.get('/api/progress/:id', async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ success: false, error: 'Invalid ID' });
-    const { rows } = await query('SELECT * FROM progress WHERE id = $1', [id]);
-    if (!rows.length) return res.status(404).json({ success: false, error: 'Not found' });
-    res.json({ success: true, data: rowToProject(rows[0]) });
+    const row = await prisma.progress.findUnique({ where: { id } });
+    if (!row) return res.status(404).json({ success: false, error: 'Not found' });
+    res.json({ success: true, data: rowToProject(row) });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
-// POST - bulk import/upsert from Excel upload
+// POST bulk import/upsert from Excel
 app.post('/api/progress/import', adminOnly, async (req, res) => {
   try {
     const { projects } = req.body;
@@ -317,8 +192,8 @@ app.post('/api/progress/import', adminOnly, async (req, res) => {
 
     let inserted = 0, updated = 0;
     for (const p of projects) {
-      const people = (Array.isArray(p.people) ? p.people : [p.people || 'Upcoming']).map(n => (!n || String(n).toLowerCase() === 'unknown') ? 'Upcoming' : n);
-      // Convert Date objects / ISO strings to plain text for storage
+      const people = (Array.isArray(p.people) ? p.people : [p.people || 'Upcoming'])
+        .map(n => (!n || String(n).toLowerCase() === 'unknown') ? 'Upcoming' : n);
       const startDate = p.startDate instanceof Object
         ? (p.startDate.toISOString ? p.startDate.toISOString() : String(p.startDate))
         : (p.startDate || null);
@@ -326,120 +201,152 @@ app.post('/api/progress/import', adminOnly, async (req, res) => {
         ? (p.deadline.toISOString ? p.deadline.toISOString() : String(p.deadline))
         : (p.deadline || null);
 
-      const result = await query(`
-        INSERT INTO progress
-          (process, type, status, completion, doc, people, dept, priority,
-           start_date, deadline, frequency, auto_fte, manual_fte, updated_at)
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,NOW())
-        ON CONFLICT (process) DO UPDATE SET
-          type        = EXCLUDED.type,
-          status      = EXCLUDED.status,
-          completion  = EXCLUDED.completion,
-          doc         = EXCLUDED.doc,
-          people      = EXCLUDED.people,
-          dept        = EXCLUDED.dept,
-          priority    = EXCLUDED.priority,
-          start_date  = EXCLUDED.start_date,
-          deadline    = EXCLUDED.deadline,
-          frequency   = EXCLUDED.frequency,
-          auto_fte    = EXCLUDED.auto_fte,
-          manual_fte  = EXCLUDED.manual_fte,
-          updated_at  = NOW()
-        RETURNING (xmax = 0) AS was_inserted
-      `, [
-        p.process, p.type || 'Unknown', p.status || '',
-        p.completion || 0, p.doc || 0,
+      const data = {
+        type:       p.type       || 'Unknown',
+        status:     p.status     || '',
+        completion: parseFloat(p.completion) || 0,
+        doc:        parseFloat(p.doc)        || 0,
         people,
-        p.dept || '', p.priority || '',
-        startDate, deadline,
-        p.frequency || '',
-        p.autoFTE != null && !isNaN(p.autoFTE) ? p.autoFTE : null,
-        p.manualFTE != null && !isNaN(p.manualFTE) ? p.manualFTE : null,
-      ]);
-      if (result.rows[0].was_inserted) inserted++; else updated++;
+        dept:       p.dept       || '',
+        priority:   p.priority   || '',
+        start_date: startDate,
+        deadline,
+        frequency:  p.frequency  || '',
+        auto_fte:   p.autoFTE   != null && !isNaN(p.autoFTE)   ? p.autoFTE   : null,
+        manual_fte: p.manualFTE != null && !isNaN(p.manualFTE) ? p.manualFTE : null,
+        updated_at: new Date(),
+      };
+
+      const existing = await prisma.progress.findUnique({ where: { process: p.process } });
+      if (existing) {
+        await prisma.progress.update({ where: { process: p.process }, data });
+        updated++;
+      } else {
+        await prisma.progress.create({ data: { process: p.process, ...data } });
+        inserted++;
+      }
     }
     res.json({ success: true, inserted, updated });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
-// POST - create a single new project
+// POST create single project
 app.post('/api/progress', adminOnly, async (req, res) => {
   try {
     const { process, type, status, completion, doc, people, dept, priority,
             startDate, deadline, frequency, autoFTE, manualFTE,
-            lastRunDate, lastRunCount, purpose, expectedResults, betaTestingDate } = req.body;
+            lastRunDate, lastRunCount, purpose, expectedResults, betaTestingDate,
+            assignTeam, tags } = req.body;
     if (!process || !String(process).trim())
       return res.status(400).json({ success: false, error: 'Process name is required' });
-    const { rows } = await query(`
-      INSERT INTO progress
-        (process, type, status, completion, doc, people, dept, priority,
-         start_date, deadline, frequency, auto_fte, manual_fte,
-         last_run_date, last_run_count, purpose, expected_results, beta_testing_date,
-         created_at, updated_at)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,NOW(),NOW())
-      RETURNING *`,
-      [String(process).trim(), type||'Unknown', status||'To Do',
-       parseFloat(completion)||0, parseFloat(doc)||0,
-       (Array.isArray(people) ? people : (people ? [String(people)] : ['Upcoming'])).map(n => (!n || String(n).toLowerCase() === 'unknown') ? 'Upcoming' : n),
-       dept||'', priority||'',
-       startDate||null, deadline||null, frequency||'',
-       autoFTE!=null&&autoFTE!==''?parseFloat(autoFTE):null,
-       manualFTE!=null&&manualFTE!==''?parseFloat(manualFTE):null,
-       lastRunDate||null,
-       lastRunCount!=null&&lastRunCount!==''?parseInt(lastRunCount):null,
-       purpose||null, expectedResults||null, betaTestingDate||null
-      ]);
-    res.json({ success: true, data: rowToProject(rows[0]) });
+
+    const row = await prisma.progress.create({
+      data: {
+        process:          String(process).trim(),
+        type:             type     || 'Unknown',
+        status:           status   || 'To Do',
+        completion:       parseFloat(completion) || 0,
+        doc:              parseFloat(doc)        || 0,
+        people:           (Array.isArray(people) ? people : (people ? [String(people)] : ['Upcoming']))
+                            .map(n => (!n || String(n).toLowerCase() === 'unknown') ? 'Upcoming' : n),
+        dept:             dept      || '',
+        priority:         priority  || '',
+        start_date:       startDate || null,
+        deadline:         deadline  || null,
+        frequency:        frequency || '',
+        auto_fte:         autoFTE   != null && autoFTE   !== '' ? parseFloat(autoFTE)   : null,
+        manual_fte:       manualFTE != null && manualFTE !== '' ? parseFloat(manualFTE) : null,
+        last_run_date:    lastRunDate    || null,
+        last_run_count:   lastRunCount  != null && lastRunCount  !== '' ? parseInt(lastRunCount)  : null,
+        purpose:          purpose        || null,
+        expected_results: expectedResults || null,
+        beta_testing_date: betaTestingDate || null,
+        assign_team:      assignTeam || null,
+        tags:             Array.isArray(tags) ? tags : [],
+      },
+    });
+    res.json({ success: true, data: rowToProject(row) });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
-// PUT - update a progress record
+// PUT update project
 app.put('/api/progress/:id', adminOnly, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ success: false, error: 'Invalid ID' });
     const { process, type, status, completion, doc, people, dept, priority,
             startDate, deadline, frequency, autoFTE, manualFTE,
-            lastRunDate, lastRunCount,
-            purpose, expectedResults, betaTestingDate } = req.body;
-    const { rows } = await query(`
-      UPDATE progress SET
-        process=$1, type=$2, status=$3, completion=$4, doc=$5, people=$6,
-        dept=$7, priority=$8, start_date=$9, deadline=$10,
-        frequency=$11, auto_fte=$12, manual_fte=$13,
-        last_run_date=$14, last_run_count=$15,
-        purpose=$16, expected_results=$17, beta_testing_date=$18,
-        updated_at=NOW()
-      WHERE id=$19 RETURNING *`,
-      [process, type, status, completion, doc,
-       Array.isArray(people) ? people : [people],
-       dept, priority, startDate||null, deadline||null,
-       frequency, autoFTE||null, manualFTE||null,
-       lastRunDate||null,
-       lastRunCount != null && lastRunCount !== '' ? parseInt(lastRunCount) : null,
-       purpose||null, expectedResults||null, betaTestingDate||null,
-       id]);
-    if (!rows.length) return res.status(404).json({ success: false, error: 'Not found' });
-    res.json({ success: true, data: rowToProject(rows[0]) });
-  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+            lastRunDate, lastRunCount, purpose, expectedResults, betaTestingDate,
+            assignTeam, tags } = req.body;
+
+    const row = await prisma.progress.update({
+      where: { id },
+      data: {
+        process,
+        type,
+        status,
+        completion:       parseFloat(completion) || 0,
+        doc:              parseFloat(doc)        || 0,
+        people:           Array.isArray(people) ? people : [people],
+        dept,
+        priority,
+        start_date:       startDate  || null,
+        deadline:         deadline   || null,
+        frequency,
+        auto_fte:         autoFTE    || null,
+        manual_fte:       manualFTE  || null,
+        last_run_date:    lastRunDate || null,
+        last_run_count:   lastRunCount != null && lastRunCount !== '' ? parseInt(lastRunCount) : null,
+        purpose:          purpose          || null,
+        expected_results: expectedResults  || null,
+        beta_testing_date: betaTestingDate || null,
+        assign_team:      assignTeam || null,
+        tags:             Array.isArray(tags) ? tags : [],
+        updated_at:       new Date(),
+      },
+    });
+    res.json({ success: true, data: rowToProject(row) });
+  } catch (err) {
+    if (err.code === 'P2025') return res.status(404).json({ success: false, error: 'Not found' });
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
-// DELETE a progress record (cascades to meeting_updates + milestones via FK)
+// DELETE project
 app.delete('/api/progress/:id', adminOnly, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ success: false, error: 'Invalid ID' });
-    const { rowCount } = await query('DELETE FROM progress WHERE id=$1', [id]);
-    if (!rowCount) return res.status(404).json({ success: false, error: 'Not found' });
+    await prisma.progress.delete({ where: { id } });
     res.json({ success: true });
-  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+  } catch (err) {
+    if (err.code === 'P2025') return res.status(404).json({ success: false, error: 'Not found' });
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// PATCH touch updated_at
+app.patch('/api/progress/:id/touch', adminOnly, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ success: false, error: 'Invalid ID' });
+    const row = await prisma.progress.update({
+      where:  { id },
+      data:   { updated_at: new Date() },
+      select: { updated_at: true },
+    });
+    res.json({ success: true, updated_at: row.updated_at });
+  } catch (err) {
+    if (err.code === 'P2025') return res.status(404).json({ success: false, error: 'Not found' });
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
 // MEETING UPDATES ROUTES
 // ══════════════════════════════════════════════════════════════════════════════
 
-// POST - bulk import from Excel (matches process name case-insensitively)
+// POST bulk import from Excel
 app.post('/api/meeting-updates/import', adminOnly, async (req, res) => {
   try {
     const { rows } = req.body;
@@ -453,28 +360,26 @@ app.post('/api/meeting-updates/import', adminOnly, async (req, res) => {
       const processName = String(row.process_name || '').trim();
       if (!processName) { skipped++; continue; }
 
-      // Case-insensitive match — normalise whitespace on both sides
-      const { rows: found } = await query(
-        `SELECT id FROM progress WHERE LOWER(TRIM(process)) = LOWER($1)`,
-        [processName]
-      );
+      const found = await prisma.progress.findFirst({
+        where:  { process: { equals: processName, mode: 'insensitive' } },
+        select: { id: true },
+      });
 
-      if (!found.length) {
+      if (!found) {
         skipped++;
         if (!skippedNames.includes(processName)) skippedNames.push(processName);
         continue;
       }
 
-      const progress_id = found[0].id;
-      await query(
-        `INSERT INTO meeting_updates (progress_id, date, time, note, is_done, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, $5, NOW(), NOW())`,
-        [progress_id,
-         row.date  || new Date().toISOString().split('T')[0],
-         row.time  || '',
-         String(row.note || '').trim(),
-         Boolean(row.is_done)]
-      );
+      await prisma.meetingUpdate.create({
+        data: {
+          progress_id: found.id,
+          date:    row.date || new Date().toISOString().split('T')[0],
+          time:    row.time || '',
+          note:    String(row.note || '').trim(),
+          is_done: Boolean(row.is_done),
+        },
+      });
       imported++;
     }
 
@@ -482,247 +387,436 @@ app.post('/api/meeting-updates/import', adminOnly, async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
+// GET all meeting updates for a project
 app.get('/api/meeting-updates/:progressId', async (req, res) => {
   try {
     const progressId = parseInt(req.params.progressId);
     if (isNaN(progressId)) return res.status(400).json({ success: false, error: 'Invalid progress ID' });
-    const { rows } = await query(
-      'SELECT * FROM meeting_updates WHERE progress_id=$1 ORDER BY date DESC, time DESC',
-      [progressId]);
+    const rows = await prisma.meetingUpdate.findMany({
+      where:   { progress_id: progressId },
+      orderBy: [{ date: 'desc' }, { time: 'desc' }],
+    });
     res.json({ success: true, data: rows.map(rowToMeetingUpdate) });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
+// POST create meeting update
 app.post('/api/meeting-updates', adminOnly, async (req, res) => {
   try {
     const { progress_id, date, time, note, is_done } = req.body;
     const pid = parseInt(progress_id);
     if (isNaN(pid)) return res.status(400).json({ success: false, error: 'Invalid progress ID' });
     if (!note || !String(note).trim()) return res.status(400).json({ success: false, error: 'Note is required' });
-    const { rows } = await query(
-      `INSERT INTO meeting_updates (progress_id, date, time, note, is_done, created_at, updated_at)
-       VALUES ($1,$2,$3,$4,$5,NOW(),NOW()) RETURNING *`,
-      [pid,
-       date || new Date().toISOString().split('T')[0],
-       time || new Date().toTimeString().slice(0,5),
-       String(note).trim(),
-       Boolean(is_done)]);
-    res.json({ success: true, data: rowToMeetingUpdate(rows[0]) });
+
+    const row = await prisma.meetingUpdate.create({
+      data: {
+        progress_id: pid,
+        date:    date || new Date().toISOString().split('T')[0],
+        time:    time || new Date().toTimeString().slice(0, 5),
+        note:    String(note).trim(),
+        is_done: Boolean(is_done),
+      },
+    });
+    res.json({ success: true, data: rowToMeetingUpdate(row) });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
+// PUT update meeting update
 app.put('/api/meeting-updates/:id', adminOnly, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ success: false, error: 'Invalid ID' });
     const { date, time, note, is_done } = req.body;
-    const { rows } = await query(
-      `UPDATE meeting_updates
-       SET date=COALESCE($1,date), time=COALESCE($2,time), note=COALESCE($3,note),
-           is_done=$4, updated_at=NOW()
-       WHERE id=$5 RETURNING *`,
-      [date || null, time || null, note ? String(note).trim() : null, Boolean(is_done), id]);
-    if (!rows.length) return res.status(404).json({ success: false, error: 'Not found' });
-    res.json({ success: true, data: rowToMeetingUpdate(rows[0]) });
-  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+
+    const row = await prisma.meetingUpdate.update({
+      where: { id },
+      data: {
+        ...(date  !== undefined && { date }),
+        ...(time  !== undefined && { time }),
+        ...(note  !== undefined && { note: String(note).trim() }),
+        is_done: Boolean(is_done),
+      },
+    });
+    res.json({ success: true, data: rowToMeetingUpdate(row) });
+  } catch (err) {
+    if (err.code === 'P2025') return res.status(404).json({ success: false, error: 'Not found' });
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
+// DELETE meeting update
 app.delete('/api/meeting-updates/:id', adminOnly, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ success: false, error: 'Invalid ID' });
-    const { rowCount } = await query('DELETE FROM meeting_updates WHERE id=$1', [id]);
-    if (!rowCount) return res.status(404).json({ success: false, error: 'Not found' });
+    await prisma.meetingUpdate.delete({ where: { id } });
     res.json({ success: true });
-  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+  } catch (err) {
+    if (err.code === 'P2025') return res.status(404).json({ success: false, error: 'Not found' });
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
 // MILESTONES ROUTES
 // ══════════════════════════════════════════════════════════════════════════════
 
+// GET milestones for a project
 app.get('/api/milestones/:progressId', async (req, res) => {
   try {
     const progressId = parseInt(req.params.progressId);
     if (isNaN(progressId)) return res.status(400).json({ success: false, error: 'Invalid progress ID' });
-    const { rows } = await query(
-      'SELECT * FROM milestones WHERE progress_id=$1 ORDER BY due_date ASC NULLS LAST, created_at ASC',
-      [progressId]);
+    const rows = await prisma.milestone.findMany({
+      where:   { progress_id: progressId },
+      orderBy: [{ due_date: 'asc' }, { created_at: 'asc' }],
+    });
     res.json({ success: true, data: rows.map(rowToMilestone) });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
+// GET all milestones (with project name)
 app.get('/api/milestones', async (req, res) => {
   try {
-    const { rows } = await query(`
-      SELECT m.*, p.process AS process_name
-      FROM milestones m
-      LEFT JOIN progress p ON p.id = m.progress_id
-      ORDER BY m.created_at DESC`);
-    res.json({ success: true, data: rows.map(r => ({ ...rowToMilestone(r), process_name: r.process_name || 'Unknown' })) });
+    const rows = await prisma.milestone.findMany({
+      include:  { progress: { select: { process: true } } },
+      orderBy:  { created_at: 'desc' },
+    });
+    res.json({
+      success: true,
+      data: rows.map(r => ({ ...rowToMilestone(r), process_name: r.progress?.process || 'Unknown' })),
+    });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
+// POST create milestone
 app.post('/api/milestones', adminOnly, async (req, res) => {
   try {
     const { progress_id, title, description, due_date, status } = req.body;
     const pid = parseInt(progress_id);
     if (isNaN(pid)) return res.status(400).json({ success: false, error: 'Invalid progress ID' });
     if (!title || !String(title).trim()) return res.status(400).json({ success: false, error: 'Title is required' });
-    const { rows } = await query(
-      `INSERT INTO milestones (progress_id, title, description, due_date, status, created_at, updated_at)
-       VALUES ($1,$2,$3,$4,$5,NOW(),NOW()) RETURNING *`,
-      [pid, String(title).trim(), String(description||'').trim(), due_date||null, status||'Pending']);
-    res.json({ success: true, data: rowToMilestone(rows[0]) });
+
+    const row = await prisma.milestone.create({
+      data: {
+        progress_id: pid,
+        title:       String(title).trim(),
+        description: String(description || '').trim(),
+        due_date:    due_date || null,
+        status:      status   || 'Pending',
+      },
+    });
+    res.json({ success: true, data: rowToMilestone(row) });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
+// PUT update milestone
 app.put('/api/milestones/:id', adminOnly, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ success: false, error: 'Invalid ID' });
     const { title, description, due_date, status } = req.body;
-    const { rows } = await query(
-      `UPDATE milestones
-       SET title=COALESCE($1,title), description=COALESCE($2,description),
-           due_date=$3, status=COALESCE($4,status), updated_at=NOW()
-       WHERE id=$5 RETURNING *`,
-      [title ? String(title).trim() : null,
-       description != null ? String(description).trim() : null,
-       due_date || null, status || null, id]);
-    if (!rows.length) return res.status(404).json({ success: false, error: 'Not found' });
-    res.json({ success: true, data: rowToMilestone(rows[0]) });
-  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+
+    const row = await prisma.milestone.update({
+      where: { id },
+      data: {
+        ...(title       !== undefined && { title: String(title).trim() }),
+        ...(description !== undefined && { description: String(description).trim() }),
+        due_date: due_date || null,
+        ...(status !== undefined && { status }),
+      },
+    });
+    res.json({ success: true, data: rowToMilestone(row) });
+  } catch (err) {
+    if (err.code === 'P2025') return res.status(404).json({ success: false, error: 'Not found' });
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
+// DELETE milestone
 app.delete('/api/milestones/:id', adminOnly, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ success: false, error: 'Invalid ID' });
-    const { rowCount } = await query('DELETE FROM milestones WHERE id=$1', [id]);
-    if (!rowCount) return res.status(404).json({ success: false, error: 'Not found' });
+    await prisma.milestone.delete({ where: { id } });
     res.json({ success: true });
-  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+  } catch (err) {
+    if (err.code === 'P2025') return res.status(404).json({ success: false, error: 'Not found' });
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
 // REQUIREMENTS ROUTES
 // ══════════════════════════════════════════════════════════════════════════════
+
 app.get('/api/requirements/:progressId', async (req, res) => {
   try {
     const pid = parseInt(req.params.progressId);
-    if(isNaN(pid)) return res.status(400).json({success:false,error:'Invalid ID'});
-    const {rows} = await query('SELECT * FROM requirements WHERE progress_id=$1 ORDER BY created_at DESC',[pid]);
-    res.json({success:true,data:rows.map(rowToRequirement)});
-  } catch(err){res.status(500).json({success:false,error:err.message});}
+    if (isNaN(pid)) return res.status(400).json({ success: false, error: 'Invalid ID' });
+    const rows = await prisma.requirements.findMany({
+      where:   { progress_id: pid },
+      orderBy: { created_at: 'desc' },
+    });
+    res.json({ success: true, data: rows.map(rowToRequirement) });
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
-app.post('/api/requirements', adminOnly, async (req,res) => {
+
+app.post('/api/requirements', adminOnly, async (req, res) => {
   try {
-    const {progress_id,title,description,priority,status}=req.body;
-    const pid=parseInt(progress_id);
-    if(isNaN(pid)||!String(title||'').trim()) return res.status(400).json({success:false,error:'progress_id and title required'});
-    const {rows}=await query(`INSERT INTO requirements (progress_id,title,description,priority,status,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,NOW(),NOW()) RETURNING *`,
-      [pid,String(title).trim(),String(description||'').trim(),priority||'Medium',status||'Open']);
-    res.json({success:true,data:rowToRequirement(rows[0])});
-  } catch(err){res.status(500).json({success:false,error:err.message});}
+    const { progress_id, title, description, priority, status } = req.body;
+    const pid = parseInt(progress_id);
+    if (isNaN(pid) || !String(title || '').trim())
+      return res.status(400).json({ success: false, error: 'progress_id and title required' });
+
+    const row = await prisma.requirements.create({
+      data: {
+        progress_id: pid,
+        title:       String(title).trim(),
+        description: String(description || '').trim(),
+        priority:    priority || 'Medium',
+        status:      status   || 'Open',
+      },
+    });
+    res.json({ success: true, data: rowToRequirement(row) });
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
-app.put('/api/requirements/:id', adminOnly, async (req,res) => {
+
+app.put('/api/requirements/:id', adminOnly, async (req, res) => {
   try {
-    const id=parseInt(req.params.id);
-    const {title,description,priority,status}=req.body;
-    const {rows}=await query(`UPDATE requirements SET title=COALESCE($1,title),description=COALESCE($2,description),priority=COALESCE($3,priority),status=COALESCE($4,status),updated_at=NOW() WHERE id=$5 RETURNING *`,
-      [title?String(title).trim():null,description!=null?String(description).trim():null,priority||null,status||null,id]);
-    if(!rows.length) return res.status(404).json({success:false,error:'Not found'});
-    res.json({success:true,data:rowToRequirement(rows[0])});
-  } catch(err){res.status(500).json({success:false,error:err.message});}
+    const id = parseInt(req.params.id);
+    const { title, description, priority, status } = req.body;
+
+    const row = await prisma.requirements.update({
+      where: { id },
+      data: {
+        ...(title       !== undefined && { title: String(title).trim() }),
+        ...(description !== undefined && { description: String(description).trim() }),
+        ...(priority    !== undefined && { priority }),
+        ...(status      !== undefined && { status }),
+        updated_at: new Date(),
+      },
+    });
+    res.json({ success: true, data: rowToRequirement(row) });
+  } catch (err) {
+    if (err.code === 'P2025') return res.status(404).json({ success: false, error: 'Not found' });
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
-app.delete('/api/requirements/:id', adminOnly, async (req,res) => {
+
+app.delete('/api/requirements/:id', adminOnly, async (req, res) => {
   try {
-    const id=parseInt(req.params.id);
-    const {rowCount}=await query('DELETE FROM requirements WHERE id=$1',[id]);
-    if(!rowCount) return res.status(404).json({success:false,error:'Not found'});
-    res.json({success:true});
-  } catch(err){res.status(500).json({success:false,error:err.message});}
+    const id = parseInt(req.params.id);
+    await prisma.requirements.delete({ where: { id } });
+    res.json({ success: true });
+  } catch (err) {
+    if (err.code === 'P2025') return res.status(404).json({ success: false, error: 'Not found' });
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
 // CHANGE REQUESTS ROUTES
 // ══════════════════════════════════════════════════════════════════════════════
+
 app.get('/api/change-requests/:progressId', async (req, res) => {
   try {
     const pid = parseInt(req.params.progressId);
-    if(isNaN(pid)) return res.status(400).json({success:false,error:'Invalid ID'});
-    const {rows} = await query('SELECT * FROM change_requests WHERE progress_id=$1 ORDER BY created_at DESC',[pid]);
-    res.json({success:true,data:rows.map(rowToChangeRequest)});
-  } catch(err){res.status(500).json({success:false,error:err.message});}
+    if (isNaN(pid)) return res.status(400).json({ success: false, error: 'Invalid ID' });
+    const rows = await prisma.change_requests.findMany({
+      where:   { progress_id: pid },
+      orderBy: { created_at: 'desc' },
+    });
+    res.json({ success: true, data: rows.map(rowToChangeRequest) });
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
-app.post('/api/change-requests', adminOnly, async (req,res) => {
+
+app.post('/api/change-requests', adminOnly, async (req, res) => {
   try {
-    const {progress_id,title,description,priority,status}=req.body;
-    const pid=parseInt(progress_id);
-    if(isNaN(pid)||!String(title||'').trim()) return res.status(400).json({success:false,error:'progress_id and title required'});
-    const {rows}=await query(`INSERT INTO change_requests (progress_id,title,description,priority,status,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,NOW(),NOW()) RETURNING *`,
-      [pid,String(title).trim(),String(description||'').trim(),priority||'Medium',status||'Pending']);
-    res.json({success:true,data:rowToChangeRequest(rows[0])});
-  } catch(err){res.status(500).json({success:false,error:err.message});}
+    const { progress_id, title, description, priority, status } = req.body;
+    const pid = parseInt(progress_id);
+    if (isNaN(pid) || !String(title || '').trim())
+      return res.status(400).json({ success: false, error: 'progress_id and title required' });
+
+    const row = await prisma.change_requests.create({
+      data: {
+        progress_id: pid,
+        title:       String(title).trim(),
+        description: String(description || '').trim(),
+        priority:    priority || 'Medium',
+        status:      status   || 'Pending',
+      },
+    });
+    res.json({ success: true, data: rowToChangeRequest(row) });
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
-app.put('/api/change-requests/:id', adminOnly, async (req,res) => {
+
+app.put('/api/change-requests/:id', adminOnly, async (req, res) => {
   try {
-    const id=parseInt(req.params.id);
-    const {title,description,priority,status}=req.body;
-    const {rows}=await query(`UPDATE change_requests SET title=COALESCE($1,title),description=COALESCE($2,description),priority=COALESCE($3,priority),status=COALESCE($4,status),updated_at=NOW() WHERE id=$5 RETURNING *`,
-      [title?String(title).trim():null,description!=null?String(description).trim():null,priority||null,status||null,id]);
-    if(!rows.length) return res.status(404).json({success:false,error:'Not found'});
-    res.json({success:true,data:rowToChangeRequest(rows[0])});
-  } catch(err){res.status(500).json({success:false,error:err.message});}
+    const id = parseInt(req.params.id);
+    const { title, description, priority, status } = req.body;
+
+    const row = await prisma.change_requests.update({
+      where: { id },
+      data: {
+        ...(title       !== undefined && { title: String(title).trim() }),
+        ...(description !== undefined && { description: String(description).trim() }),
+        ...(priority    !== undefined && { priority }),
+        ...(status      !== undefined && { status }),
+        updated_at: new Date(),
+      },
+    });
+    res.json({ success: true, data: rowToChangeRequest(row) });
+  } catch (err) {
+    if (err.code === 'P2025') return res.status(404).json({ success: false, error: 'Not found' });
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
-app.delete('/api/change-requests/:id', adminOnly, async (req,res) => {
+
+app.delete('/api/change-requests/:id', adminOnly, async (req, res) => {
   try {
-    const id=parseInt(req.params.id);
-    const {rowCount}=await query('DELETE FROM change_requests WHERE id=$1',[id]);
-    if(!rowCount) return res.status(404).json({success:false,error:'Not found'});
-    res.json({success:true});
-  } catch(err){res.status(500).json({success:false,error:err.message});}
+    const id = parseInt(req.params.id);
+    await prisma.change_requests.delete({ where: { id } });
+    res.json({ success: true });
+  } catch (err) {
+    if (err.code === 'P2025') return res.status(404).json({ success: false, error: 'Not found' });
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
 // FEATURE ADD-ONS ROUTES
 // ══════════════════════════════════════════════════════════════════════════════
+
 app.get('/api/feature-addons/:progressId', async (req, res) => {
   try {
     const pid = parseInt(req.params.progressId);
-    if(isNaN(pid)) return res.status(400).json({success:false,error:'Invalid ID'});
-    const {rows} = await query('SELECT * FROM feature_addons WHERE progress_id=$1 ORDER BY created_at DESC',[pid]);
-    res.json({success:true,data:rows.map(rowToFeatureAddon)});
-  } catch(err){res.status(500).json({success:false,error:err.message});}
+    if (isNaN(pid)) return res.status(400).json({ success: false, error: 'Invalid ID' });
+    const rows = await prisma.feature_addons.findMany({
+      where:   { progress_id: pid },
+      orderBy: { created_at: 'desc' },
+    });
+    res.json({ success: true, data: rows.map(rowToFeatureAddon) });
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
-app.post('/api/feature-addons', adminOnly, async (req,res) => {
+
+app.post('/api/feature-addons', adminOnly, async (req, res) => {
   try {
-    const {progress_id,title,description,priority,status}=req.body;
-    const pid=parseInt(progress_id);
-    if(isNaN(pid)||!String(title||'').trim()) return res.status(400).json({success:false,error:'progress_id and title required'});
-    const {rows}=await query(`INSERT INTO feature_addons (progress_id,title,description,priority,status,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,NOW(),NOW()) RETURNING *`,
-      [pid,String(title).trim(),String(description||'').trim(),priority||'Medium',status||'Requested']);
-    res.json({success:true,data:rowToFeatureAddon(rows[0])});
-  } catch(err){res.status(500).json({success:false,error:err.message});}
+    const { progress_id, title, description, priority, status } = req.body;
+    const pid = parseInt(progress_id);
+    if (isNaN(pid) || !String(title || '').trim())
+      return res.status(400).json({ success: false, error: 'progress_id and title required' });
+
+    const row = await prisma.feature_addons.create({
+      data: {
+        progress_id: pid,
+        title:       String(title).trim(),
+        description: String(description || '').trim(),
+        priority:    priority || 'Medium',
+        status:      status   || 'Requested',
+      },
+    });
+    res.json({ success: true, data: rowToFeatureAddon(row) });
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
-app.put('/api/feature-addons/:id', adminOnly, async (req,res) => {
+
+app.put('/api/feature-addons/:id', adminOnly, async (req, res) => {
   try {
-    const id=parseInt(req.params.id);
-    const {title,description,priority,status}=req.body;
-    const {rows}=await query(`UPDATE feature_addons SET title=COALESCE($1,title),description=COALESCE($2,description),priority=COALESCE($3,priority),status=COALESCE($4,status),updated_at=NOW() WHERE id=$5 RETURNING *`,
-      [title?String(title).trim():null,description!=null?String(description).trim():null,priority||null,status||null,id]);
-    if(!rows.length) return res.status(404).json({success:false,error:'Not found'});
-    res.json({success:true,data:rowToFeatureAddon(rows[0])});
-  } catch(err){res.status(500).json({success:false,error:err.message});}
+    const id = parseInt(req.params.id);
+    const { title, description, priority, status } = req.body;
+
+    const row = await prisma.feature_addons.update({
+      where: { id },
+      data: {
+        ...(title       !== undefined && { title: String(title).trim() }),
+        ...(description !== undefined && { description: String(description).trim() }),
+        ...(priority    !== undefined && { priority }),
+        ...(status      !== undefined && { status }),
+        updated_at: new Date(),
+      },
+    });
+    res.json({ success: true, data: rowToFeatureAddon(row) });
+  } catch (err) {
+    if (err.code === 'P2025') return res.status(404).json({ success: false, error: 'Not found' });
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
-app.delete('/api/feature-addons/:id', adminOnly, async (req,res) => {
+
+app.delete('/api/feature-addons/:id', adminOnly, async (req, res) => {
   try {
-    const id=parseInt(req.params.id);
-    const {rowCount}=await query('DELETE FROM feature_addons WHERE id=$1',[id]);
-    if(!rowCount) return res.status(404).json({success:false,error:'Not found'});
-    res.json({success:true});
-  } catch(err){res.status(500).json({success:false,error:err.message});}
+    const id = parseInt(req.params.id);
+    await prisma.feature_addons.delete({ where: { id } });
+    res.json({ success: true });
+  } catch (err) {
+    if (err.code === 'P2025') return res.status(404).json({ success: false, error: 'Not found' });
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// BUG FIXES ROUTES
+// ══════════════════════════════════════════════════════════════════════════════
+
+app.get('/api/bug-fixes/:progressId', async (req, res) => {
+  try {
+    const pid = parseInt(req.params.progressId);
+    if (isNaN(pid)) return res.status(400).json({ success: false, error: 'Invalid ID' });
+    const rows = await prisma.bug_fixes.findMany({
+      where:   { progress_id: pid },
+      orderBy: { created_at: 'desc' },
+    });
+    res.json({ success: true, data: rows.map(r => ({ ...r, _id: r.id })) });
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+});
+
+app.post('/api/bug-fixes', adminOnly, async (req, res) => {
+  try {
+    const { progress_id, title, description, priority, status } = req.body;
+    const pid = parseInt(progress_id);
+    if (isNaN(pid) || !String(title || '').trim())
+      return res.status(400).json({ success: false, error: 'progress_id and title required' });
+    const row = await prisma.bug_fixes.create({
+      data: {
+        progress_id: pid,
+        title:       String(title).trim(),
+        description: String(description || '').trim(),
+        priority:    priority || 'Medium',
+        status:      status   || 'Open',
+      },
+    });
+    res.json({ success: true, data: { ...row, _id: row.id } });
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+});
+
+app.put('/api/bug-fixes/:id', adminOnly, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { title, description, priority, status } = req.body;
+    const row = await prisma.bug_fixes.update({
+      where: { id },
+      data: {
+        ...(title       !== undefined && { title: String(title).trim() }),
+        ...(description !== undefined && { description: String(description).trim() }),
+        ...(priority    !== undefined && { priority }),
+        ...(status      !== undefined && { status }),
+        updated_at: new Date(),
+      },
+    });
+    res.json({ success: true, data: { ...row, _id: row.id } });
+  } catch (err) {
+    if (err.code === 'P2025') return res.status(404).json({ success: false, error: 'Not found' });
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/bug-fixes/:id', adminOnly, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    await prisma.bug_fixes.delete({ where: { id } });
+    res.json({ success: true });
+  } catch (err) {
+    if (err.code === 'P2025') return res.status(404).json({ success: false, error: 'Not found' });
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -734,77 +828,81 @@ app.get('/api/run-dates/:progressId', async (req, res) => {
   try {
     const progressId = parseInt(req.params.progressId);
     if (isNaN(progressId)) return res.status(400).json({ success: false, error: 'Invalid progress ID' });
-    const { rows } = await query(
-      'SELECT id, run_date FROM run_dates WHERE progress_id=$1 ORDER BY run_date ASC',
-      [progressId]);
+    const rows = await prisma.run_dates.findMany({
+      where:   { progress_id: progressId },
+      orderBy: { run_date: 'asc' },
+      select:  { id: true, run_date: true },
+    });
     res.json({ success: true, data: rows });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
-// POST add a run date (toggle — inserts or deletes if already exists)
+// POST toggle run date (insert or delete if exists)
 app.post('/api/run-dates', adminOnly, async (req, res) => {
   try {
     const { progress_id, run_date } = req.body;
     const pid = parseInt(progress_id);
-    if (isNaN(pid) || !run_date) return res.status(400).json({ success: false, error: 'progress_id and run_date required' });
-    // Check if already exists
-    const { rows: existing } = await query(
-      'SELECT id FROM run_dates WHERE progress_id=$1 AND run_date=$2', [pid, run_date]);
-    if (existing.length) {
-      await query('DELETE FROM run_dates WHERE id=$1', [existing[0].id]);
+    if (isNaN(pid) || !run_date)
+      return res.status(400).json({ success: false, error: 'progress_id and run_date required' });
+
+    const existing = await prisma.run_dates.findFirst({
+      where: { progress_id: pid, run_date },
+    });
+
+    let action;
+    if (existing) {
+      await prisma.run_dates.delete({ where: { id: existing.id } });
+      action = 'removed';
     } else {
-      await query('INSERT INTO run_dates (progress_id, run_date) VALUES ($1, $2)', [pid, run_date]);
+      await prisma.run_dates.create({ data: { progress_id: pid, run_date } });
+      action = 'added';
     }
-    // Compute new latest run date and sync it back to progress.last_run_date
-    const { rows: remaining } = await query(
-      'SELECT run_date FROM run_dates WHERE progress_id=$1 ORDER BY run_date DESC LIMIT 1', [pid]);
-    const newLatest = remaining.length ? remaining[0].run_date : null;
-    await query(
-      'UPDATE progress SET last_run_date=$1, updated_at=NOW() WHERE id=$2', [newLatest, pid]);
-    const action = existing.length ? 'removed' : 'added';
+
+    // Compute new latest run date and sync back to progress
+    const latest = await prisma.run_dates.findFirst({
+      where:   { progress_id: pid },
+      orderBy: { run_date: 'desc' },
+      select:  { run_date: true },
+    });
+    const newLatest = latest ? latest.run_date : null;
+    await prisma.progress.update({
+      where: { id: pid },
+      data:  { last_run_date: newLatest, updated_at: new Date() },
+    });
+
     res.json({ success: true, action, run_date, latest_run_date: newLatest });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
-// PATCH - touch updated_at (called when run dates change)
-app.patch('/api/progress/:id/touch', adminOnly, async (req, res) => {
-  try {
-    const id = parseInt(req.params.id);
-    if (isNaN(id)) return res.status(400).json({ success: false, error: 'Invalid ID' });
-    const { rows } = await query(
-      `UPDATE progress SET updated_at=NOW() WHERE id=$1 RETURNING updated_at`, [id]);
-    if (!rows.length) return res.status(404).json({ success: false, error: 'Not found' });
-    res.json({ success: true, updated_at: rows[0].updated_at });
-  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
-});
-
-// DELETE a specific run date by id
+// DELETE specific run date by id
 app.delete('/api/run-dates/:id', adminOnly, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ success: false, error: 'Invalid ID' });
-    await query('DELETE FROM run_dates WHERE id=$1', [id]);
+    await prisma.run_dates.delete({ where: { id } });
     res.json({ success: true });
-  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+  } catch (err) {
+    if (err.code === 'P2025') return res.status(404).json({ success: false, error: 'Not found' });
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
-// ── Login page ────────────────────────────────────────────────────────────────
+// ── STATIC ROUTES ─────────────────────────────────────────────────────────────
 app.get('/login', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
-// ── Fallback ──────────────────────────────────────────────────────────────────
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// ── START ─────────────────────────────────────────────────────────────────────
+// ── START SERVER ──────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
-pool.connect()
-  .then(client => {
-    client.release();
-    console.log(`✅  Connected to PostgreSQL — ${process.env.PG_DATABASE} @ ${process.env.PG_HOST}`);
-    return initDB();
+
+prisma.$connect()
+  .then(() => {
+    console.log(`✅  Connected to PostgreSQL — ${process.env.PG_DATABASE || 'db'} @ ${process.env.PG_HOST || 'localhost'}`);
+    return seedCredentials();
   })
   .then(() => {
     app.listen(PORT, () => {
@@ -814,6 +912,6 @@ pool.connect()
   })
   .catch(err => {
     console.error('❌  Failed to connect to PostgreSQL:', err.message);
-    console.error('    Check your PG_* variables in the .env file');
+    console.error('    Check your DATABASE_URL in the .env file');
     process.exit(1);
   });
