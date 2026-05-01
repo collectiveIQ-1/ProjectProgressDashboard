@@ -73,7 +73,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .upload-top-btn svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2}
 
 /* ── LAYOUT SHELL ── */
-.shell{display:flex;flex:1;position:relative;z-index:1}
+.shell{display:flex;flex:1;position:relative}
 
 /* ── SIDEBAR NAV ── */
 .sidebar{
@@ -211,6 +211,7 @@ td{padding:9px 14px;font-size:12px;white-space:nowrap;overflow:hidden;text-overf
 .ttab:not(.active) .tcnt{background:rgba(59,125,232,0.1);color:var(--muted2)}
 .type-sum{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:16px 0}
 .type-sum.cols-6{grid-template-columns:repeat(6,1fr)}
+.type-sum.cols-7{grid-template-columns:repeat(7,1fr)}
 .ts-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px;box-shadow:0 2px 16px rgba(0,0,0,0.3);position:relative;overflow:hidden;transition:border-color .2s,transform .15s,box-shadow .2s}
 .ts-card:hover{border-color:rgba(21,213,245,0.25);transform:translateY(-2px);box-shadow:0 6px 28px rgba(0,0,0,0.4),0 0 0 1px rgba(21,213,245,0.12)}
 .ts-card-accent{position:absolute;top:0;left:0;right:0;height:3px;border-radius:12px 12px 0 0}
@@ -256,6 +257,19 @@ td{padding:9px 14px;font-size:12px;white-space:nowrap;overflow:hidden;text-overf
 .tag-pill{display:inline-flex;align-items:center;gap:3px;padding:2px 9px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:.02em;line-height:1.4}
 .tag-pill .tag-x{cursor:pointer;font-size:12px;line-height:1;margin-left:2px;opacity:.55;transition:opacity .12s}
 .tag-pill .tag-x:hover{opacity:1}
+.smart-tag{cursor:default;user-select:none}
+/* ── SMART TAG TOOLTIP ──────────────────────────────────────────────────────── */
+#smartTagTooltip{
+  display:none;position:fixed;z-index:9999;
+  background:#0a1e2c;border:1px solid rgba(21,213,245,0.28);
+  border-radius:10px;padding:10px 13px;min-width:160px;max-width:280px;
+  box-shadow:0 6px 24px rgba(0,0,0,0.55);pointer-events:none;
+  animation:fadeIn .12s ease;
+}
+#smartTagTooltip .stt-title{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:7px;padding-bottom:5px;border-bottom:1px solid rgba(21,213,245,0.15)}
+#smartTagTooltip .stt-item{font-size:11px;color:#c8d8f0;padding:3px 0;display:flex;align-items:baseline;gap:6px;line-height:1.35}
+#smartTagTooltip .stt-item::before{content:'•';flex-shrink:0;opacity:.5}
+#smartTagTooltip .stt-empty{font-size:11px;color:var(--muted);font-style:italic}
 .tag-input-row{display:flex;gap:7px;align-items:center;margin-bottom:7px}
 .tag-add-btn{padding:6px 14px;border-radius:8px;border:1.5px solid var(--blue);background:rgba(59,125,232,0.08);color:var(--blue);font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font-b);transition:background .15s,color .15s;white-space:nowrap;flex-shrink:0}
 .tag-add-btn:hover{background:var(--blue);color:#fff}
@@ -324,7 +338,7 @@ td{padding:9px 14px;font-size:12px;white-space:nowrap;overflow:hidden;text-overf
 .hamburger.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
 
 /* ── SIDEBAR BACKDROP (mobile overlay) ── */
-.sidebar-backdrop{display:none;position:fixed;inset:0;background:rgba(2,10,14,0.7);backdrop-filter:blur(2px);z-index:299}
+.sidebar-backdrop{display:none;position:fixed;inset:0;background:rgba(2,10,14,0.7);z-index:299}
 .sidebar-backdrop.show{display:block}
 
 /* ── TABLET (≤ 1100px) ── */
@@ -349,10 +363,14 @@ td{padding:9px 14px;font-size:12px;white-space:nowrap;overflow:hidden;text-overf
   /* Sidebar becomes a slide-in drawer */
   .sidebar{
     position:fixed;top:58px;left:0;z-index:300;
+    width:var(--nav-w);
     height:calc(100vh - 58px);
     transform:translateX(-100%);
     transition:transform .28s cubic-bezier(0.22,1,0.36,1);
-    box-shadow:4px 0 24px rgba(15,30,80,0.18);
+    box-shadow:4px 0 32px rgba(0,0,0,0.6);
+    background:#04111a;
+    will-change:transform;
+    isolation:isolate;
   }
   .sidebar.open{transform:translateX(0)}
 
@@ -1020,7 +1038,10 @@ function navTo(id){
     const pageEl = document.getElementById('page-'+p);
     const navEl  = document.getElementById('nav-'+p);
     if(pageEl) pageEl.classList.toggle('active', p===id);
-    if(navEl)  navEl.classList.toggle('active', p===id);  // safe — nav-meetings may not exist
+    if(navEl)  navEl.classList.toggle('active', p===id);
+    // Sync mobile bottom nav active state
+    const mnavEl = document.getElementById('mbnav-'+p);
+    if(mnavEl) mnavEl.classList.toggle('active', p===id);
   });
   // Lazy re-render: if the tab still shows the locked placeholder, render it now
   if(id==='breakdown' && window._projects && document.querySelector('#breakdownContent .locked')){
@@ -1465,7 +1486,7 @@ function renderOverview(projects){
   const inDev=projects.filter(p=>p.status.toLowerCase()==='developing').length;
   const avgComp=total?Math.round(projects.reduce((s,p)=>s+p.completion,0)/total*100):0;
   const avgDoc=total?Math.round(projects.reduce((s,p)=>s+p.doc,0)/total*100):0;
-  const people=[...new Set(projects.flatMap(p=>p.people))];
+  const people=[...new Set(projects.flatMap(p=>p.people))].filter(n=>n&&n.toLowerCase()!=='upcoming');
 
   const kpis=[
     {label:'Total Projects',value:total,sub:'All automation work',color:'#5b8def',pct:1},
@@ -1528,7 +1549,7 @@ function renderCharts(projects){
     </div>`;
 
   const cDef={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#1e3a6e',titleColor:'#ffffff',bodyColor:'#a8c0e8',borderColor:'rgba(59,125,232,0.25)',borderWidth:1,padding:10}}};
-  const peopleSet=[...new Set(projects.flatMap(p=>p.people))].filter(Boolean);
+  const peopleSet=[...new Set(projects.flatMap(p=>p.people))].filter(n=>n&&n.toLowerCase()!=='upcoming');
   const colors=peopleSet.map(n=>getPersonColor(n));
 
   const barChartH = Math.max(220, peopleSet.length * 52 + 60);
@@ -1638,7 +1659,7 @@ function renderTeam(projects){
 }
 
 function renderPersonTabs(projects){
-  const people=['all',...new Set(projects.flatMap(p=>p.people))].filter(Boolean);
+  const people=['all',...new Set(projects.flatMap(p=>p.people))].filter(n=>n&&n.toLowerCase()!=='upcoming');
   const activePerson = window._activePerson || 'all';
   document.getElementById('personTabs').innerHTML=people.map(name=>{
     const isAll=name==='all';
@@ -1865,7 +1886,7 @@ function renderTypeSummary(projects){
   const list=getBdFiltered(projects);
   const inP=list.filter(p=>p.status.toLowerCase()==='production').length;
   const avgC=list.length?Math.round(list.reduce((s,p)=>s+p.completion,0)/list.length*100):0;
-  const ppl=[...new Set(list.flatMap(p=>p.people))].length;
+  const ppl=[...new Set(list.flatMap(p=>p.people))].filter(n=>n&&n.toLowerCase()!=='upcoming').length;
 
   // Helper to build a standard ts-card
   function tsCard(label, value, sub, color, breakdown=''){
@@ -1890,21 +1911,20 @@ function renderTypeSummary(projects){
   let cards = base4.map(i=>tsCard(i.l, i.v, i.s, i.c)).join('');
   let cols = 4;
 
-  // Automation-only: add 2 FTE KPI cards in same row → 6 total
+  // Automation-only: add 3 extra KPI cards in same row → 7 total
   if(activeType.toLowerCase()==='automation'){
     const autoProjects = list.filter(p=>p.type.toLowerCase()==='automation');
     const {totalMonthly, totalDaily, sumDaily, sumMonthly, daily, monthly} = calcFTESavings(autoProjects);
     const fmtFTE = v => parseFloat(v.toFixed(3)).toString();
-    const mBreak = `Daily×${daily.length}: ${fmtFTE(sumDaily)} + Monthly×${monthly.length}: ${fmtFTE(sumMonthly)}`;
-    const dBreak = `Daily×${daily.length}: ${fmtFTE(sumDaily)} + Monthly÷20×${monthly.length}: ${fmtFTE(monthly.reduce((s,p)=>s+p.autoFTE/20,0))}`;
+    const monthlyCost = Math.round(totalMonthly * 800);
     cards += tsCard('Monthly FTE Savings', fmtFTE(totalMonthly), 'FTE saved per month', '#17b98a');
     cards += tsCard('Daily FTE Savings',   fmtFTE(totalDaily),   'FTE saved per day',   '#e06aaa');
-    cols = 6;
+    cards += tsCard('Monthly Cost Savings','$' + monthlyCost.toLocaleString(), 'Monthly FTE Savings × $800', '#15d5f5');
+    cols = 7;
   }
-
   document.getElementById('fteSavingsKpi').innerHTML = '';
   const grid = document.getElementById('typeSummary');
-  grid.className = cols===6 ? 'type-sum cols-6' : 'type-sum';
+  grid.className = cols===7 ? 'type-sum cols-7' : cols===6 ? 'type-sum cols-6' : 'type-sum';
   grid.innerHTML = cards;
 }
 function renderTypeGrid(projects){
@@ -1933,11 +1953,16 @@ function renderTypeGrid(projects){
       const manualFteVal = p.manualFTE != null ? p.manualFTE : '';
       const lastRunVal   = (isAuto && p.lastRunDate)  ? p.lastRunDate : '';
       const lastCntVal   = (isAuto && p.lastRunCount != null) ? p.lastRunCount.toLocaleString() : '';
-      const tagsHtml = (p.tags && p.tags.length)
-        ? p.tags.map((tag,ti)=>{const tc=getTagColor(ti);return '<span class="tag-pill" style="background:'+tc.bg+';color:'+tc.color+';border:1px solid '+tc.color+'40">'+escapeHtml(tag)+'</span>';}).join('')
-        : '';
+      // Status tag (always auto-generated)
+      const statusTagHtml = buildStatusTagHtml(p.status);
+      // Smart tags (auto-generated from pending items, with hover tooltip)
+      const smartTagsHtml = buildSmartTagsHtml(p);
+      // User custom tags (skip the 4 auto-tag names so they don't duplicate)
+      const customTags = getVisibleTags(p);
+      const customTagsHtml = customTags.map((tag,ti)=>{const tc=getTagColor(ti);return '<span class="tag-pill" style="background:'+tc.bg+';color:'+tc.color+';border:1px solid '+tc.color+'40">'+escapeHtml(tag)+'</span>';}).join('');
+      const tagsHtml = statusTagHtml + smartTagsHtml + customTagsHtml;
       const hasMetrics = freqVal || fteSavVal!=='' || manualFteVal!=='' || lastRunVal || lastCntVal;
-      const hasTags    = p.tags && p.tags.length;
+      const hasTags    = !!(statusTagHtml || smartTagsHtml || customTagsHtml);
       const updatedAgo = p.updated_at ? (() => {
         const diff=Date.now()-new Date(p.updated_at); const m=Math.floor(diff/60000);
         if(m<1) return 'just now'; if(m<60) return m+'m ago';
@@ -2383,7 +2408,8 @@ function dbRecordsToProjects(records) {
       assignTeam:      r.assignTeam      || null,
       tags:            Array.isArray(r.tags) ? r.tags : [],
       demoVideo:       r.demoVideo       || null,
-      updated_at: r.updated_at || r.created_at || null,
+      updated_at:      r.updated_at || r.created_at || null,
+      pendingItems:    r.pendingItems    || { requirements:[], changeRequests:[], featureAddons:[], bugFixes:[] },
     };
   });
 }
@@ -2613,11 +2639,11 @@ function openModal(idx){
           </div>
         </div>` : ''}
 
-        ${p.tags && p.tags.length ? `
+        ${(()=>{const vt=getVisibleTags(p);return vt.length?`
         <div style="margin-top:12px">
           <div class="modal-field-label">Tags</div>
-          <div class="tag-pill-display" style="margin-top:5px">${p.tags.map((tag,ti)=>{const tc=getTagColor(ti);return '<span class="tag-pill" style="background:'+tc.bg+';color:'+tc.color+';border:1px solid '+tc.color+'40">'+escapeHtml(tag)+'</span>';}).join('')}</div>
-        </div>` : ''}
+          <div class="tag-pill-display" style="margin-top:5px">${vt.map((tag,ti)=>{const tc=getTagColor(ti);return '<span class="tag-pill" style="background:'+tc.bg+';color:'+tc.color+';border:1px solid '+tc.color+'40">'+escapeHtml(tag)+'</span>';}).join('')}</div>
+        </div>`:'';})()}
 
         <!-- FTE / Frequency block -->
         <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
@@ -2640,6 +2666,29 @@ function openModal(idx){
                 <div style="font-size:18px;font-family:var(--font-d);color:#f0a832;line-height:1">${p.manualFTE !== null && !isNaN(p.manualFTE) ? p.manualFTE : '—'}</div>
               </div>
             </div>
+
+            ${(p.type.toLowerCase() === 'automation' && p.manualFTE !== null && !isNaN(p.manualFTE)) ? `
+            <div style="position:relative;overflow:hidden;border-radius:12px;padding:13px 16px;margin-top:2px;
+                        background:linear-gradient(135deg,rgba(23,185,138,0.14),rgba(21,213,245,0.08));
+                        border:1px solid rgba(23,185,138,0.3);
+                        display:flex;align-items:center;gap:14px">
+              <div style="position:absolute;top:-16px;right:-16px;width:64px;height:64px;border-radius:50%;background:rgba(23,185,138,0.08);pointer-events:none"></div>
+              <div style="width:36px;height:36px;border-radius:9px;flex-shrink:0;
+                          background:rgba(23,185,138,0.18);border:1px solid rgba(23,185,138,0.35);
+                          display:flex;align-items:center;justify-content:center">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#17b98a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                </svg>
+              </div>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:9px;color:rgba(23,185,138,0.75);text-transform:uppercase;letter-spacing:.7px;font-weight:600;margin-bottom:3px">Monthly Cost Savings</div>
+                <div style="font-family:var(--font-d);font-size:24px;color:#17b98a;letter-spacing:-1px;line-height:1">$${Math.round(p.manualFTE * 800).toLocaleString()}</div>
+              </div>
+              <div style="flex-shrink:0;text-align:right">
+                <div style="font-size:9px;color:var(--muted);margin-bottom:3px">Formula</div>
+                <div style="font-size:11px;font-weight:600;color:#17b98a">${p.manualFTE} FTE × $800</div>
+              </div>
+            </div>` : ''}
 
             ${p.type.toLowerCase() === 'automation' ? `
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:7px">
@@ -3290,6 +3339,89 @@ const TAG_PALETTE = [
 ];
 function getTagColor(idx) { return TAG_PALETTE[idx % TAG_PALETTE.length]; }
 
+// ── STATUS TAG ────────────────────────────────────────────────────────────────
+function buildStatusTagHtml(status) {
+  const s = (status || '').trim();
+  if (!s) return '';
+  const map = {
+    'production':   { color:'#27c99a', bg:'rgba(39,201,154,0.13)'  },
+    'developing':   { color:'#5b8def', bg:'rgba(91,141,239,0.13)'  },
+    'to do':        { color:'#f0c832', bg:'rgba(240,200,50,0.13)'   },
+    'enhancement':  { color:'#f07ac0', bg:'rgba(240,122,192,0.13)' },
+    'on hold':      { color:'#f06868', bg:'rgba(240,104,104,0.13)' },
+    'pending':      { color:'#a0aac0', bg:'rgba(160,170,192,0.13)' },
+    'cancelled':    { color:'#888',    bg:'rgba(136,136,136,0.12)' },
+  };
+  function pill(label, st) {
+    return `<span class="tag-pill" style="background:${st.bg};color:${st.color};border:1px solid ${st.color}40">${escapeHtml(label)}</span>`;
+  }
+  // Enhancement = already in Production + being enhanced → show both tags
+  if (s.toLowerCase() === 'enhancement') {
+    return pill('Production', map['production']) + pill('Enhancement', map['enhancement']);
+  }
+  const st = map[s.toLowerCase()] || { color:'#c8d8f0', bg:'rgba(200,216,240,0.1)' };
+  return pill(s, st);
+}
+
+// ── SMART TAGS (auto-generated from pending items) ────────────────────────────
+const SMART_TAG_DEFS = [
+  { key:'requirements',  label:'New Requirements', color:'#15d5f5', bg:'rgba(21,213,245,0.12)'  },
+  { key:'changeRequests',label:'Change Requests',  color:'#f0c832', bg:'rgba(240,200,50,0.12)'  },
+  { key:'featureAddons', label:'Feature Add-Ons',  color:'#7ef0f8', bg:'rgba(126,240,248,0.12)' },
+  { key:'bugFixes',      label:'Bug Fixing',        color:'#f06868', bg:'rgba(240,104,104,0.12)' },
+];
+
+function buildSmartTagsHtml(p) {
+  const pi = p.pendingItems || {};
+  return SMART_TAG_DEFS.filter(d => (pi[d.key]||[]).length > 0).map(d => {
+    const items = pi[d.key] || [];
+    const titlesJson = escapeHtml(JSON.stringify(items.map(i => i.title || '')));
+    const cnt = items.length;
+    return `<span class="tag-pill smart-tag" `
+      + `style="background:${d.bg};color:${d.color};border:1px solid ${d.color}40" `
+      + `data-tag-label="${escapeHtml(d.label)}" data-tag-color="${d.color}" data-pending="${titlesJson}" `
+      + `onmouseenter="showSmartTagTooltip(this)" onmouseleave="hideSmartTagTooltip()">`
+      + `${escapeHtml(d.label)}<span style="margin-left:4px;background:${d.color}25;border-radius:8px;padding:0 5px;font-size:9px">${cnt}</span></span>`;
+  }).join('');
+}
+
+// ── SMART TAG TOOLTIP ─────────────────────────────────────────────────────────
+function showSmartTagTooltip(el) {
+  const tooltip = document.getElementById('smartTagTooltip');
+  if (!tooltip) return;
+  const label = el.getAttribute('data-tag-label') || '';
+  const color = el.getAttribute('data-tag-color') || '#15d5f5';
+  let titles = [];
+  try { titles = JSON.parse(el.getAttribute('data-pending') || '[]'); } catch(e) {}
+  document.getElementById('sttTitle').textContent = label;
+  document.getElementById('sttTitle').style.color = color;
+  const listEl = document.getElementById('sttList');
+  listEl.innerHTML = titles.length
+    ? titles.map(t => `<div class="stt-item">${escapeHtml(t||'(untitled)')}</div>`).join('')
+    : `<div class="stt-empty">No items</div>`;
+  tooltip.style.display = 'block';
+  const rect = el.getBoundingClientRect();
+  let left = rect.left, top = rect.bottom + 6;
+  tooltip.style.left = left + 'px';
+  tooltip.style.top  = top  + 'px';
+  // nudge if off right edge
+  requestAnimationFrame(() => {
+    const tr = tooltip.getBoundingClientRect();
+    if (tr.right  > window.innerWidth  - 8) tooltip.style.left = (window.innerWidth  - tr.width  - 8) + 'px';
+    if (tr.bottom > window.innerHeight - 8) tooltip.style.top  = (rect.top - tr.height - 6) + 'px';
+  });
+}
+function hideSmartTagTooltip() {
+  const t = document.getElementById('smartTagTooltip');
+  if (t) t.style.display = 'none';
+}
+
+// Returns only the tags that should be visible for a project card (user-defined, excluding auto ones).
+function getVisibleTags(p) {
+  const AUTO = ['new requirements','change request','change requests','feature add-ons','feature add-on','bug fixing','bug fix'];
+  return (p.tags || []).filter(tag => !AUTO.includes(tag.trim().toLowerCase()));
+}
+
 function renderTagChips(formType) {
   const arr = formType === 'ap' ? (window._apTags || []) : (window._peTags || []);
   const container = document.getElementById(formType + 'TagChips');
@@ -3366,6 +3498,10 @@ async function loadInlineReqs(idx) {
     renderInlineReqs(data.data, idx);
     const badge = document.getElementById('req-inline-count');
     if(badge) badge.textContent = data.data.length;
+    // keep unresolvedCounts in sync so tag visibility updates
+    const pendingReqs = data.data.filter(x=>x.status!=='Resolved');
+    if (!p.pendingItems) p.pendingItems = { requirements:[], changeRequests:[], featureAddons:[], bugFixes:[] };
+    p.pendingItems.requirements = pendingReqs.map(x=>({title:x.title,status:x.status}));
   } catch(err) {
     if(container) container.innerHTML = `<div class="imu-empty"><div>Could not load: ${err.message}</div></div>`;
   }
@@ -3452,6 +3588,9 @@ async function loadInlineCrs(idx) {
     const data=await resp.json(); if(!data.success) throw new Error(data.error);
     renderInlineCrs(data.data,idx);
     const badge=document.getElementById('cr-inline-count'); if(badge) badge.textContent=data.data.length;
+    const pendingCrs = data.data.filter(x=>x.status!=='Implemented');
+    if (!p.pendingItems) p.pendingItems = { requirements:[], changeRequests:[], featureAddons:[], bugFixes:[] };
+    p.pendingItems.changeRequests = pendingCrs.map(x=>({title:x.title,status:x.status}));
   } catch(err){ if(container) container.innerHTML=`<div class="imu-empty"><div>Could not load: ${err.message}</div></div>`; }
 }
 function renderInlineCrs(items, idx) {
@@ -3536,6 +3675,9 @@ async function loadInlineFas(idx){
     const data=await resp.json();if(!data.success)throw new Error(data.error);
     renderInlineFas(data.data,idx);
     const badge=document.getElementById('fa-inline-count');if(badge)badge.textContent=data.data.length;
+    const pendingFas = data.data.filter(x=>x.status!=='Completed');
+    if (!p.pendingItems) p.pendingItems = { requirements:[], changeRequests:[], featureAddons:[], bugFixes:[] };
+    p.pendingItems.featureAddons = pendingFas.map(x=>({title:x.title,status:x.status}));
   }catch(err){if(container)container.innerHTML=`<div class="imu-empty"><div>Could not load: ${err.message}</div></div>`;}
 }
 function renderInlineFas(items,idx){
@@ -3620,6 +3762,9 @@ async function loadInlineBfs(idx){
     const data=await resp.json();if(!data.success)throw new Error(data.error);
     renderInlineBfs(data.data,idx);
     const badge=document.getElementById('bf-inline-count');if(badge)badge.textContent=data.data.length;
+    const pendingBfs = data.data.filter(x=>x.status!=='Resolved');
+    if (!p.pendingItems) p.pendingItems = { requirements:[], changeRequests:[], featureAddons:[], bugFixes:[] };
+    p.pendingItems.bugFixes = pendingBfs.map(x=>({title:x.title,status:x.status}));
   }catch(err){if(container)container.innerHTML=`<div class="imu-empty"><div>Could not load: ${err.message}</div></div>`;}
 }
 function renderInlineBfs(items,idx){
@@ -5049,6 +5194,12 @@ window.addEventListener('resize', () => {
   if (window.innerWidth > 768) closeSidebar();
 });
 </script>
+<!-- SMART TAG TOOLTIP -->
+<div id="smartTagTooltip">
+  <div class="stt-title" id="sttTitle"></div>
+  <div id="sttList"></div>
+</div>
+
 <!-- ADD PROJECT MODAL -->
 <div class="ap-overlay" id="addProjectModal" onclick="if(event.target===this)closeAddProjectModal()">
   <div class="pe-card">

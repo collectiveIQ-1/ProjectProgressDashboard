@@ -93,6 +93,13 @@ function rowToProject(r) {
     demoVideo:       r.demo_video       || null,
     created_at:      r.created_at,
     updated_at:      r.updated_at,
+    // pendingItems: only unresolved/incomplete items (already filtered by the query)
+    pendingItems: {
+      requirements:  (r.requirements   || []).map(x => ({ title: x.title, status: x.status })),
+      changeRequests:(r.change_requests|| []).map(x => ({ title: x.title, status: x.status })),
+      featureAddons: (r.feature_addons || []).map(x => ({ title: x.title, status: x.status })),
+      bugFixes:      (r.bug_fixes      || []).map(x => ({ title: x.title, status: x.status })),
+    },
   };
 }
 
@@ -190,7 +197,15 @@ app.post('/api/login', async (req, res) => {
 // GET all
 app.get('/api/progress', async (req, res) => {
   try {
-    const rows = await prisma.progress.findMany({ orderBy: { process: 'asc' } });
+    const rows = await prisma.progress.findMany({
+      orderBy: { process: 'asc' },
+      include: {
+        requirements:    { where: { status: { not: 'Resolved'     } }, select: { title: true, status: true } },
+        change_requests: { where: { status: { not: 'Implemented'  } }, select: { title: true, status: true } },
+        feature_addons:  { where: { status: { not: 'Completed'    } }, select: { title: true, status: true } },
+        bug_fixes:       { where: { status: { not: 'Resolved'     } }, select: { title: true, status: true } },
+      },
+    });
     res.json({ success: true, data: rows.map(rowToProject) });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
