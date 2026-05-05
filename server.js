@@ -36,26 +36,73 @@ app.use(express.static(path.join(__dirname, 'public')));
 // ── SEED CREDENTIALS ON STARTUP ───────────────────────────────────────────────
 async function seedCredentials() {
   const users = [
-    { username: 'sruhunage@collectivercm.com',  password: 'Shashani123@Admin', role: 'Admin'  },
-    { username: 'amilab@botmedfusion.com',       password: 'Amila123@Admin',    role: 'Admin'  },
-    { username: 'nranasinghe@collectivercm.com', password: 'Nirman123@Admin',   role: 'Admin'  },
-    { username: 'bherath@collectivercm.com',     password: 'Bimsara123@',       role: 'Member' },
-    { username: 'dfernando@collectivercm.com',   password: 'Dilmi123@',         role: 'Member' },
-    { username: 'palwis@collectivercm.com',      password: 'Piyum123@',         role: 'Member' },
-    { username: 'vihangam@botmedfusion.com',     password: 'Vihanga123@',       role: 'Member' },
-    { username: 'aranasinghe@collectivercm.com', password: 'Amandi123@',        role: 'Member' },
-    { username: 'CVithanage@collectivercm.com',  password: 'Chamath123@',       role: 'Member' },
-    { username: 'imalshar@botmedfusion.com',     password: 'Imalsha123@',       role: 'Member' },
-    { username: 'shanka@collectivercm.com',      password: 'Shanka123@',        role: 'Member' },
+    { username: 'sruhunage@collectivercm.com',  password: 'Shashani123@Admin', role: 'Admin',  display_name: 'Shashani'  },
+    { username: 'amilab@botmedfusion.com',       password: 'Amila123@Admin',    role: 'Admin',  display_name: 'Amila'     },
+    { username: 'nranasinghe@collectivercm.com', password: 'Nirman123@Admin',   role: 'Admin',  display_name: 'Nirman'    },
+    { username: 'bherath@collectivercm.com',     password: 'Bimsara123@',       role: 'Member', display_name: 'Bimsara'   },
+    { username: 'dfernando@collectivercm.com',   password: 'Dilmi123@',         role: 'Member', display_name: 'Dilmi'     },
+    { username: 'palwis@collectivercm.com',      password: 'Piyum123@',         role: 'Member', display_name: 'Piyum'     },
+    { username: 'vihangam@botmedfusion.com',     password: 'Vihanga123@',       role: 'Member', display_name: 'Vihanga'   },
+    { username: 'aranasinghe@collectivercm.com', password: 'Amandi123@',        role: 'Member', display_name: 'Amandi'    },
+    { username: 'CVithanage@collectivercm.com',  password: 'Chamath123@',       role: 'Member', display_name: 'Chamath'   },
+    { username: 'imalshar@botmedfusion.com',     password: 'Imalsha123@',       role: 'Member', display_name: 'Imalsha'   },
+    { username: 'shanka@collectivercm.com',      password: 'Shanka123@',        role: 'Member', display_name: 'Shanka'    },
   ];
   for (const u of users) {
     await prisma.credentials.upsert({
       where:  { username: u.username },
-      update: {},
+      update: { display_name: u.display_name },
       create: u,
     });
   }
   console.log('✅  Credentials seeded');
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// AUDIT LOG HELPER
+// ══════════════════════════════════════════════════════════════════════════════
+async function writeAuditLog({ projectId, projectName, username, displayName, action, section, itemId, itemTitle, fieldName, oldValue, newValue }) {
+  try {
+    await prisma.auditLog.create({
+      data: {
+        project_id:   projectId   || null,
+        project_name: projectName || null,
+        username:     username    || 'unknown',
+        display_name: displayName || null,
+        action,
+        section,
+        item_id:      itemId      || null,
+        item_title:   itemTitle   || null,
+        field_name:   fieldName   || null,
+        old_value:    oldValue    != null ? String(oldValue) : null,
+        new_value:    newValue    != null ? String(newValue) : null,
+      },
+    });
+  } catch (e) {
+    console.error('Audit log error:', e.message);
+  }
+}
+
+// Helper: get user info from request headers
+async function getUserFromHeaders(req) {
+  const username = req.headers['x-user-name'] || '';
+  const role     = (req.headers['x-user-role'] || 'member').toLowerCase();
+  if (!username) return { username: '', role, displayName: '', isAdmin: role === 'admin' };
+
+  try {
+    const cred = await prisma.credentials.findFirst({
+      where:  { username },
+      select: { display_name: true, role: true },
+    });
+    return {
+      username,
+      role:        cred ? cred.role.toLowerCase() : role,
+      displayName: cred ? (cred.display_name || '') : '',
+      isAdmin:     cred ? cred.role.toLowerCase() === 'admin' : role === 'admin',
+    };
+  } catch {
+    return { username, role, displayName: '', isAdmin: role === 'admin' };
+  }
 }
 
 // ── ROLE GUARD MIDDLEWARE ─────────────────────────────────────────────────────
@@ -64,6 +111,41 @@ function adminOnly(req, res, next) {
   if (role.toLowerCase() !== 'admin')
     return res.status(403).json({ success: false, error: 'Permission denied. Admin access required.' });
   next();
+}
+
+// Project-level access: admin OR user is assigned to the project
+async function requireProjectAccess(projectId, req, res) {
+  const role = (req.headers['x-user-role'] || 'member').toLowerCase();
+  if (role === 'admin') return { allowed: true, user: await getUserFromHeaders(req) };
+
+  const user = await getUserFromHeaders(req);
+  if (!user.username) {
+    res.status(401).json({ success: false, error: 'Authentication required.' });
+    return { allowed: false };
+  }
+
+  if (!projectId || isNaN(projectId)) {
+    res.status(400).json({ success: false, error: 'Invalid project ID.' });
+    return { allowed: false };
+  }
+
+  const project = await prisma.progress.findUnique({
+    where:  { id: projectId },
+    select: { id: true, process: true, people: true },
+  });
+  if (!project) {
+    res.status(404).json({ success: false, error: 'Project not found.' });
+    return { allowed: false };
+  }
+
+  const dn = (user.displayName || '').toLowerCase();
+  const assigned = dn && project.people.some(p => p.toLowerCase() === dn);
+  if (!assigned) {
+    res.status(403).json({ success: false, error: 'Access denied — you can only edit your own projects.' });
+    return { allowed: false };
+  }
+
+  return { allowed: true, user, project };
 }
 
 // ── ROW MAPPERS ───────────────────────────────────────────────────────────────
@@ -93,7 +175,6 @@ function rowToProject(r) {
     demoVideo:       r.demo_video       || null,
     created_at:      r.created_at,
     updated_at:      r.updated_at,
-    // pendingItems: only unresolved/incomplete items (already filtered by the query)
     pendingItems: {
       requirements:  (r.requirements   || []).map(x => ({ title: x.title, status: x.status })),
       changeRequests:(r.change_requests|| []).map(x => ({ title: x.title, status: x.status })),
@@ -180,13 +261,51 @@ app.post('/api/login', async (req, res) => {
 
     const user = await prisma.credentials.findFirst({
       where:  { username: String(username).trim(), password: String(password) },
-      select: { id: true, username: true, role: true },
+      select: { id: true, username: true, role: true, display_name: true },
     });
 
     if (!user)
       return res.status(401).json({ success: false, error: 'Invalid username or password' });
 
-    res.json({ success: true, user });
+    res.json({ success: true, user: { ...user, displayName: user.display_name || '' } });
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+});
+
+// ── AUTH ME ───────────────────────────────────────────────────────────────────
+
+// GET current user info — returns display_name so frontend can refresh session
+app.get('/api/auth/me', async (req, res) => {
+  const username = req.headers['x-user-name'] || '';
+  if (!username) return res.status(400).json({ success: false, error: 'No username' });
+  try {
+    const cred = await prisma.credentials.findFirst({
+      where:  { username },
+      select: { id: true, username: true, role: true, display_name: true },
+    });
+    if (!cred) return res.status(404).json({ success: false, error: 'User not found' });
+    res.json({ success: true, user: { ...cred, displayName: cred.display_name || '' } });
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+});
+
+// ── AUDIT LOG ROUTES ──────────────────────────────────────────────────────────
+
+// GET audit logs (admin only)
+app.get('/api/audit-logs', adminOnly, async (req, res) => {
+  try {
+    const { projectId, username, section, limit = 200, offset = 0 } = req.query;
+    const where = {};
+    if (projectId) where.project_id = parseInt(projectId);
+    if (username)  where.username   = username;
+    if (section)   where.section    = section;
+
+    const logs = await prisma.auditLog.findMany({
+      where,
+      orderBy: { timestamp: 'desc' },
+      take:    parseInt(limit),
+      skip:    parseInt(offset),
+    });
+    const total = await prisma.auditLog.count({ where });
+    res.json({ success: true, data: logs, total });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
@@ -221,7 +340,7 @@ app.get('/api/progress/:id', async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
-// POST bulk import/upsert from Excel
+// POST bulk import/upsert from Excel (admin only)
 app.post('/api/progress/import', adminOnly, async (req, res) => {
   try {
     const { projects } = req.body;
@@ -268,7 +387,7 @@ app.post('/api/progress/import', adminOnly, async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
-// POST create single project
+// POST create single project (admin only)
 app.post('/api/progress', adminOnly, async (req, res) => {
   try {
     const { process, type, status, completion, doc, people, dept, priority,
@@ -303,19 +422,35 @@ app.post('/api/progress', adminOnly, async (req, res) => {
         tags:             Array.isArray(tags) ? tags : [],
       },
     });
+
+    const user = await getUserFromHeaders(req);
+    await writeAuditLog({
+      projectId: row.id, projectName: row.process,
+      username: user.username, displayName: user.displayName,
+      action: 'created', section: 'project',
+      itemTitle: row.process,
+    });
+
     res.json({ success: true, data: rowToProject(row) });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
-// PUT update project
-app.put('/api/progress/:id', adminOnly, async (req, res) => {
+// PUT update project — admin OR assigned member
+app.put('/api/progress/:id', async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ success: false, error: 'Invalid ID' });
+
+    const access = await requireProjectAccess(id, req, res);
+    if (!access.allowed) return;
+
     const { process, type, status, completion, doc, people, dept, priority,
             startDate, deadline, frequency, autoFTE, manualFTE,
             lastRunDate, lastRunCount, purpose, expectedResults, betaTestingDate,
             assignTeam, tags } = req.body;
+
+    // Fetch old values for audit diff
+    const old = await prisma.progress.findUnique({ where: { id } });
 
     const row = await prisma.progress.update({
       where: { id },
@@ -343,6 +478,31 @@ app.put('/api/progress/:id', adminOnly, async (req, res) => {
         updated_at:       new Date(),
       },
     });
+
+    // Log changed fields
+    const user = await getUserFromHeaders(req);
+    const fields = { status, completion, type, priority, deadline };
+    for (const [key, newVal] of Object.entries(fields)) {
+      const dbKey = key === 'completion' ? 'completion' : key;
+      const oldVal = old ? old[dbKey] : undefined;
+      if (oldVal != null && String(oldVal) !== String(newVal ?? '')) {
+        await writeAuditLog({
+          projectId: id, projectName: row.process,
+          username: user.username, displayName: user.displayName,
+          action: 'updated', section: 'project',
+          itemTitle: row.process, fieldName: key,
+          oldValue: oldVal, newValue: newVal,
+        });
+      }
+    }
+    // One general log if no individual field logged
+    await writeAuditLog({
+      projectId: id, projectName: row.process,
+      username: user.username, displayName: user.displayName,
+      action: 'updated', section: 'project',
+      itemTitle: row.process,
+    });
+
     res.json({ success: true, data: rowToProject(row) });
   } catch (err) {
     if (err.code === 'P2025') return res.status(404).json({ success: false, error: 'Not found' });
@@ -350,12 +510,22 @@ app.put('/api/progress/:id', adminOnly, async (req, res) => {
   }
 });
 
-// DELETE project
+// DELETE project (admin only)
 app.delete('/api/progress/:id', adminOnly, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ success: false, error: 'Invalid ID' });
+    const proj = await prisma.progress.findUnique({ where: { id }, select: { process: true } });
     await prisma.progress.delete({ where: { id } });
+
+    const user = await getUserFromHeaders(req);
+    await writeAuditLog({
+      projectId: id, projectName: proj?.process,
+      username: user.username, displayName: user.displayName,
+      action: 'deleted', section: 'project',
+      itemTitle: proj?.process,
+    });
+
     res.json({ success: true });
   } catch (err) {
     if (err.code === 'P2025') return res.status(404).json({ success: false, error: 'Not found' });
@@ -363,7 +533,7 @@ app.delete('/api/progress/:id', adminOnly, async (req, res) => {
   }
 });
 
-// PATCH touch updated_at
+// PATCH touch updated_at (admin only)
 app.patch('/api/progress/:id/touch', adminOnly, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
@@ -384,7 +554,7 @@ app.patch('/api/progress/:id/touch', adminOnly, async (req, res) => {
 // MEETING UPDATES ROUTES
 // ══════════════════════════════════════════════════════════════════════════════
 
-// POST bulk import from Excel
+// POST bulk import from Excel (admin only)
 app.post('/api/meeting-updates/import', adminOnly, async (req, res) => {
   try {
     const { rows } = req.body;
@@ -438,14 +608,18 @@ app.get('/api/meeting-updates/:progressId', async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
-// POST create meeting update
-app.post('/api/meeting-updates', adminOnly, async (req, res) => {
+// POST create meeting update — admin OR assigned member
+app.post('/api/meeting-updates', async (req, res) => {
   try {
     const { progress_id, date, time, note, is_done } = req.body;
     const pid = parseInt(progress_id);
     if (isNaN(pid)) return res.status(400).json({ success: false, error: 'Invalid progress ID' });
     if (!note || !String(note).trim()) return res.status(400).json({ success: false, error: 'Note is required' });
 
+    const access = await requireProjectAccess(pid, req, res);
+    if (!access.allowed) return;
+
+    const proj = await prisma.progress.findUnique({ where: { id: pid }, select: { process: true } });
     const row = await prisma.meetingUpdate.create({
       data: {
         progress_id: pid,
@@ -455,17 +629,34 @@ app.post('/api/meeting-updates', adminOnly, async (req, res) => {
         is_done: Boolean(is_done),
       },
     });
+
+    const user = access.user || await getUserFromHeaders(req);
+    await writeAuditLog({
+      projectId: pid, projectName: proj?.process,
+      username: user.username, displayName: user.displayName,
+      action: 'created', section: 'meeting_update',
+      itemId: row.id, itemTitle: String(note).trim().slice(0, 80),
+    });
+
     res.json({ success: true, data: rowToMeetingUpdate(row) });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
-// PUT update meeting update
-app.put('/api/meeting-updates/:id', adminOnly, async (req, res) => {
+// PUT update meeting update — admin OR assigned member
+app.put('/api/meeting-updates/:id', async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ success: false, error: 'Invalid ID' });
     const { date, time, note, is_done } = req.body;
 
+    // Find project via sub-item
+    const existing = await prisma.meetingUpdate.findUnique({ where: { id }, select: { progress_id: true } });
+    if (!existing) return res.status(404).json({ success: false, error: 'Not found' });
+
+    const access = await requireProjectAccess(existing.progress_id, req, res);
+    if (!access.allowed) return;
+
+    const proj = await prisma.progress.findUnique({ where: { id: existing.progress_id }, select: { process: true } });
     const row = await prisma.meetingUpdate.update({
       where: { id },
       data: {
@@ -475,6 +666,16 @@ app.put('/api/meeting-updates/:id', adminOnly, async (req, res) => {
         is_done: Boolean(is_done),
       },
     });
+
+    const user = access.user || await getUserFromHeaders(req);
+    await writeAuditLog({
+      projectId: existing.progress_id, projectName: proj?.process,
+      username: user.username, displayName: user.displayName,
+      action: 'updated', section: 'meeting_update',
+      itemId: id, itemTitle: (note || '').slice(0, 80),
+      fieldName: 'is_done', oldValue: !is_done, newValue: is_done,
+    });
+
     res.json({ success: true, data: rowToMeetingUpdate(row) });
   } catch (err) {
     if (err.code === 'P2025') return res.status(404).json({ success: false, error: 'Not found' });
@@ -482,12 +683,29 @@ app.put('/api/meeting-updates/:id', adminOnly, async (req, res) => {
   }
 });
 
-// DELETE meeting update
-app.delete('/api/meeting-updates/:id', adminOnly, async (req, res) => {
+// DELETE meeting update — admin OR assigned member
+app.delete('/api/meeting-updates/:id', async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ success: false, error: 'Invalid ID' });
+
+    const existing = await prisma.meetingUpdate.findUnique({ where: { id }, select: { progress_id: true, note: true } });
+    if (!existing) return res.status(404).json({ success: false, error: 'Not found' });
+
+    const access = await requireProjectAccess(existing.progress_id, req, res);
+    if (!access.allowed) return;
+
+    const proj = await prisma.progress.findUnique({ where: { id: existing.progress_id }, select: { process: true } });
     await prisma.meetingUpdate.delete({ where: { id } });
+
+    const user = access.user || await getUserFromHeaders(req);
+    await writeAuditLog({
+      projectId: existing.progress_id, projectName: proj?.process,
+      username: user.username, displayName: user.displayName,
+      action: 'deleted', section: 'meeting_update',
+      itemId: id, itemTitle: (existing.note || '').slice(0, 80),
+    });
+
     res.json({ success: true });
   } catch (err) {
     if (err.code === 'P2025') return res.status(404).json({ success: false, error: 'Not found' });
@@ -526,14 +744,18 @@ app.get('/api/milestones', async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
-// POST create milestone
-app.post('/api/milestones', adminOnly, async (req, res) => {
+// POST create milestone — admin OR assigned member
+app.post('/api/milestones', async (req, res) => {
   try {
     const { progress_id, title, description, due_date, status } = req.body;
     const pid = parseInt(progress_id);
     if (isNaN(pid)) return res.status(400).json({ success: false, error: 'Invalid progress ID' });
     if (!title || !String(title).trim()) return res.status(400).json({ success: false, error: 'Title is required' });
 
+    const access = await requireProjectAccess(pid, req, res);
+    if (!access.allowed) return;
+
+    const proj = await prisma.progress.findUnique({ where: { id: pid }, select: { process: true } });
     const row = await prisma.milestone.create({
       data: {
         progress_id: pid,
@@ -543,17 +765,33 @@ app.post('/api/milestones', adminOnly, async (req, res) => {
         status:      status   || 'Pending',
       },
     });
+
+    const user = access.user || await getUserFromHeaders(req);
+    await writeAuditLog({
+      projectId: pid, projectName: proj?.process,
+      username: user.username, displayName: user.displayName,
+      action: 'created', section: 'milestone',
+      itemId: row.id, itemTitle: row.title,
+    });
+
     res.json({ success: true, data: rowToMilestone(row) });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
-// PUT update milestone
-app.put('/api/milestones/:id', adminOnly, async (req, res) => {
+// PUT update milestone — admin OR assigned member
+app.put('/api/milestones/:id', async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ success: false, error: 'Invalid ID' });
     const { title, description, due_date, status } = req.body;
 
+    const existing = await prisma.milestone.findUnique({ where: { id }, select: { progress_id: true, title: true, status: true } });
+    if (!existing) return res.status(404).json({ success: false, error: 'Not found' });
+
+    const access = await requireProjectAccess(existing.progress_id, req, res);
+    if (!access.allowed) return;
+
+    const proj = await prisma.progress.findUnique({ where: { id: existing.progress_id }, select: { process: true } });
     const row = await prisma.milestone.update({
       where: { id },
       data: {
@@ -563,6 +801,25 @@ app.put('/api/milestones/:id', adminOnly, async (req, res) => {
         ...(status !== undefined && { status }),
       },
     });
+
+    const user = access.user || await getUserFromHeaders(req);
+    if (status !== undefined && status !== existing.status) {
+      await writeAuditLog({
+        projectId: existing.progress_id, projectName: proj?.process,
+        username: user.username, displayName: user.displayName,
+        action: 'updated', section: 'milestone',
+        itemId: id, itemTitle: existing.title,
+        fieldName: 'status', oldValue: existing.status, newValue: status,
+      });
+    } else {
+      await writeAuditLog({
+        projectId: existing.progress_id, projectName: proj?.process,
+        username: user.username, displayName: user.displayName,
+        action: 'updated', section: 'milestone',
+        itemId: id, itemTitle: existing.title,
+      });
+    }
+
     res.json({ success: true, data: rowToMilestone(row) });
   } catch (err) {
     if (err.code === 'P2025') return res.status(404).json({ success: false, error: 'Not found' });
@@ -570,12 +827,29 @@ app.put('/api/milestones/:id', adminOnly, async (req, res) => {
   }
 });
 
-// DELETE milestone
-app.delete('/api/milestones/:id', adminOnly, async (req, res) => {
+// DELETE milestone — admin OR assigned member
+app.delete('/api/milestones/:id', async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ success: false, error: 'Invalid ID' });
+
+    const existing = await prisma.milestone.findUnique({ where: { id }, select: { progress_id: true, title: true } });
+    if (!existing) return res.status(404).json({ success: false, error: 'Not found' });
+
+    const access = await requireProjectAccess(existing.progress_id, req, res);
+    if (!access.allowed) return;
+
+    const proj = await prisma.progress.findUnique({ where: { id: existing.progress_id }, select: { process: true } });
     await prisma.milestone.delete({ where: { id } });
+
+    const user = access.user || await getUserFromHeaders(req);
+    await writeAuditLog({
+      projectId: existing.progress_id, projectName: proj?.process,
+      username: user.username, displayName: user.displayName,
+      action: 'deleted', section: 'milestone',
+      itemId: id, itemTitle: existing.title,
+    });
+
     res.json({ success: true });
   } catch (err) {
     if (err.code === 'P2025') return res.status(404).json({ success: false, error: 'Not found' });
@@ -599,13 +873,17 @@ app.get('/api/requirements/:progressId', async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
-app.post('/api/requirements', adminOnly, async (req, res) => {
+app.post('/api/requirements', async (req, res) => {
   try {
     const { progress_id, title, description, priority, status } = req.body;
     const pid = parseInt(progress_id);
     if (isNaN(pid) || !String(title || '').trim())
       return res.status(400).json({ success: false, error: 'progress_id and title required' });
 
+    const access = await requireProjectAccess(pid, req, res);
+    if (!access.allowed) return;
+
+    const proj = await prisma.progress.findUnique({ where: { id: pid }, select: { process: true } });
     const row = await prisma.requirements.create({
       data: {
         progress_id: pid,
@@ -615,15 +893,31 @@ app.post('/api/requirements', adminOnly, async (req, res) => {
         status:      status   || 'Open',
       },
     });
+
+    const user = access.user || await getUserFromHeaders(req);
+    await writeAuditLog({
+      projectId: pid, projectName: proj?.process,
+      username: user.username, displayName: user.displayName,
+      action: 'created', section: 'requirement',
+      itemId: row.id, itemTitle: row.title,
+    });
+
     res.json({ success: true, data: rowToRequirement(row) });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
-app.put('/api/requirements/:id', adminOnly, async (req, res) => {
+app.put('/api/requirements/:id', async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     const { title, description, priority, status } = req.body;
 
+    const existing = await prisma.requirements.findUnique({ where: { id }, select: { progress_id: true, title: true, status: true } });
+    if (!existing) return res.status(404).json({ success: false, error: 'Not found' });
+
+    const access = await requireProjectAccess(existing.progress_id, req, res);
+    if (!access.allowed) return;
+
+    const proj = await prisma.progress.findUnique({ where: { id: existing.progress_id }, select: { process: true } });
     const row = await prisma.requirements.update({
       where: { id },
       data: {
@@ -634,6 +928,25 @@ app.put('/api/requirements/:id', adminOnly, async (req, res) => {
         updated_at: new Date(),
       },
     });
+
+    const user = access.user || await getUserFromHeaders(req);
+    if (status !== undefined && status !== existing.status) {
+      await writeAuditLog({
+        projectId: existing.progress_id, projectName: proj?.process,
+        username: user.username, displayName: user.displayName,
+        action: 'updated', section: 'requirement',
+        itemId: id, itemTitle: existing.title,
+        fieldName: 'status', oldValue: existing.status, newValue: status,
+      });
+    } else {
+      await writeAuditLog({
+        projectId: existing.progress_id, projectName: proj?.process,
+        username: user.username, displayName: user.displayName,
+        action: 'updated', section: 'requirement',
+        itemId: id, itemTitle: existing.title,
+      });
+    }
+
     res.json({ success: true, data: rowToRequirement(row) });
   } catch (err) {
     if (err.code === 'P2025') return res.status(404).json({ success: false, error: 'Not found' });
@@ -641,10 +954,26 @@ app.put('/api/requirements/:id', adminOnly, async (req, res) => {
   }
 });
 
-app.delete('/api/requirements/:id', adminOnly, async (req, res) => {
+app.delete('/api/requirements/:id', async (req, res) => {
   try {
     const id = parseInt(req.params.id);
+    const existing = await prisma.requirements.findUnique({ where: { id }, select: { progress_id: true, title: true } });
+    if (!existing) return res.status(404).json({ success: false, error: 'Not found' });
+
+    const access = await requireProjectAccess(existing.progress_id, req, res);
+    if (!access.allowed) return;
+
+    const proj = await prisma.progress.findUnique({ where: { id: existing.progress_id }, select: { process: true } });
     await prisma.requirements.delete({ where: { id } });
+
+    const user = access.user || await getUserFromHeaders(req);
+    await writeAuditLog({
+      projectId: existing.progress_id, projectName: proj?.process,
+      username: user.username, displayName: user.displayName,
+      action: 'deleted', section: 'requirement',
+      itemId: id, itemTitle: existing.title,
+    });
+
     res.json({ success: true });
   } catch (err) {
     if (err.code === 'P2025') return res.status(404).json({ success: false, error: 'Not found' });
@@ -668,13 +997,17 @@ app.get('/api/change-requests/:progressId', async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
-app.post('/api/change-requests', adminOnly, async (req, res) => {
+app.post('/api/change-requests', async (req, res) => {
   try {
     const { progress_id, title, description, priority, status } = req.body;
     const pid = parseInt(progress_id);
     if (isNaN(pid) || !String(title || '').trim())
       return res.status(400).json({ success: false, error: 'progress_id and title required' });
 
+    const access = await requireProjectAccess(pid, req, res);
+    if (!access.allowed) return;
+
+    const proj = await prisma.progress.findUnique({ where: { id: pid }, select: { process: true } });
     const row = await prisma.change_requests.create({
       data: {
         progress_id: pid,
@@ -684,15 +1017,31 @@ app.post('/api/change-requests', adminOnly, async (req, res) => {
         status:      status   || 'Pending',
       },
     });
+
+    const user = access.user || await getUserFromHeaders(req);
+    await writeAuditLog({
+      projectId: pid, projectName: proj?.process,
+      username: user.username, displayName: user.displayName,
+      action: 'created', section: 'change_request',
+      itemId: row.id, itemTitle: row.title,
+    });
+
     res.json({ success: true, data: rowToChangeRequest(row) });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
-app.put('/api/change-requests/:id', adminOnly, async (req, res) => {
+app.put('/api/change-requests/:id', async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     const { title, description, priority, status } = req.body;
 
+    const existing = await prisma.change_requests.findUnique({ where: { id }, select: { progress_id: true, title: true, status: true } });
+    if (!existing) return res.status(404).json({ success: false, error: 'Not found' });
+
+    const access = await requireProjectAccess(existing.progress_id, req, res);
+    if (!access.allowed) return;
+
+    const proj = await prisma.progress.findUnique({ where: { id: existing.progress_id }, select: { process: true } });
     const row = await prisma.change_requests.update({
       where: { id },
       data: {
@@ -703,6 +1052,25 @@ app.put('/api/change-requests/:id', adminOnly, async (req, res) => {
         updated_at: new Date(),
       },
     });
+
+    const user = access.user || await getUserFromHeaders(req);
+    if (status !== undefined && status !== existing.status) {
+      await writeAuditLog({
+        projectId: existing.progress_id, projectName: proj?.process,
+        username: user.username, displayName: user.displayName,
+        action: 'updated', section: 'change_request',
+        itemId: id, itemTitle: existing.title,
+        fieldName: 'status', oldValue: existing.status, newValue: status,
+      });
+    } else {
+      await writeAuditLog({
+        projectId: existing.progress_id, projectName: proj?.process,
+        username: user.username, displayName: user.displayName,
+        action: 'updated', section: 'change_request',
+        itemId: id, itemTitle: existing.title,
+      });
+    }
+
     res.json({ success: true, data: rowToChangeRequest(row) });
   } catch (err) {
     if (err.code === 'P2025') return res.status(404).json({ success: false, error: 'Not found' });
@@ -710,10 +1078,26 @@ app.put('/api/change-requests/:id', adminOnly, async (req, res) => {
   }
 });
 
-app.delete('/api/change-requests/:id', adminOnly, async (req, res) => {
+app.delete('/api/change-requests/:id', async (req, res) => {
   try {
     const id = parseInt(req.params.id);
+    const existing = await prisma.change_requests.findUnique({ where: { id }, select: { progress_id: true, title: true } });
+    if (!existing) return res.status(404).json({ success: false, error: 'Not found' });
+
+    const access = await requireProjectAccess(existing.progress_id, req, res);
+    if (!access.allowed) return;
+
+    const proj = await prisma.progress.findUnique({ where: { id: existing.progress_id }, select: { process: true } });
     await prisma.change_requests.delete({ where: { id } });
+
+    const user = access.user || await getUserFromHeaders(req);
+    await writeAuditLog({
+      projectId: existing.progress_id, projectName: proj?.process,
+      username: user.username, displayName: user.displayName,
+      action: 'deleted', section: 'change_request',
+      itemId: id, itemTitle: existing.title,
+    });
+
     res.json({ success: true });
   } catch (err) {
     if (err.code === 'P2025') return res.status(404).json({ success: false, error: 'Not found' });
@@ -737,13 +1121,17 @@ app.get('/api/feature-addons/:progressId', async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
-app.post('/api/feature-addons', adminOnly, async (req, res) => {
+app.post('/api/feature-addons', async (req, res) => {
   try {
     const { progress_id, title, description, priority, status } = req.body;
     const pid = parseInt(progress_id);
     if (isNaN(pid) || !String(title || '').trim())
       return res.status(400).json({ success: false, error: 'progress_id and title required' });
 
+    const access = await requireProjectAccess(pid, req, res);
+    if (!access.allowed) return;
+
+    const proj = await prisma.progress.findUnique({ where: { id: pid }, select: { process: true } });
     const row = await prisma.feature_addons.create({
       data: {
         progress_id: pid,
@@ -753,15 +1141,31 @@ app.post('/api/feature-addons', adminOnly, async (req, res) => {
         status:      status   || 'Requested',
       },
     });
+
+    const user = access.user || await getUserFromHeaders(req);
+    await writeAuditLog({
+      projectId: pid, projectName: proj?.process,
+      username: user.username, displayName: user.displayName,
+      action: 'created', section: 'feature_addon',
+      itemId: row.id, itemTitle: row.title,
+    });
+
     res.json({ success: true, data: rowToFeatureAddon(row) });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
-app.put('/api/feature-addons/:id', adminOnly, async (req, res) => {
+app.put('/api/feature-addons/:id', async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     const { title, description, priority, status } = req.body;
 
+    const existing = await prisma.feature_addons.findUnique({ where: { id }, select: { progress_id: true, title: true, status: true } });
+    if (!existing) return res.status(404).json({ success: false, error: 'Not found' });
+
+    const access = await requireProjectAccess(existing.progress_id, req, res);
+    if (!access.allowed) return;
+
+    const proj = await prisma.progress.findUnique({ where: { id: existing.progress_id }, select: { process: true } });
     const row = await prisma.feature_addons.update({
       where: { id },
       data: {
@@ -772,6 +1176,25 @@ app.put('/api/feature-addons/:id', adminOnly, async (req, res) => {
         updated_at: new Date(),
       },
     });
+
+    const user = access.user || await getUserFromHeaders(req);
+    if (status !== undefined && status !== existing.status) {
+      await writeAuditLog({
+        projectId: existing.progress_id, projectName: proj?.process,
+        username: user.username, displayName: user.displayName,
+        action: 'updated', section: 'feature_addon',
+        itemId: id, itemTitle: existing.title,
+        fieldName: 'status', oldValue: existing.status, newValue: status,
+      });
+    } else {
+      await writeAuditLog({
+        projectId: existing.progress_id, projectName: proj?.process,
+        username: user.username, displayName: user.displayName,
+        action: 'updated', section: 'feature_addon',
+        itemId: id, itemTitle: existing.title,
+      });
+    }
+
     res.json({ success: true, data: rowToFeatureAddon(row) });
   } catch (err) {
     if (err.code === 'P2025') return res.status(404).json({ success: false, error: 'Not found' });
@@ -779,10 +1202,26 @@ app.put('/api/feature-addons/:id', adminOnly, async (req, res) => {
   }
 });
 
-app.delete('/api/feature-addons/:id', adminOnly, async (req, res) => {
+app.delete('/api/feature-addons/:id', async (req, res) => {
   try {
     const id = parseInt(req.params.id);
+    const existing = await prisma.feature_addons.findUnique({ where: { id }, select: { progress_id: true, title: true } });
+    if (!existing) return res.status(404).json({ success: false, error: 'Not found' });
+
+    const access = await requireProjectAccess(existing.progress_id, req, res);
+    if (!access.allowed) return;
+
+    const proj = await prisma.progress.findUnique({ where: { id: existing.progress_id }, select: { process: true } });
     await prisma.feature_addons.delete({ where: { id } });
+
+    const user = access.user || await getUserFromHeaders(req);
+    await writeAuditLog({
+      projectId: existing.progress_id, projectName: proj?.process,
+      username: user.username, displayName: user.displayName,
+      action: 'deleted', section: 'feature_addon',
+      itemId: id, itemTitle: existing.title,
+    });
+
     res.json({ success: true });
   } catch (err) {
     if (err.code === 'P2025') return res.status(404).json({ success: false, error: 'Not found' });
@@ -806,12 +1245,17 @@ app.get('/api/bug-fixes/:progressId', async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
-app.post('/api/bug-fixes', adminOnly, async (req, res) => {
+app.post('/api/bug-fixes', async (req, res) => {
   try {
     const { progress_id, title, description, priority, status } = req.body;
     const pid = parseInt(progress_id);
     if (isNaN(pid) || !String(title || '').trim())
       return res.status(400).json({ success: false, error: 'progress_id and title required' });
+
+    const access = await requireProjectAccess(pid, req, res);
+    if (!access.allowed) return;
+
+    const proj = await prisma.progress.findUnique({ where: { id: pid }, select: { process: true } });
     const row = await prisma.bug_fixes.create({
       data: {
         progress_id: pid,
@@ -821,14 +1265,31 @@ app.post('/api/bug-fixes', adminOnly, async (req, res) => {
         status:      status   || 'Open',
       },
     });
+
+    const user = access.user || await getUserFromHeaders(req);
+    await writeAuditLog({
+      projectId: pid, projectName: proj?.process,
+      username: user.username, displayName: user.displayName,
+      action: 'created', section: 'bug_fix',
+      itemId: row.id, itemTitle: row.title,
+    });
+
     res.json({ success: true, data: { ...row, _id: row.id } });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
-app.put('/api/bug-fixes/:id', adminOnly, async (req, res) => {
+app.put('/api/bug-fixes/:id', async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     const { title, description, priority, status } = req.body;
+
+    const existing = await prisma.bug_fixes.findUnique({ where: { id }, select: { progress_id: true, title: true, status: true } });
+    if (!existing) return res.status(404).json({ success: false, error: 'Not found' });
+
+    const access = await requireProjectAccess(existing.progress_id, req, res);
+    if (!access.allowed) return;
+
+    const proj = await prisma.progress.findUnique({ where: { id: existing.progress_id }, select: { process: true } });
     const row = await prisma.bug_fixes.update({
       where: { id },
       data: {
@@ -839,6 +1300,25 @@ app.put('/api/bug-fixes/:id', adminOnly, async (req, res) => {
         updated_at: new Date(),
       },
     });
+
+    const user = access.user || await getUserFromHeaders(req);
+    if (status !== undefined && status !== existing.status) {
+      await writeAuditLog({
+        projectId: existing.progress_id, projectName: proj?.process,
+        username: user.username, displayName: user.displayName,
+        action: 'updated', section: 'bug_fix',
+        itemId: id, itemTitle: existing.title,
+        fieldName: 'status', oldValue: existing.status, newValue: status,
+      });
+    } else {
+      await writeAuditLog({
+        projectId: existing.progress_id, projectName: proj?.process,
+        username: user.username, displayName: user.displayName,
+        action: 'updated', section: 'bug_fix',
+        itemId: id, itemTitle: existing.title,
+      });
+    }
+
     res.json({ success: true, data: { ...row, _id: row.id } });
   } catch (err) {
     if (err.code === 'P2025') return res.status(404).json({ success: false, error: 'Not found' });
@@ -846,10 +1326,26 @@ app.put('/api/bug-fixes/:id', adminOnly, async (req, res) => {
   }
 });
 
-app.delete('/api/bug-fixes/:id', adminOnly, async (req, res) => {
+app.delete('/api/bug-fixes/:id', async (req, res) => {
   try {
     const id = parseInt(req.params.id);
+    const existing = await prisma.bug_fixes.findUnique({ where: { id }, select: { progress_id: true, title: true } });
+    if (!existing) return res.status(404).json({ success: false, error: 'Not found' });
+
+    const access = await requireProjectAccess(existing.progress_id, req, res);
+    if (!access.allowed) return;
+
+    const proj = await prisma.progress.findUnique({ where: { id: existing.progress_id }, select: { process: true } });
     await prisma.bug_fixes.delete({ where: { id } });
+
+    const user = access.user || await getUserFromHeaders(req);
+    await writeAuditLog({
+      projectId: existing.progress_id, projectName: proj?.process,
+      username: user.username, displayName: user.displayName,
+      action: 'deleted', section: 'bug_fix',
+      itemId: id, itemTitle: existing.title,
+    });
+
     res.json({ success: true });
   } catch (err) {
     if (err.code === 'P2025') return res.status(404).json({ success: false, error: 'Not found' });
@@ -875,7 +1371,7 @@ app.get('/api/run-dates/:progressId', async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
-// POST toggle run date (insert or delete if exists)
+// POST toggle run date (admin only)
 app.post('/api/run-dates', adminOnly, async (req, res) => {
   try {
     const { progress_id, run_date } = req.body;
@@ -896,7 +1392,6 @@ app.post('/api/run-dates', adminOnly, async (req, res) => {
       action = 'added';
     }
 
-    // Compute new latest run date and sync back to progress
     const latest = await prisma.run_dates.findFirst({
       where:   { progress_id: pid },
       orderBy: { run_date: 'desc' },
@@ -912,7 +1407,7 @@ app.post('/api/run-dates', adminOnly, async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
-// DELETE specific run date by id
+// DELETE specific run date by id (admin only)
 app.delete('/api/run-dates/:id', adminOnly, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
@@ -931,14 +1426,12 @@ app.get('/login', (req, res) => {
 });
 
 // ── DEMO VIDEO UPLOAD / DELETE ────────────────────────────────────────────────
-// POST /api/progress/:id/video — upload a demo video file (admin only)
 app.post('/api/progress/:id/video', adminOnly, (req, res) => {
   videoUpload.single('video')(req, res, async (err) => {
     if (err) return res.status(400).json({ success: false, error: err.message });
     if (!req.file) return res.status(400).json({ success: false, error: 'No file uploaded' });
     try {
       const id = parseInt(req.params.id);
-      // Delete old video file if one already exists
       const existing = await prisma.progress.findUnique({ where: { id }, select: { demo_video: true } });
       if (existing?.demo_video) {
         const oldPath = path.join(__dirname, 'public', 'uploads', 'videos', existing.demo_video);
@@ -952,7 +1445,6 @@ app.post('/api/progress/:id/video', adminOnly, (req, res) => {
   });
 });
 
-// DELETE /api/progress/:id/video — remove demo video (admin only)
 app.delete('/api/progress/:id/video', adminOnly, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
