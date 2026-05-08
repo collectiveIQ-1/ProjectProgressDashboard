@@ -719,6 +719,61 @@ body.role-member .pcard[data-can-edit="true"]:hover .pcard-del { display: none !
 .al-filter-row input:focus, .al-filter-row select:focus { border-color: var(--blue); }
 .al-load-btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 16px; border-radius: 9px; background: rgba(21,213,245,0.1); border: 1px solid var(--border2); color: var(--blue); font-size: 12px; font-weight: 600; cursor: pointer; font-family: var(--font-b); transition: all .15s; }
 .al-load-btn:hover { background: rgba(21,213,245,0.18); }
+/* ── Documentation filters ── */
+.doc-filter-row { display:flex; gap:16px; flex-wrap:wrap; align-items:center; margin-bottom:20px; padding:12px 16px; background:var(--surface2); border:1px solid var(--border); border-radius:12px; }
+.doc-filter-group { display:flex; align-items:center; gap:8px; position:relative; }
+.doc-filter-label { font-size:10px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.8px; white-space:nowrap; }
+.doc-filter-sep { width:1px; height:22px; background:var(--border); flex-shrink:0; }
+/* Multi-select dropdown */
+.doc-ms-trigger { display:inline-flex; align-items:center; gap:7px; padding:5px 12px; border:1px solid var(--border2); border-radius:9px; font-size:12px; font-family:var(--font-b); color:var(--text); background:var(--surface2); cursor:pointer; user-select:none; transition:border-color .15s; white-space:nowrap; min-width:140px; }
+.doc-ms-trigger:hover, .doc-ms-trigger.open { border-color:var(--blue); }
+.doc-ms-trigger svg { width:12px; height:12px; stroke:var(--muted2); fill:none; stroke-width:2; flex-shrink:0; margin-left:auto; transition:transform .2s; }
+.doc-ms-trigger.open svg { transform:rotate(180deg); }
+.doc-ms-label { flex:1; overflow:hidden; text-overflow:ellipsis; }
+.doc-ms-dropdown { position:absolute; top:calc(100% + 6px); left:0; z-index:300; background:var(--surface3); border:1px solid var(--border2); border-radius:10px; box-shadow:0 8px 32px rgba(0,0,0,0.4); min-width:160px; padding:6px 0; display:none; }
+.doc-ms-dropdown.open { display:block; }
+.doc-ms-item { display:flex; align-items:center; gap:9px; padding:8px 14px; cursor:pointer; font-size:12px; color:var(--text); transition:background .12s; }
+.doc-ms-item:hover { background:rgba(21,213,245,0.07); }
+.doc-ms-item input[type=checkbox] { accent-color:var(--blue); width:13px; height:13px; cursor:pointer; flex-shrink:0; }
+/* Team select */
+.doc-team-sel { padding:5px 12px; border:1px solid var(--border2); border-radius:9px; font-size:12px; font-family:var(--font-b); color:var(--text); background:var(--surface2); outline:none; cursor:pointer; transition:border-color .15s; }
+.doc-team-sel:focus { border-color:var(--blue); }
+/* ── Documentation BA cards ── */
+.doc-ba-grid { display: flex; flex-direction: column; gap: 18px; }
+.doc-ba-card { width: 100%; }
+.doc-ba-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+.doc-ba-card-head { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--border); background: rgba(255,255,255,0.02); }
+.doc-ba-avatar { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+.doc-ba-name { font-size: 14px; font-weight: 700; color: var(--text); line-height: 1.2; }
+.doc-ba-meta { font-size: 10px; color: var(--muted); margin-top: 2px; }
+.doc-proj-row { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background .15s; }
+.doc-proj-row:last-child { border-bottom: none; }
+.doc-proj-row:hover { background: rgba(21,213,245,0.05); }
+.doc-proj-name { flex: 1; font-size: 12px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.doc-proj-pct { font-size: 11px; font-weight: 700; width: 38px; text-align: right; flex-shrink: 0; }
+.doc-status-pill { font-size: 9px; font-weight: 700; padding: 2px 9px; border-radius: 10px; white-space: nowrap; flex-shrink: 0; }
+.doc-status-complete   { background: rgba(23,185,138,0.15); color: #17b98a; }
+.doc-status-inprogress { background: rgba(240,168,50,0.15);  color: #f0a832; }
+.doc-status-pending    { background: rgba(107,115,148,0.15); color: #6b7394; }
+/* ── Doc detail modal ── */
+#docModal .modal-box { max-width: 560px; width: 95%; }
+.doc-modal-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+.doc-modal-tab { padding: 8px 18px; font-size: 12px; font-weight: 600; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all .15s; border-radius: 6px 6px 0 0; }
+.doc-modal-tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+.doc-modal-tab:hover:not(.active) { color: var(--text); }
+.doc-task-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.doc-task-row:last-child { border-bottom: none; }
+.doc-task-title { flex: 1; font-size: 12px; color: var(--text); }
+.doc-task-status-sel { padding: 4px 8px; border-radius: 8px; border: 1px solid var(--border2); background: var(--surface2); color: var(--text); font-size: 11px; font-family: var(--font-b); cursor: pointer; outline: none; }
+.doc-task-del { background: none; border: none; cursor: pointer; color: var(--muted); padding: 4px; border-radius: 4px; display: flex; align-items: center; transition: color .15s; }
+.doc-task-del:hover { color: var(--coral); }
+.doc-add-task-row { display: flex; gap: 8px; margin-top: 12px; }
+.doc-add-task-input { flex: 1; padding: 8px 12px; border-radius: 9px; border: 1px solid var(--border2); background: var(--surface2); color: var(--text); font-size: 12px; font-family: var(--font-b); outline: none; }
+.doc-add-task-input:focus { border-color: var(--blue); }
+.doc-add-task-btn { padding: 8px 16px; border-radius: 9px; background: rgba(21,213,245,0.12); border: 1px solid var(--border2); color: var(--blue); font-size: 12px; font-weight: 600; cursor: pointer; font-family: var(--font-b); white-space: nowrap; transition: background .15s; }
+.doc-add-task-btn:hover { background: rgba(21,213,245,0.22); }
+.doc-pct-bar-wrap { height: 8px; background: var(--surface3); border-radius: 99px; overflow: hidden; margin-top: 6px; margin-bottom: 4px; }
+.doc-pct-bar { height: 100%; border-radius: 99px; transition: width .4s ease; }
 /* Modal edit controls: hidden unless data-can-edit="true" */
 #processModal[data-can-edit="false"] .modal-edit-ctrl,
 #processModal:not([data-can-edit]) .modal-edit-ctrl { display: none !important; }
@@ -840,9 +895,9 @@ body.role-member .view-only-banner { display: flex; }
       <span class="nav-badge" id="nb-docs">—</span>
     </a>
 
-        <a class="nav-item admin-only" data-page="auditlog" onclick="navTo('auditlog');closeSidebar()">
+        <a class="nav-item" data-page="auditlog" onclick="navTo('auditlog');closeSidebar()">
           <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M9 12h6M9 16h6M9 8h6M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></span>
-          Audit Log
+          Logs
         </a>
 
     <div class="nav-divider"></div>
@@ -1059,28 +1114,12 @@ body.role-member .view-only-banner { display: flex; }
       <!-- ── AUDIT LOG PAGE ── -->
       <div id="page-auditlog" class="page">
         <div class="page-head">
-          <h1>Audit Log</h1>
-          <p>Track all changes made to projects, requirements, milestones, and more</p>
+          <h1>Logs</h1>
+          <p id="alPageSubtitle">Track all changes made to projects, requirements, milestones, and more</p>
         </div>
         <div class="al-filter-row">
           <input id="alFilterProject" type="text" placeholder="Filter by project name…" oninput="filterAuditLogs()" style="min-width:200px"/>
-          <input id="alFilterUser" type="text" placeholder="Filter by user…" oninput="filterAuditLogs()" style="min-width:140px"/>
-          <select id="alFilterSection" onchange="filterAuditLogs()">
-            <option value="">All sections</option>
-            <option value="project">Project</option>
-            <option value="meeting_update">Meeting Update</option>
-            <option value="milestone">Milestone</option>
-            <option value="requirement">Requirement</option>
-            <option value="change_request">Change Request</option>
-            <option value="feature_addon">Feature Add-On</option>
-            <option value="bug_fix">Bug Fix</option>
-          </select>
-          <select id="alFilterAction" onchange="filterAuditLogs()">
-            <option value="">All actions</option>
-            <option value="created">Created</option>
-            <option value="updated">Updated</option>
-            <option value="deleted">Deleted</option>
-          </select>
+          <input id="alFilterUser" type="text" placeholder="Filter by user…" oninput="filterAuditLogs()" style="min-width:140px" class="admin-only"/>
           <button class="al-load-btn" onclick="loadAuditLogs()">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
             Refresh
@@ -1093,16 +1132,14 @@ body.role-member .view-only-banner { display: flex; }
                 <th>Date &amp; Time</th>
                 <th>User</th>
                 <th>Action</th>
-                <th>Section</th>
                 <th>Project</th>
-                <th>Item</th>
                 <th>Field</th>
                 <th>Old Value</th>
                 <th>New Value</th>
               </tr>
             </thead>
             <tbody id="alTableBody">
-              <tr><td colspan="9" style="text-align:center;color:var(--muted);padding:32px">Loading…</td></tr>
+              <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:32px">Loading…</td></tr>
             </tbody>
           </table>
         </div>
@@ -2107,221 +2144,334 @@ function renderTypeGrid(projects){
 }
 
 // ── PAGE: DOCUMENTATION ───────────────────────────────────────────────────────
+// ── DOCUMENTATION TAB ─────────────────────────────────────────────────────────
+
 function renderDocs(projects) {
-  window._docsProjects     = projects;
-  window._docsTypeFilter   = 'all';
-  window._docsStatusFilter = 'all';
-  window._docsTeamFilter   = 'all';
+  window._docsProjects = projects;
+  // Initialise filter state (preserve across re-renders)
+  if (window._docStatusFilter === undefined) window._docStatusFilter = '';
+  if (window._docTeamFilter   === undefined) window._docTeamFilter   = '';
 
-  const types    = [...new Set(projects.map(p => p.type))].filter(Boolean).sort();
-  document.getElementById('docsContent').innerHTML = `<div id="docsKpi"></div><div id="docsGrid"></div>`;
+  // Collect unique assignTeam values for dropdown
+  const teamSet = new Set();
+  projects.forEach(p => { if (p.assignTeam) teamSet.add(p.assignTeam); });
+  const teams = [...teamSet].sort();
+  const teamOpts = `<option value="">All Teams</option>` +
+    teams.map(t => `<option value="${escapeHtml(t)}"${window._docTeamFilter===t?' selected':''}>${escapeHtml(t)}</option>`).join('');
+
+  const curStatus = window._docStatusFilter || '';
+  const statusOpts = `<option value="">All Statuses</option>` +
+    ['In Progress','Pending','Complete'].map(s =>
+      `<option value="${s}"${curStatus===s?' selected':''}>${s}</option>`).join('');
+
+  document.getElementById('docsContent').innerHTML = `
+    <div class="doc-filter-row">
+      <div class="doc-filter-group">
+        <span class="doc-filter-label">Documentation Status</span>
+        <select class="doc-team-sel" id="docStatusFilter" onchange="setDocStatusFilter(this.value)">${statusOpts}</select>
+      </div>
+      <div class="doc-filter-sep"></div>
+      <div class="doc-filter-group">
+        <span class="doc-filter-label">Assigned Team</span>
+        <select class="doc-team-sel" id="docTeamFilter" onchange="setDocTeamFilter(this.value)">${teamOpts}</select>
+      </div>
+    </div>
+    <div id="docsGrid"></div>`;
   renderDocsGrid();
 }
 
-function getDocsFiltered() {
-  const projects = window._docsProjects || [];
-  const tf = window._docsTypeFilter   || 'all';
-  const sf = window._docsStatusFilter || 'all';
-  const teamf = window._docsTeamFilter || 'all';
-  let list = projects;
-  if (tf !== 'all')     list = list.filter(p => p.type === tf);
-  if (sf !== 'all')     list = list.filter(p => p.status === sf);
-  if (teamf !== 'all')  list = list.filter(p => p.assignTeam === teamf);
-  return list;
-}
-
-function setDocsFilter(kind, val) {
-  if (kind === 'type')   window._docsTypeFilter   = val;
-  if (kind === 'status') window._docsStatusFilter = val;
-  if (kind === 'team')   window._docsTeamFilter   = val;
-  const tSel    = document.getElementById('docsTypeSelect');
-  const sSel    = document.getElementById('docsStatusSelect');
-  const teamSel = document.getElementById('docsTeamSelect');
-  if (tSel) {
-    const col = window._docsTypeFilter !== 'all' ? getTypeColor(window._docsTypeFilter) : 'var(--muted2)';
-    tSel.style.color = col;
-    tSel.parentElement.querySelector('.bd-select-arrow').style.stroke = col;
-  }
-  if (sSel) {
-    const sc = window._docsStatusFilter !== 'all' ? getStatus(window._docsStatusFilter) : null;
-    const col = sc ? sc.color : 'var(--muted2)';
-    sSel.style.color = col;
-    sSel.parentElement.querySelector('.bd-select-arrow').style.stroke = col;
-  }
-  if (teamSel) {
-    const tc = window._docsTeamFilter !== 'all' ? getTeamColor(window._docsTeamFilter) : null;
-    const col = tc ? tc.color : 'var(--muted2)';
-    teamSel.style.color = col;
-    teamSel.parentElement.querySelector('.bd-select-arrow').style.stroke = col;
-  }
+function setDocStatusFilter(val) {
+  window._docStatusFilter = val;
   renderDocsGrid();
 }
 
-function resetDocsFilters() {
-  window._docsTypeFilter   = 'all';
-  window._docsStatusFilter = 'all';
-  window._docsTeamFilter   = 'all';
-  const tSel    = document.getElementById('docsTypeSelect');
-  const sSel    = document.getElementById('docsStatusSelect');
-  const teamSel = document.getElementById('docsTeamSelect');
-  if (tSel)    { tSel.value = 'all';    tSel.style.color = '';    tSel.parentElement.querySelector('.bd-select-arrow').style.stroke = ''; }
-  if (sSel)    { sSel.value = 'all';    sSel.style.color = '';    sSel.parentElement.querySelector('.bd-select-arrow').style.stroke = ''; }
-  if (teamSel) { teamSel.value = 'all'; teamSel.style.color = ''; teamSel.parentElement.querySelector('.bd-select-arrow').style.stroke = ''; }
+function setDocTeamFilter(val) {
+  window._docTeamFilter = val;
   renderDocsGrid();
+}
+
+function docStatusPillClass(s) {
+  if (!s || s === 'Pending')     return 'doc-status-pending';
+  if (s === 'Complete')          return 'doc-status-complete';
+  if (s === 'In Progress')       return 'doc-status-inprogress';
+  return 'doc-status-pending';
+}
+
+function docAvatarColor(name) {
+  const colors = ['#3b7de8','#7c5fe6','#17b98a','#f0a832','#e85c5c','#e06aaa','#2ecc71','#15d5f5'];
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
+  return colors[Math.abs(h) % colors.length];
 }
 
 function renderDocsGrid() {
-  const list = getDocsFiltered() || [];
-  const allTeams = ['BI','IQ','Automation','Software Development','Integrity'];
-  const teamCfg = {
-    'BI':                   { color:'#3b7de8', icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="18" y="3" width="4" height="18"/><rect x="10" y="8" width="4" height="13"/><rect x="2" y="13" width="4" height="8"/></svg>' },
-    'IQ':                   { color:'#7c5fe6', icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>' },
-    'Automation':           { color:'#17b98a', icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/></svg>' },
-    'Software Development': { color:'#f0a832', icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>' },
-    'Integrity':            { color:'#2ecc71', icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>' },
-  };
+  const projects = window._docsProjects || [];
+  if (!projects.length) {
+    document.getElementById('docsGrid').innerHTML =
+      `<div style="text-align:center;padding:60px 0;color:var(--muted);font-size:13px">No projects loaded</div>`;
+    return;
+  }
 
-  // KPI summary cards
-  const done    = list.filter(p => p.doc >= 1).length;
-  const ongoing = list.filter(p => p.doc > 0 && p.doc < 1).length;
-  const none    = list.filter(p => p.doc <= 0).length;
-  const avgDoc  = list.length ? Math.round(list.reduce((s,p) => s + p.doc, 0) / list.length * 100) : 0;
+  // Active filters
+  const activeStatus = window._docStatusFilter || '';   // '' = All
+  const activeTeam   = window._docTeamFilter   || '';
 
-  const kpiHtml = `
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:26px">
-      <div style="background:var(--surface);border-radius:16px;padding:18px 20px;display:flex;align-items:center;gap:14px;box-shadow:0 2px 16px rgba(23,217,164,0.12);border:1px solid rgba(23,217,164,0.2);position:relative;overflow:hidden">
-        <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#17b98a,#27c99a)"></div>
-        <div style="width:46px;height:46px;border-radius:12px;background:rgba(23,185,138,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#17b98a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+  // Pre-filter by assignTeam before grouping
+  const filtered = activeTeam ? projects.filter(p => (p.assignTeam || '') === activeTeam) : projects;
+
+  // Group projects by their exact BA combination:
+  //   0 BAs  → Unassigned
+  //   1 BA   → individual card for that BA
+  //   2+ BAs → single collaboration card named "BA1 & BA2 & ..."
+  // A project with multiple BAs appears ONLY in the collaboration card, not in individual cards.
+  const groupMap = {}; // groupKey → { label, projs, isCollab }
+
+  filtered.forEach(p => {
+    const bas = (p.assignedBa || []).filter(Boolean);
+    if (!bas.length) {
+      if (!groupMap['__unassigned__']) groupMap['__unassigned__'] = { label: 'Unassigned', projs: [], isCollab: false };
+      groupMap['__unassigned__'].projs.push(p);
+    } else {
+      const sorted   = [...bas].sort();
+      const key      = sorted.join(' & ');
+      const isCollab = sorted.length > 1;
+      if (!groupMap[key]) groupMap[key] = { label: key, projs: [], isCollab };
+      groupMap[key].projs.push(p);
+    }
+  });
+
+  const filteredKeys = Object.keys(groupMap);
+
+  // Build card HTML
+  function baCard(label, projs, isCollab) {
+    // Apply status filter first
+    const visibleProjs = activeStatus
+      ? projs.filter(p => (p.docStatus || 'Pending') === activeStatus)
+      : projs;
+    if (!visibleProjs.length) return ''; // hide card if nothing matches
+
+    const color    = isCollab ? '#7ef0f8' : docAvatarColor(label);
+    const initials = isCollab
+      ? label.split(' & ').map(n => n[0] || '').join('').toUpperCase().slice(0, 2)
+      : label.split(' ').map(w => w[0] || '').join('').toUpperCase().slice(0, 2);
+    const inProgress = visibleProjs.filter(p => p.docStatus === 'In Progress').length;
+    const pending    = visibleProjs.filter(p => !p.docStatus || p.docStatus === 'Pending').length;
+    const complete   = visibleProjs.filter(p => p.docStatus === 'Complete').length;
+    const avgPct     = visibleProjs.length ? Math.round(visibleProjs.reduce((s, p) => s + p.doc, 0) / visibleProjs.length * 100) : 0;
+
+    const statusOrder = { 'In Progress': 0, 'Pending': 1, 'Complete': 2 };
+    const sorted = [...visibleProjs].sort((a, b) =>
+      (statusOrder[a.docStatus] ?? 1) - (statusOrder[b.docStatus] ?? 1)
+    );
+
+    const rows = sorted.map(p => {
+      const pct      = Math.round(p.doc * 100);
+      const pctColor = pct >= 100 ? '#17b98a' : pct >= 60 ? '#f0a832' : pct > 0 ? '#e06aaa' : '#6b7394';
+      const pillCls  = docStatusPillClass(p.docStatus);
+      return `<div class="doc-proj-row" onclick="openDocModal('${p._id}')">
+        <span class="doc-proj-name" title="${escapeHtml(p.process)}">${escapeHtml(p.process)}</span>
+        <span class="doc-proj-pct" style="color:${pctColor}">${pct}%</span>
+        <span class="doc-status-pill ${pillCls}">${escapeHtml(p.docStatus || 'Pending')}</span>
+      </div>`;
+    }).join('');
+
+    const collabBadge = isCollab
+      ? `<span style="font-size:9px;background:rgba(126,240,248,0.12);color:#7ef0f8;border:1px solid rgba(126,240,248,0.25);border-radius:4px;padding:2px 6px;margin-left:6px;vertical-align:middle;font-weight:600;letter-spacing:.4px">COLLAB</span>`
+      : '';
+
+    return `<div class="doc-ba-card">
+      <div class="doc-ba-card-head">
+        <div class="doc-ba-avatar" style="background:${color}22;color:${color};border:2px solid ${color}44">${initials}</div>
+        <div>
+          <div class="doc-ba-name">${escapeHtml(label)}${collabBadge}</div>
+          <div class="doc-ba-meta">
+            ${visibleProjs.length} project${visibleProjs.length!==1?'s':''}
+            &nbsp;·&nbsp; <span style="color:#e06aaa">${inProgress} in progress</span>
+            &nbsp;·&nbsp; <span style="color:#f0a832">${pending} pending</span>
+            &nbsp;·&nbsp; <span style="color:#17b98a">${complete} complete</span>
+            &nbsp;·&nbsp; avg ${avgPct}%
+          </div>
         </div>
-        <div><div style="font-family:var(--font-d);font-size:32px;color:#17b98a;line-height:1">${done}</div><div style="font-size:11px;color:var(--muted);margin-top:2px">Completed</div></div>
       </div>
-      <div style="background:var(--surface);border-radius:16px;padding:18px 20px;display:flex;align-items:center;gap:14px;box-shadow:0 2px 16px rgba(240,184,50,0.1);border:1px solid rgba(240,168,50,0.2);position:relative;overflow:hidden">
-        <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#f0a832,#f5c842)"></div>
-        <div style="width:46px;height:46px;border-radius:12px;background:rgba(240,168,50,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f0a832" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        </div>
-        <div><div style="font-family:var(--font-d);font-size:32px;color:#f0a832;line-height:1">${ongoing}</div><div style="font-size:11px;color:var(--muted);margin-top:2px">In Progress</div></div>
-      </div>
-      <div style="background:var(--surface);border-radius:16px;padding:18px 20px;display:flex;align-items:center;gap:14px;box-shadow:0 2px 16px rgba(240,96,96,0.1);border:1px solid rgba(232,92,92,0.2);position:relative;overflow:hidden">
-        <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#e85c5c,#f07070)"></div>
-        <div style="width:46px;height:46px;border-radius:12px;background:rgba(232,92,92,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e85c5c" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-        </div>
-        <div><div style="font-family:var(--font-d);font-size:32px;color:#e85c5c;line-height:1">${none}</div><div style="font-size:11px;color:var(--muted);margin-top:2px">Not Started</div></div>
-      </div>
-      <div style="background:var(--surface);border-radius:16px;padding:18px 20px;display:flex;align-items:center;gap:14px;box-shadow:0 2px 16px rgba(21,213,245,0.1);border:1px solid rgba(59,125,232,0.2);position:relative;overflow:hidden">
-        <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#3b7de8,#7c5fe6)"></div>
-        <div style="width:46px;height:46px;border-radius:12px;background:rgba(59,125,232,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3b7de8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-        </div>
-        <div><div style="font-family:var(--font-d);font-size:32px;color:#3b7de8;line-height:1">${avgDoc}%</div><div style="font-size:11px;color:var(--muted);margin-top:2px">Avg Coverage</div></div>
-      </div>
+      ${rows}
     </div>`;
-
-  // doc row per project — horizontal bar list
-  function docRow(p, rank) {
-    const pct      = Math.round(p.doc * 100);
-    const barColor = pct === 100 ? '#17b98a' : pct >= 70 ? '#27c99a' : pct >= 40 ? '#f0a832' : pct > 0 ? '#e06aaa' : '#e85c5c';
-    const pidx     = (window._projects || []).indexOf(p);
-    return `
-      <div onclick="navTo('breakdown');setTimeout(()=>openModal(${pidx}),120)"
-           style="display:flex;align-items:center;gap:12px;padding:9px 14px;border-radius:9px;cursor:pointer;transition:background .15s;border-bottom:1px solid var(--border)"
-           onmouseover="this.style.background='rgba(21,213,245,0.05)'"
-           onmouseout="this.style.background='transparent'">
-        <span style="font-size:10px;color:var(--muted);width:18px;text-align:right;flex-shrink:0;font-weight:500">${rank}</span>
-        <span style="font-size:12px;font-weight:500;color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtml(p.process)}">${escapeHtml(p.process)}</span>
-        <div style="width:200px;height:6px;background:var(--surface3);border-radius:99px;flex-shrink:0;overflow:hidden">
-          <div style="width:${pct}%;height:100%;background:${barColor};border-radius:99px;transition:width .5s ease"></div>
-        </div>
-        <span style="font-size:11px;font-weight:700;color:${barColor};width:36px;text-align:right;flex-shrink:0">${pct}%</span>
-      </div>`;
   }
 
-  // team group section
-  function teamSection(teamName) {
-    const cfg   = teamCfg[teamName] || { color:'#6b7394', icon:'' };
-    const items = [...list.filter(p => p.assignTeam === teamName)].sort((a,b) => b.doc - a.doc);
-    if (!items.length) return '';
-    const teamDone    = items.filter(p => p.doc >= 1).length;
-    const teamOngoing = items.filter(p => p.doc > 0 && p.doc < 1).length;
-    const teamNone    = items.filter(p => p.doc <= 0).length;
-    const teamAvg  = Math.round(items.reduce((s,p) => s + p.doc, 0) / items.length * 100);
-    return `
-      <div style="margin-bottom:20px">
-        <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:linear-gradient(135deg,${hexToRgba(cfg.color,.08)},${hexToRgba(cfg.color,.03)});border:1px solid ${hexToRgba(cfg.color,.2)};border-radius:14px 14px 0 0;border-bottom:none">
-          <div style="width:30px;height:30px;border-radius:8px;background:${hexToRgba(cfg.color,.15)};display:flex;align-items:center;justify-content:center;flex-shrink:0;color:${cfg.color}">${cfg.icon}</div>
-          <div style="flex:1">
-            <div style="font-size:13px;font-weight:700;color:${cfg.color}">${teamName}</div>
-            <div style="font-size:10px;color:var(--muted);margin-top:1px">${items.length} project${items.length!==1?'s':''} &nbsp;·&nbsp; <span style="color:#17b98a">${teamDone} completed</span> &nbsp;·&nbsp; <span style="color:#f0a832">${teamOngoing} ongoing</span> &nbsp;·&nbsp; <span style="color:#e85c5c">${teamNone} not started</span></div>
-          </div>
-          <div style="text-align:center;padding:5px 12px;background:${hexToRgba(cfg.color,.1)};border-radius:8px">
-            <div style="font-family:var(--font-d);font-size:16px;color:${cfg.color};line-height:1">${teamAvg}%</div>
-            <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Avg</div>
-          </div>
-        </div>
-        <div style="background:var(--surface2);border:1px solid ${hexToRgba(cfg.color,.15)};border-top:none;border-radius:0 0 14px 14px;overflow:hidden">
-          <div style="display:flex;align-items:center;gap:12px;padding:6px 14px;background:var(--surface3);border-bottom:1px solid var(--border)">
-            <span style="font-size:9px;color:var(--muted);width:18px;text-align:right;flex-shrink:0">#</span>
-            <span style="font-size:9px;color:var(--muted);flex:1;text-transform:uppercase;letter-spacing:.6px">Project</span>
-            <span style="font-size:9px;color:var(--muted);width:200px;flex-shrink:0;text-transform:uppercase;letter-spacing:.6px">Coverage</span>
-            <span style="font-size:9px;color:var(--muted);width:36px;text-align:right;flex-shrink:0;text-transform:uppercase;letter-spacing:.6px">Doc %</span>
-          </div>
-          ${items.map((p,i) => docRow(p, i+1)).join('')}
-        </div>
-      </div>`;
+  // Order: individual BA cards (A-Z), then collaboration cards (A-Z), Unassigned last
+  const solo   = filteredKeys.filter(k => k !== '__unassigned__' && !groupMap[k].isCollab).sort();
+  const collab = filteredKeys.filter(k => groupMap[k].isCollab).sort();
+  const hasUnassigned = filteredKeys.includes('__unassigned__');
+
+  const cardHtmlParts = [
+    ...solo.map(k   => baCard(groupMap[k].label, groupMap[k].projs, groupMap[k].isCollab)),
+    ...collab.map(k => baCard(groupMap[k].label, groupMap[k].projs, groupMap[k].isCollab)),
+    hasUnassigned ? baCard('Unassigned', groupMap['__unassigned__'].projs, false) : '',
+  ].filter(Boolean);
+
+  const html = cardHtmlParts.length
+    ? `<div class="doc-ba-grid">${cardHtmlParts.join('')}</div>`
+    : `<div style="text-align:center;padding:60px 0;color:var(--muted);font-size:13px">No projects match the selected filters</div>`;
+
+  document.getElementById('docsGrid').innerHTML = html;
+}
+
+// ── DOC MODAL ────────────────────────────────────────────────────────────────
+
+let _docModalProjectId = null;
+
+function openDocModal(projectId) {
+  const p = (window._projects || []).find(x => x._id === String(projectId));
+  if (!p) return;
+  _docModalProjectId = String(projectId);
+
+  document.getElementById('docModalTitle').textContent = p.process;
+  const bas = Array.isArray(p.assignedBa) && p.assignedBa.length ? p.assignedBa : [];
+  document.getElementById('docModalSub').textContent = bas.length > 1
+    ? `Collaboration — ${bas.join(' · ')}`
+    : bas.length === 1 ? bas[0] : 'No BA assigned';
+
+  const pct = Math.round(p.doc * 100);
+  document.getElementById('docPctInput').value  = pct;
+  document.getElementById('docStatusSel').value = p.docStatus || 'Pending';
+  document.getElementById('docNoteInput').value = p.docNote   || '';
+  updateDocPctBar();
+
+  switchDocTab('overview');
+  document.getElementById('docModal').style.display = 'flex';
+}
+
+function closeDocModal() {
+  document.getElementById('docModal').style.display = 'none';
+  _docModalProjectId = null;
+}
+
+function switchDocTab(tab) {
+  ['overview','tasks'].forEach(t => {
+    document.getElementById('docTab-'  + t).classList.toggle('active', t === tab);
+    document.getElementById('docPane-' + t).style.display = t === tab ? '' : 'none';
+  });
+  if (tab === 'tasks' && _docModalProjectId) loadDocTasks(_docModalProjectId);
+}
+
+function updateDocPctBar() {
+  const val = Math.min(100, Math.max(0, parseInt(document.getElementById('docPctInput').value) || 0));
+  const color = val >= 100 ? '#17b98a' : val >= 60 ? '#f0a832' : val > 0 ? '#e06aaa' : '#6b7394';
+  document.getElementById('docPctBar').style.cssText   = `width:${val}%;background:${color}`;
+  document.getElementById('docPctLabel').textContent   = `${val}% documented`;
+}
+
+async function saveDocInfo() {
+  if (!_docModalProjectId) return;
+  const doc        = parseFloat(document.getElementById('docPctInput').value) / 100 || 0;
+  const doc_status = document.getElementById('docStatusSel').value;
+  const doc_note   = document.getElementById('docNoteInput').value;
+  try {
+    const resp = await authFetch(`${API_BASE}/api/progress/${_docModalProjectId}/doc-info`, {
+      method:  'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ doc, doc_status, doc_note }),
+    });
+    const data = await resp.json();
+    if (!data.success) throw new Error(data.error);
+    // Update local project cache
+    const idx = (window._projects || []).findIndex(p => p._id === _docModalProjectId);
+    if (idx >= 0) {
+      window._projects[idx].doc       = doc;
+      window._projects[idx].docStatus = doc_status;
+      window._projects[idx].docNote   = doc_note;
+    }
+    showToast('Documentation info saved', 'success');
+    renderDocsGrid();
+  } catch (e) { showToast('Save failed: ' + e.message, 'error'); }
+}
+
+// ── DOC TASKS ────────────────────────────────────────────────────────────────
+
+async function loadDocTasks(projectId) {
+  const el = document.getElementById('docTasksList');
+  if (!el) return;
+  el.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:8px 0">Loading…</div>';
+  try {
+    const resp = await authFetch(`${API_BASE}/api/doc-tasks/${projectId}`);
+    const data = await resp.json();
+    if (!data.success) throw new Error(data.error);
+    renderDocTasksList(data.data || []);
+  } catch (e) {
+    el.innerHTML = `<div style="color:var(--coral);font-size:12px">${e.message}</div>`;
   }
+}
 
-  // unassigned section
-  function unassignedSection() {
-    const items = [...list.filter(p => !p.assignTeam)].sort((a,b) => b.doc - a.doc);
-    if (!items.length) return '';
-    const unAvg     = Math.round(items.reduce((s,p) => s + p.doc, 0) / items.length * 100);
-    const unDone    = items.filter(p => p.doc >= 1).length;
-    const unOngoing = items.filter(p => p.doc > 0 && p.doc < 1).length;
-    const unNone    = items.filter(p => p.doc <= 0).length;
-    return `
-      <div style="margin-bottom:20px">
-        <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:rgba(107,115,148,0.06);border:1px solid rgba(107,115,148,0.18);border-radius:14px 14px 0 0;border-bottom:none">
-          <div style="width:30px;height:30px;border-radius:8px;background:rgba(107,115,148,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#6b7394">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          </div>
-          <div style="flex:1">
-            <div style="font-size:13px;font-weight:700;color:#6b7394">Unassigned</div>
-            <div style="font-size:10px;color:var(--muted);margin-top:1px">${items.length} project${items.length!==1?'s':''} &nbsp;·&nbsp; <span style="color:#17b98a">${unDone} completed</span> &nbsp;·&nbsp; <span style="color:#f0a832">${unOngoing} ongoing</span> &nbsp;·&nbsp; <span style="color:#e85c5c">${unNone} not started</span></div>
-          </div>
-          <div style="text-align:center;padding:5px 12px;background:rgba(107,115,148,0.1);border-radius:8px">
-            <div style="font-family:var(--font-d);font-size:16px;color:#6b7394;line-height:1">${unAvg}%</div>
-            <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Avg</div>
-          </div>
-        </div>
-        <div style="background:var(--surface2);border:1px solid rgba(107,115,148,0.15);border-top:none;border-radius:0 0 14px 14px;overflow:hidden">
-          <div style="display:flex;align-items:center;gap:12px;padding:6px 14px;background:var(--surface3);border-bottom:1px solid var(--border)">
-            <span style="font-size:9px;color:var(--muted);width:18px;text-align:right;flex-shrink:0">#</span>
-            <span style="font-size:9px;color:var(--muted);flex:1;text-transform:uppercase;letter-spacing:.6px">Project</span>
-            <span style="font-size:9px;color:var(--muted);width:200px;flex-shrink:0;text-transform:uppercase;letter-spacing:.6px">Coverage</span>
-            <span style="font-size:9px;color:var(--muted);width:36px;text-align:right;flex-shrink:0;text-transform:uppercase;letter-spacing:.6px">Doc %</span>
-          </div>
-          ${items.map((p,i) => docRow(p, i+1)).join('')}
-        </div>
-      </div>`;
+function renderDocTasksList(tasks) {
+  const el = document.getElementById('docTasksList');
+  if (!el) return;
+  if (!tasks.length) {
+    el.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:8px 0;font-style:italic">No tasks yet — add one below</div>';
+    return;
   }
+  el.innerHTML = tasks.map(t => {
+    const sel = ['Pending','In Progress','Complete'].map(s =>
+      `<option value="${s}" ${t.status===s?'selected':''}>${s}</option>`
+    ).join('');
+    return `<div class="doc-task-row" id="doc-task-row-${t.id}">
+      <span class="doc-task-title">${escapeHtml(t.title)}</span>
+      <select class="doc-task-status-sel" onchange="updateDocTaskStatus(${t.id},this.value)">${sel}</select>
+      <button class="doc-task-del" onclick="deleteDocTask(${t.id})" title="Delete task">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+      </button>
+    </div>`;
+  }).join('');
+}
 
-  const gridHtml = allTeams.map(teamSection).join('') + unassignedSection()
-    || `<div style="text-align:center;padding:40px 0;font-size:13px;color:var(--muted);font-style:italic">No projects match the selected filters</div>`;
+async function addDocTask() {
+  const input  = document.getElementById('docNewTaskInput');
+  const selEl  = document.getElementById('docNewTaskStatus');
+  const title  = (input?.value || '').trim();
+  const status = selEl?.value || 'Pending';
+  if (!title || !_docModalProjectId) return;
+  try {
+    const resp = await authFetch(`${API_BASE}/api/doc-tasks`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ progress_id: _docModalProjectId, title, status }),
+    });
+    const data = await resp.json();
+    if (!data.success) throw new Error(data.error);
+    input.value = '';
+    loadDocTasks(_docModalProjectId);
+  } catch (e) { showToast('Failed to add task: ' + e.message, 'error'); }
+}
 
-  const docsKpiEl  = document.getElementById('docsKpi');
-  const docsGridEl = document.getElementById('docsGrid');
-  if (docsKpiEl)  docsKpiEl.innerHTML  = kpiHtml;
-  if (docsGridEl) docsGridEl.innerHTML = gridHtml;
+async function updateDocTaskStatus(taskId, status) {
+  try {
+    const resp = await authFetch(`${API_BASE}/api/doc-tasks/${taskId}`, {
+      method:  'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ status }),
+    });
+    const data = await resp.json();
+    if (!data.success) throw new Error(data.error);
+  } catch (e) { showToast('Failed to update task: ' + e.message, 'error'); }
+}
+
+async function deleteDocTask(taskId) {
+  if (!confirm('Delete this task?')) return;
+  try {
+    const resp = await authFetch(`${API_BASE}/api/doc-tasks/${taskId}`, { method: 'DELETE' });
+    const data = await resp.json();
+    if (!data.success) throw new Error(data.error);
+    document.getElementById('doc-task-row-' + taskId)?.remove();
+    const remaining = document.querySelectorAll('#docTasksList .doc-task-row').length;
+    if (!remaining) document.getElementById('docTasksList').innerHTML =
+      '<div style="color:var(--muted);font-size:12px;padding:8px 0;font-style:italic">No tasks yet — add one below</div>';
+  } catch (e) { showToast('Failed to delete task: ' + e.message, 'error'); }
 }
 
 // ── API CONFIG ────────────────────────────────────────────────────────────────
 const API_BASE = '';  // same origin — served by Express
 
 // ── ROLE-AWARE FETCH WRAPPER ────────────────────────────────────────────────
-// Automatically injects X-User-Role header on every mutating request.
-// Also blocks the call client-side if user is not Admin, showing a friendly toast.
+// Injects X-User-Role + X-User-Name on ALL requests (GET and mutating).
+// Blocks mutating calls client-side only if user has no display_name at all.
 async function authFetch(url, options = {}) {
   const role = window._userRole || 'member';
   const method = (options.method || 'GET').toUpperCase();
@@ -2335,11 +2485,10 @@ async function authFetch(url, options = {}) {
     throw new Error('Permission denied');
   }
 
+  // Always send identity headers so the server can apply role/access logic on GET too
   const headers = Object.assign({}, options.headers || {});
-  if (isMutating) {
-    headers['X-User-Role'] = window._userRole || 'member';
-    headers['X-User-Name'] = window._userName || '';
-  }
+  headers['X-User-Role'] = window._userRole || 'member';
+  headers['X-User-Name'] = window._userName || '';
 
   const response = await fetch(url, { ...options, headers });
 
@@ -2523,6 +2672,9 @@ function dbRecordsToProjects(records) {
       assignTeam:      r.assignTeam      || null,
       tags:            Array.isArray(r.tags) ? r.tags : [],
       demoVideo:       r.demoVideo       || null,
+      assignedBa:      Array.isArray(r.assignedBa) ? r.assignedBa : [],
+      docStatus:       r.docStatus       || 'Pending',
+      docNote:         r.docNote         || '',
       updated_at:      r.updated_at || r.created_at || null,
       pendingItems:    r.pendingItems    || { requirements:[], changeRequests:[], featureAddons:[], bugFixes:[] },
     };
@@ -2977,6 +3129,10 @@ function openModal(idx){
               <div class="pe-field">
                 <div class="pe-label">Assign Person(s) <span style="color:var(--muted);font-size:9px;text-transform:none;font-weight:400">(separate multiple with /)</span></div>
                 <input class="pe-input" id="pePeople" type="text" value="${(p.people||[]).join(' / ')}" placeholder="e.g. Alice / Bob"/>
+              </div>
+              <div class="pe-field">
+                <div class="pe-label">Assigned BA(s) <span style="color:var(--muted);font-size:9px;text-transform:none;font-weight:400">(separate multiple with /) — shown in Documentation tab</span></div>
+                <input class="pe-input" id="peAssignedBa" type="text" placeholder="e.g. Nimali / Ravindu"/>
               </div>
               <div class="pe-row">
                 <div class="pe-field">
@@ -5176,9 +5332,16 @@ async function deleteProject(idx) {
   }
 }
 
-function openProjectEditForm() {
+function openProjectEditForm(idx) {
   const el = document.getElementById('projEditPanel');
   if (el) el.classList.add('open');
+  // Set assigned_ba value via JS to avoid template-literal / raw-array rendering issues
+  const p = (window._projects || [])[idx];
+  const baInput = document.getElementById('peAssignedBa');
+  if (baInput && p) {
+    const ba = Array.isArray(p.assignedBa) ? p.assignedBa : [];
+    baInput.value = ba.join(' / ');
+  }
 }
 
 function closeProjectEditForm() {
@@ -5212,8 +5375,10 @@ async function saveProjectEdit(idx) {
   const betaTestingDate = (document.getElementById('peBetaTestingDate')?.value || '').trim() || null;
   const assignTeam   = document.getElementById('peAssignTeam') ? document.getElementById('peAssignTeam').value || null : null;
   const tags         = window._peTags || [];
-  const peopleRaw  = document.getElementById('pePeople').value.trim();
-  const people     = peopleRaw.includes('/') ? peopleRaw.split('/').map(s=>s.trim()).filter(Boolean) : (peopleRaw ? [peopleRaw] : []);
+  const peopleRaw     = document.getElementById('pePeople').value.trim();
+  const people        = peopleRaw.includes('/') ? peopleRaw.split('/').map(s=>s.trim()).filter(Boolean) : (peopleRaw ? [peopleRaw] : []);
+  const baRaw         = (document.getElementById('peAssignedBa')?.value || '').trim();
+  const assignedBa    = baRaw.includes('/') ? baRaw.split('/').map(s=>s.trim()).filter(Boolean) : (baRaw ? [baRaw] : []);
 
   if (!process) { alert('Process name is required.'); return; }
 
@@ -5224,7 +5389,7 @@ async function saveProjectEdit(idx) {
     const resp = await authFetch(`/api/progress/${p._id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ process, type, status, completion, doc, people, dept, priority, startDate, deadline, frequency, autoFTE, manualFTE, lastRunDate, lastRunCount, purpose, expectedResults, betaTestingDate, assignTeam, tags })
+      body: JSON.stringify({ process, type, status, completion, doc, people, dept, priority, startDate, deadline, frequency, autoFTE, manualFTE, lastRunDate, lastRunCount, purpose, expectedResults, betaTestingDate, assignTeam, tags, assignedBa })
     });
     const data = await resp.json();
     if (data.success) {
@@ -5238,9 +5403,10 @@ async function saveProjectEdit(idx) {
         frequency: r.frequency, autoFTE: r.autoFTE, manualFTE: r.manualFTE,
         lastRunDate: r.lastRunDate, lastRunCount: r.lastRunCount,
         purpose: r.purpose, expectedResults: r.expectedResults, betaTestingDate: r.betaTestingDate,
-        assignTeam: r.assignTeam,
-        tags:       Array.isArray(r.tags) ? r.tags : [],
-        updated_at: r.updated_at
+        assignTeam:  r.assignTeam,
+        assignedBa:  Array.isArray(r.assignedBa) ? r.assignedBa : [],
+        tags:        Array.isArray(r.tags) ? r.tags : [],
+        updated_at:  r.updated_at
       });
       showToast('✅ Project details updated successfully', 'success');
       // Re-render and reopen modal — in a separate try so render bugs never
@@ -5344,17 +5510,33 @@ window.addEventListener('resize', () => {
 let _auditAllLogs = [];
 
 async function loadAuditLogs() {
-  const tbody = document.getElementById('alTableBody');
+  const tbody    = document.getElementById('alTableBody');
+  const subtitle = document.getElementById('alPageSubtitle');
   if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:32px">Loading…</td></tr>';
+
+  // Update subtitle based on role
+  if (subtitle) {
+    if (window._isAdmin) {
+      subtitle.textContent = 'All changes across every project — who changed what and when';
+    } else {
+      const dn = window._userDisplayName || 'you';
+      subtitle.textContent = `Showing only changes made to projects assigned to ${dn}`;
+    }
+  }
+
+  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:32px">Loading…</td></tr>';
   try {
     const resp = await authFetch(`${API_BASE}/api/audit-logs?limit=500`);
+    if (resp.status === 403) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--coral);padding:32px">Access denied.</td></tr>';
+      return;
+    }
     const data = await resp.json();
     if (!data.success) throw new Error(data.error);
     _auditAllLogs = data.data || [];
     filterAuditLogs();
   } catch (e) {
-    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--coral);padding:32px">Error: ${e.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--coral);padding:32px">Error: ${e.message}</td></tr>`;
   }
 }
 
@@ -5363,41 +5545,28 @@ function filterAuditLogs() {
   if (!tbody) return;
   const fProject = (document.getElementById('alFilterProject')?.value || '').toLowerCase();
   const fUser    = (document.getElementById('alFilterUser')?.value || '').toLowerCase();
-  const fSection = document.getElementById('alFilterSection')?.value || '';
-  const fAction  = document.getElementById('alFilterAction')?.value || '';
 
   const filtered = _auditAllLogs.filter(log => {
     if (fProject && !(log.project_name || '').toLowerCase().includes(fProject)) return false;
     if (fUser    && !(log.display_name || log.username || '').toLowerCase().includes(fUser)) return false;
-    if (fSection && log.section !== fSection) return false;
-    if (fAction  && log.action  !== fAction)  return false;
     return true;
   });
 
   if (!filtered.length) {
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:32px">No log entries found</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:32px">No log entries found</td></tr>';
     return;
   }
-
-  const sectionLabel = {
-    project: 'Project', meeting_update: 'Meeting Update', milestone: 'Milestone',
-    requirement: 'Requirement', change_request: 'Change Request',
-    feature_addon: 'Feature Add-On', bug_fix: 'Bug Fix',
-  };
 
   tbody.innerHTML = filtered.map(log => {
     const dt = new Date(log.timestamp);
     const dateStr = dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     const timeStr = dt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
     const actionClass = log.action === 'created' ? 'al-created' : log.action === 'deleted' ? 'al-deleted' : 'al-updated';
-    const sec = sectionLabel[log.section] || log.section;
     return `<tr>
       <td style="white-space:nowrap;font-size:11px;color:var(--muted2)">${dateStr}<br/><span style="font-size:10px;opacity:.7">${timeStr}</span></td>
       <td><span style="font-weight:600;color:var(--text)">${esc(log.display_name || '')}</span><br/><span style="font-size:10px;color:var(--muted)">${esc(log.username || '')}</span></td>
       <td><span class="al-action-pill ${actionClass}">${esc(log.action)}</span></td>
-      <td><span class="al-section-pill">${esc(sec)}</span></td>
       <td title="${esc(log.project_name || '')}" style="max-width:160px">${esc(log.project_name || '—')}</td>
-      <td title="${esc(log.item_title || '')}" style="max-width:160px">${esc(log.item_title || '—')}</td>
       <td style="color:var(--muted)">${esc(log.field_name || '—')}</td>
       <td style="color:var(--muted);max-width:120px" title="${esc(log.old_value || '')}">${esc(log.old_value || '—')}</td>
       <td style="color:var(--text);max-width:120px" title="${esc(log.new_value || '')}">${esc(log.new_value || '—')}</td>
@@ -5592,6 +5761,74 @@ function esc(str) {
       <button class="modal-close" onclick="closeModal()">✕</button>
     </div>
     <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+<!-- ── DOC DETAIL MODAL ── -->
+<div class="modal-overlay" id="docModal" style="display:none" onclick="if(event.target===this)closeDocModal()">
+  <div class="modal-box" style="max-width:560px;width:95%;padding:0;overflow:hidden">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 22px 14px;border-bottom:1px solid var(--border)">
+      <div>
+        <div style="font-size:15px;font-weight:700;color:var(--text)" id="docModalTitle">Project</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px" id="docModalSub"></div>
+      </div>
+      <button class="modal-close" onclick="closeDocModal()">✕</button>
+    </div>
+    <div style="padding:18px 22px 22px">
+      <div class="doc-modal-tabs">
+        <div class="doc-modal-tab active" id="docTab-overview" onclick="switchDocTab('overview')">Overview</div>
+        <div class="doc-modal-tab" id="docTab-tasks" onclick="switchDocTab('tasks')">Tasks</div>
+      </div>
+      <!-- OVERVIEW TAB -->
+      <div id="docPane-overview">
+        <div style="margin-bottom:16px">
+          <label style="font-size:11px;color:var(--muted2);font-weight:600;text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:8px">Documentation %</label>
+          <div style="display:flex;align-items:center;gap:12px">
+            <input id="docPctInput" type="number" min="0" max="100" step="1"
+              style="width:70px;padding:7px 10px;border-radius:9px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:13px;font-family:var(--font-b);font-weight:700;outline:none;text-align:center"
+              oninput="updateDocPctBar()" />
+            <div style="flex:1">
+              <div class="doc-pct-bar-wrap"><div class="doc-pct-bar" id="docPctBar"></div></div>
+              <div style="font-size:10px;color:var(--muted);margin-top:3px" id="docPctLabel"></div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-bottom:16px">
+          <label style="font-size:11px;color:var(--muted2);font-weight:600;text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:8px">Status</label>
+          <select id="docStatusSel" style="padding:8px 12px;border-radius:9px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:12px;font-family:var(--font-b);outline:none;cursor:pointer">
+            <option value="Pending">Pending</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Complete">Complete</option>
+          </select>
+        </div>
+        <div style="margin-bottom:20px">
+          <label style="font-size:11px;color:var(--muted2);font-weight:600;text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:8px">Current Update</label>
+          <textarea id="docNoteInput" rows="4"
+            placeholder="Add a note about the current documentation status…"
+            style="width:100%;padding:10px 12px;border-radius:9px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:12px;font-family:var(--font-b);outline:none;resize:vertical;box-sizing:border-box;transition:border-color .15s"
+            onfocus="this.style.borderColor='var(--blue)'" onblur="this.style.borderColor='var(--border2)'"></textarea>
+        </div>
+        <div style="display:flex;justify-content:flex-end">
+          <button onclick="saveDocInfo()"
+            style="padding:9px 22px;border-radius:10px;background:var(--blue);border:none;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font-b);transition:opacity .15s"
+            onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Save</button>
+        </div>
+      </div>
+      <!-- TASKS TAB -->
+      <div id="docPane-tasks" style="display:none">
+        <div id="docTasksList" style="min-height:60px"></div>
+        <div class="doc-add-task-row">
+          <input class="doc-add-task-input" id="docNewTaskInput" placeholder="New task title…"
+            onkeydown="if(event.key==='Enter')addDocTask()" />
+          <select id="docNewTaskStatus"
+            style="padding:8px 10px;border-radius:9px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:11px;font-family:var(--font-b);outline:none">
+            <option value="Pending">Pending</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Complete">Complete</option>
+          </select>
+          <button class="doc-add-task-btn" onclick="addDocTask()">+ Add</button>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 </body>

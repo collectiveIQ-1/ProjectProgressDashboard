@@ -62,6 +62,8 @@ async function seedCredentials() {
 // AUDIT LOG HELPER
 // ══════════════════════════════════════════════════════════════════════════════
 async function writeAuditLog({ projectId, projectName, username, displayName, action, section, itemId, itemTitle, fieldName, oldValue, newValue }) {
+  // Skip "updated" logs that carry no actual field change — they're just noise
+  if (action === 'updated' && !fieldName) return;
   try {
     await prisma.auditLog.create({
       data: {
@@ -111,6 +113,15 @@ function adminOnly(req, res, next) {
   if (role.toLowerCase() !== 'admin')
     return res.status(403).json({ success: false, error: 'Permission denied. Admin access required.' });
   next();
+}
+
+// Doc editor guard: admin, CVithanage@collectivercm.com, or imalshar@botmedfusion.com only
+function docEditorOnly(req, res, next) {
+  const role = (req.headers['x-user-role'] || 'member').toLowerCase();
+  if (role === 'admin') return next();
+  const username = (req.headers['x-user-name'] || '').toLowerCase();
+  if (username === 'cvithanage@collectivercm.com' || username === 'imalshar@botmedfusion.com') return next();
+  return res.status(403).json({ success: false, error: 'Permission denied. Only documentation editors can make changes.' });
 }
 
 // Project-level access: admin OR user is assigned to the project
@@ -173,6 +184,9 @@ function rowToProject(r) {
     assignTeam:      r.assign_team      || null,
     tags:            r.tags             || [],
     demoVideo:       r.demo_video       || null,
+    assignedBa:      r.assigned_ba      || [],
+    docStatus:       r.doc_status       || 'Pending',
+    docNote:         r.doc_note         || '',
     created_at:      r.created_at,
     updated_at:      r.updated_at,
     pendingItems: {
@@ -289,14 +303,50 @@ app.get('/api/auth/me', async (req, res) => {
 
 // ── AUDIT LOG ROUTES ──────────────────────────────────────────────────────────
 
-// GET audit logs (admin only)
-app.get('/api/audit-logs', adminOnly, async (req, res) => {
+// GET audit logs — admin sees all; member sees only their own project logs
+app.get('/api/audit-logs', async (req, res) => {
   try {
-    const { projectId, username, section, limit = 200, offset = 0 } = req.query;
+    const role     = (req.headers['x-user-role'] || 'member').toLowerCase();
+    const username = req.headers['x-user-name'] || '';
+
+    const { projectId, section, action, limit = 500, offset = 0 } = req.query;
+
     const where = {};
-    if (projectId) where.project_id = parseInt(projectId);
-    if (username)  where.username   = username;
-    if (section)   where.section    = section;
+    if (section) where.section = section;
+    if (action)  where.action  = action;
+
+    if (role === 'admin') {
+      // Admin: optional projectId filter from query params
+      if (projectId) where.project_id = parseInt(projectId);
+      // Admin: optional user filter from query param
+      if (req.query.username) where.username = req.query.username;
+    } else {
+      // Member: restrict to projects they are assigned to
+      if (!username) return res.status(401).json({ success: false, error: 'Authentication required.' });
+
+      const cred = await prisma.credentials.findFirst({
+        where:  { username },
+        select: { display_name: true },
+      });
+      const displayName = cred?.display_name || '';
+      if (!displayName) {
+        // No display_name — return empty list (not an error)
+        return res.json({ success: true, data: [], total: 0 });
+      }
+
+      // Find all project IDs assigned to this member
+      const assignedProjects = await prisma.progress.findMany({
+        where:  { people: { has: displayName } },
+        select: { id: true },
+      });
+      const assignedIds = assignedProjects.map(p => p.id);
+
+      if (!assignedIds.length) {
+        return res.json({ success: true, data: [], total: 0 });
+      }
+
+      where.project_id = { in: assignedIds };
+    }
 
     const logs = await prisma.auditLog.findMany({
       where,
@@ -309,9 +359,66 @@ app.get('/api/audit-logs', adminOnly, async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
+
 // ══════════════════════════════════════════════════════════════════════════════
 // PROGRESS ROUTES
 // ══════════════════════════════════════════════════════════════════════════════
+
+// Parse a value that may be a JS array OR a PostgreSQL array literal string like {a,b}
+function parsePgTextArray(val) {
+  if (Array.isArray(val)) return val.filter(Boolean);
+  if (!val || val === '{}') return [];
+  if (typeof val === 'string') {
+    return val
+      .replace(/^\{|\}$/g, '')
+      .split(',')
+      .map(s => s.replace(/^"|"$/g, '').trim())
+      .filter(Boolean);
+  }
+  return [];
+}
+
+// Update assigned_ba safely — builds a PostgreSQL array literal string
+// (e.g. '{"Alice","Bob"}') and passes it as a single text parameter.
+// This avoids all JS-array serialisation issues with node-postgres / Prisma.
+async function setAssignedBa(id, baArr) {
+  // Build e.g. '{}' or '{"Alice","Bob with \"quotes\""}'
+  const pgLiteral = baArr.length
+    ? '{' + baArr.map(s => '"' + String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"').join(',') + '}'
+    : '{}';
+  await prisma.$executeRawUnsafe(
+    `UPDATE progress SET assigned_ba = $2::text[] WHERE id = $1`,
+    id, pgLiteral
+  );
+}
+
+// Helper: always read assigned_ba / doc_status / doc_note via raw SQL so the
+// result is correct regardless of which Prisma client build is loaded.
+async function fetchNewCols(ids) {
+  if (!ids.length) return {};
+  const numIds = ids.map(Number);
+  const placeholders = numIds.map((_, i) => `$${i + 1}`).join(', ');
+  const rows = await prisma.$queryRawUnsafe(
+    `SELECT id, assigned_ba, doc_status, doc_note FROM progress WHERE id IN (${placeholders})`,
+    ...numIds
+  );
+  // Debug log — remove once confirmed working
+  rows.forEach(r => {
+    if (r.assigned_ba && String(r.assigned_ba) !== '{}' && String(r.assigned_ba) !== '') {
+      console.log(`[fetchNewCols] id=${String(r.id)} assigned_ba=${JSON.stringify(r.assigned_ba)} (type=${typeof r.assigned_ba} isArray=${Array.isArray(r.assigned_ba)})`);
+    }
+  });
+  const result = {};
+  for (const r of rows) {
+    const key = String(r.id);
+    result[key] = {
+      assigned_ba: parsePgTextArray(r.assigned_ba),
+      doc_status:  r.doc_status || 'Pending',
+      doc_note:    r.doc_note   || '',
+    };
+  }
+  return result;
+}
 
 // GET all
 app.get('/api/progress', async (req, res) => {
@@ -325,7 +432,8 @@ app.get('/api/progress', async (req, res) => {
         bug_fixes:       { where: { status: { not: 'Resolved'     } }, select: { title: true, status: true } },
       },
     });
-    res.json({ success: true, data: rows.map(rowToProject) });
+    const extra = await fetchNewCols(rows.map(r => r.id));
+    res.json({ success: true, data: rows.map(r => rowToProject({ ...r, ...(extra[String(r.id)] || {}) })) });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
@@ -336,7 +444,8 @@ app.get('/api/progress/:id', async (req, res) => {
     if (isNaN(id)) return res.status(400).json({ success: false, error: 'Invalid ID' });
     const row = await prisma.progress.findUnique({ where: { id } });
     if (!row) return res.status(404).json({ success: false, error: 'Not found' });
-    res.json({ success: true, data: rowToProject(row) });
+    const extra = await fetchNewCols([id]);
+    res.json({ success: true, data: rowToProject({ ...row, ...(extra[String(id)] || {}) }) });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
@@ -393,9 +502,12 @@ app.post('/api/progress', adminOnly, async (req, res) => {
     const { process, type, status, completion, doc, people, dept, priority,
             startDate, deadline, frequency, autoFTE, manualFTE,
             lastRunDate, lastRunCount, purpose, expectedResults, betaTestingDate,
-            assignTeam, tags } = req.body;
+            assignTeam, tags, assignedBa } = req.body;
     if (!process || !String(process).trim())
       return res.status(400).json({ success: false, error: 'Process name is required' });
+
+    // Compute baArr first so it can be included in the Prisma create
+    const baArr = Array.isArray(assignedBa) ? assignedBa.filter(Boolean) : (assignedBa ? [String(assignedBa)] : []);
 
     const row = await prisma.progress.create({
       data: {
@@ -420,6 +532,7 @@ app.post('/api/progress', adminOnly, async (req, res) => {
         beta_testing_date: betaTestingDate || null,
         assign_team:      assignTeam || null,
         tags:             Array.isArray(tags) ? tags : [],
+        assigned_ba:      baArr,
       },
     });
 
@@ -447,10 +560,13 @@ app.put('/api/progress/:id', async (req, res) => {
     const { process, type, status, completion, doc, people, dept, priority,
             startDate, deadline, frequency, autoFTE, manualFTE,
             lastRunDate, lastRunCount, purpose, expectedResults, betaTestingDate,
-            assignTeam, tags } = req.body;
+            assignTeam, tags, assignedBa } = req.body;
 
     // Fetch old values for audit diff
     const old = await prisma.progress.findUnique({ where: { id } });
+
+    // Compute baArr first so it can be included in the Prisma update
+    const baArr = Array.isArray(assignedBa) ? assignedBa.filter(Boolean) : (assignedBa ? [String(assignedBa)] : []);
 
     const row = await prisma.progress.update({
       where: { id },
@@ -475,9 +591,19 @@ app.put('/api/progress/:id', async (req, res) => {
         beta_testing_date: betaTestingDate || null,
         assign_team:      assignTeam || null,
         tags:             Array.isArray(tags) ? tags : [],
+        assigned_ba:      baArr,
         updated_at:       new Date(),
       },
     });
+
+    // Read back assigned_ba / doc_status / doc_note via raw SQL — authoritative DB values
+    const extraAfter = await fetchNewCols([id]);
+    const aft = extraAfter[String(id)] || extraAfter[id];
+    if (aft) {
+      row.assigned_ba = aft.assigned_ba;
+      row.doc_status  = aft.doc_status;
+      row.doc_note    = aft.doc_note;
+    }
 
     // Log changed fields
     const user = await getUserFromHeaders(req);
@@ -636,6 +762,7 @@ app.post('/api/meeting-updates', async (req, res) => {
       username: user.username, displayName: user.displayName,
       action: 'created', section: 'meeting_update',
       itemId: row.id, itemTitle: String(note).trim().slice(0, 80),
+      fieldName: 'Meeting Update', newValue: String(note).trim().slice(0, 80),
     });
 
     res.json({ success: true, data: rowToMeetingUpdate(row) });
@@ -650,7 +777,7 @@ app.put('/api/meeting-updates/:id', async (req, res) => {
     const { date, time, note, is_done } = req.body;
 
     // Find project via sub-item
-    const existing = await prisma.meetingUpdate.findUnique({ where: { id }, select: { progress_id: true } });
+    const existing = await prisma.meetingUpdate.findUnique({ where: { id }, select: { progress_id: true, note: true, date: true, time: true, is_done: true } });
     if (!existing) return res.status(404).json({ success: false, error: 'Not found' });
 
     const access = await requireProjectAccess(existing.progress_id, req, res);
@@ -668,13 +795,19 @@ app.put('/api/meeting-updates/:id', async (req, res) => {
     });
 
     const user = access.user || await getUserFromHeaders(req);
-    await writeAuditLog({
-      projectId: existing.progress_id, projectName: proj?.process,
-      username: user.username, displayName: user.displayName,
-      action: 'updated', section: 'meeting_update',
-      itemId: id, itemTitle: (note || '').slice(0, 80),
-      fieldName: 'is_done', oldValue: !is_done, newValue: is_done,
-    });
+    const muFields = { note: note !== undefined ? String(note).trim() : undefined, date, time, is_done: Boolean(is_done) };
+    const muOld    = { note: existing.note, date: existing.date, time: existing.time, is_done: existing.is_done };
+    for (const [f, newVal] of Object.entries(muFields)) {
+      if (newVal !== undefined && String(newVal) !== String(muOld[f] ?? '')) {
+        await writeAuditLog({
+          projectId: existing.progress_id, projectName: proj?.process,
+          username: user.username, displayName: user.displayName,
+          action: 'updated', section: 'meeting_update',
+          itemId: id, itemTitle: (existing.note || '').slice(0, 80),
+          fieldName: f, oldValue: muOld[f], newValue: newVal,
+        });
+      }
+    }
 
     res.json({ success: true, data: rowToMeetingUpdate(row) });
   } catch (err) {
@@ -704,6 +837,7 @@ app.delete('/api/meeting-updates/:id', async (req, res) => {
       username: user.username, displayName: user.displayName,
       action: 'deleted', section: 'meeting_update',
       itemId: id, itemTitle: (existing.note || '').slice(0, 80),
+      fieldName: 'Meeting Update', oldValue: (existing.note || '').slice(0, 80),
     });
 
     res.json({ success: true });
@@ -772,6 +906,7 @@ app.post('/api/milestones', async (req, res) => {
       username: user.username, displayName: user.displayName,
       action: 'created', section: 'milestone',
       itemId: row.id, itemTitle: row.title,
+      fieldName: 'Milestone', newValue: row.title,
     });
 
     res.json({ success: true, data: rowToMilestone(row) });
@@ -785,7 +920,7 @@ app.put('/api/milestones/:id', async (req, res) => {
     if (isNaN(id)) return res.status(400).json({ success: false, error: 'Invalid ID' });
     const { title, description, due_date, status } = req.body;
 
-    const existing = await prisma.milestone.findUnique({ where: { id }, select: { progress_id: true, title: true, status: true } });
+    const existing = await prisma.milestone.findUnique({ where: { id }, select: { progress_id: true, title: true, description: true, due_date: true, status: true } });
     if (!existing) return res.status(404).json({ success: false, error: 'Not found' });
 
     const access = await requireProjectAccess(existing.progress_id, req, res);
@@ -803,21 +938,18 @@ app.put('/api/milestones/:id', async (req, res) => {
     });
 
     const user = access.user || await getUserFromHeaders(req);
-    if (status !== undefined && status !== existing.status) {
-      await writeAuditLog({
-        projectId: existing.progress_id, projectName: proj?.process,
-        username: user.username, displayName: user.displayName,
-        action: 'updated', section: 'milestone',
-        itemId: id, itemTitle: existing.title,
-        fieldName: 'status', oldValue: existing.status, newValue: status,
-      });
-    } else {
-      await writeAuditLog({
-        projectId: existing.progress_id, projectName: proj?.process,
-        username: user.username, displayName: user.displayName,
-        action: 'updated', section: 'milestone',
-        itemId: id, itemTitle: existing.title,
-      });
+    const msNewVals = { title: title !== undefined ? String(title).trim() : undefined, description: description !== undefined ? String(description).trim() : undefined, due_date: due_date || null, status };
+    const msOldVals = { title: existing.title, description: existing.description, due_date: existing.due_date, status: existing.status };
+    for (const [f, newVal] of Object.entries(msNewVals)) {
+      if (newVal !== undefined && String(newVal ?? '') !== String(msOldVals[f] ?? '')) {
+        await writeAuditLog({
+          projectId: existing.progress_id, projectName: proj?.process,
+          username: user.username, displayName: user.displayName,
+          action: 'updated', section: 'milestone',
+          itemId: id, itemTitle: existing.title,
+          fieldName: f, oldValue: msOldVals[f], newValue: newVal,
+        });
+      }
     }
 
     res.json({ success: true, data: rowToMilestone(row) });
@@ -848,6 +980,7 @@ app.delete('/api/milestones/:id', async (req, res) => {
       username: user.username, displayName: user.displayName,
       action: 'deleted', section: 'milestone',
       itemId: id, itemTitle: existing.title,
+      fieldName: 'Milestone', oldValue: existing.title,
     });
 
     res.json({ success: true });
@@ -900,6 +1033,7 @@ app.post('/api/requirements', async (req, res) => {
       username: user.username, displayName: user.displayName,
       action: 'created', section: 'requirement',
       itemId: row.id, itemTitle: row.title,
+      fieldName: 'Requirement', newValue: row.title,
     });
 
     res.json({ success: true, data: rowToRequirement(row) });
@@ -911,7 +1045,7 @@ app.put('/api/requirements/:id', async (req, res) => {
     const id = parseInt(req.params.id);
     const { title, description, priority, status } = req.body;
 
-    const existing = await prisma.requirements.findUnique({ where: { id }, select: { progress_id: true, title: true, status: true } });
+    const existing = await prisma.requirements.findUnique({ where: { id }, select: { progress_id: true, title: true, description: true, priority: true, status: true } });
     if (!existing) return res.status(404).json({ success: false, error: 'Not found' });
 
     const access = await requireProjectAccess(existing.progress_id, req, res);
@@ -930,21 +1064,18 @@ app.put('/api/requirements/:id', async (req, res) => {
     });
 
     const user = access.user || await getUserFromHeaders(req);
-    if (status !== undefined && status !== existing.status) {
-      await writeAuditLog({
-        projectId: existing.progress_id, projectName: proj?.process,
-        username: user.username, displayName: user.displayName,
-        action: 'updated', section: 'requirement',
-        itemId: id, itemTitle: existing.title,
-        fieldName: 'status', oldValue: existing.status, newValue: status,
-      });
-    } else {
-      await writeAuditLog({
-        projectId: existing.progress_id, projectName: proj?.process,
-        username: user.username, displayName: user.displayName,
-        action: 'updated', section: 'requirement',
-        itemId: id, itemTitle: existing.title,
-      });
+    const rqNewVals = { title: title !== undefined ? String(title).trim() : undefined, description: description !== undefined ? String(description).trim() : undefined, priority, status };
+    const rqOldVals = { title: existing.title, description: existing.description, priority: existing.priority, status: existing.status };
+    for (const [f, newVal] of Object.entries(rqNewVals)) {
+      if (newVal !== undefined && String(newVal ?? '') !== String(rqOldVals[f] ?? '')) {
+        await writeAuditLog({
+          projectId: existing.progress_id, projectName: proj?.process,
+          username: user.username, displayName: user.displayName,
+          action: 'updated', section: 'requirement',
+          itemId: id, itemTitle: existing.title,
+          fieldName: f, oldValue: rqOldVals[f], newValue: newVal,
+        });
+      }
     }
 
     res.json({ success: true, data: rowToRequirement(row) });
@@ -972,6 +1103,7 @@ app.delete('/api/requirements/:id', async (req, res) => {
       username: user.username, displayName: user.displayName,
       action: 'deleted', section: 'requirement',
       itemId: id, itemTitle: existing.title,
+      fieldName: 'Requirement', oldValue: existing.title,
     });
 
     res.json({ success: true });
@@ -1024,6 +1156,7 @@ app.post('/api/change-requests', async (req, res) => {
       username: user.username, displayName: user.displayName,
       action: 'created', section: 'change_request',
       itemId: row.id, itemTitle: row.title,
+      fieldName: 'Change Request', newValue: row.title,
     });
 
     res.json({ success: true, data: rowToChangeRequest(row) });
@@ -1035,7 +1168,7 @@ app.put('/api/change-requests/:id', async (req, res) => {
     const id = parseInt(req.params.id);
     const { title, description, priority, status } = req.body;
 
-    const existing = await prisma.change_requests.findUnique({ where: { id }, select: { progress_id: true, title: true, status: true } });
+    const existing = await prisma.change_requests.findUnique({ where: { id }, select: { progress_id: true, title: true, description: true, priority: true, status: true } });
     if (!existing) return res.status(404).json({ success: false, error: 'Not found' });
 
     const access = await requireProjectAccess(existing.progress_id, req, res);
@@ -1054,21 +1187,18 @@ app.put('/api/change-requests/:id', async (req, res) => {
     });
 
     const user = access.user || await getUserFromHeaders(req);
-    if (status !== undefined && status !== existing.status) {
-      await writeAuditLog({
-        projectId: existing.progress_id, projectName: proj?.process,
-        username: user.username, displayName: user.displayName,
-        action: 'updated', section: 'change_request',
-        itemId: id, itemTitle: existing.title,
-        fieldName: 'status', oldValue: existing.status, newValue: status,
-      });
-    } else {
-      await writeAuditLog({
-        projectId: existing.progress_id, projectName: proj?.process,
-        username: user.username, displayName: user.displayName,
-        action: 'updated', section: 'change_request',
-        itemId: id, itemTitle: existing.title,
-      });
+    const crNewVals = { title: title !== undefined ? String(title).trim() : undefined, description: description !== undefined ? String(description).trim() : undefined, priority, status };
+    const crOldVals = { title: existing.title, description: existing.description, priority: existing.priority, status: existing.status };
+    for (const [f, newVal] of Object.entries(crNewVals)) {
+      if (newVal !== undefined && String(newVal ?? '') !== String(crOldVals[f] ?? '')) {
+        await writeAuditLog({
+          projectId: existing.progress_id, projectName: proj?.process,
+          username: user.username, displayName: user.displayName,
+          action: 'updated', section: 'change_request',
+          itemId: id, itemTitle: existing.title,
+          fieldName: f, oldValue: crOldVals[f], newValue: newVal,
+        });
+      }
     }
 
     res.json({ success: true, data: rowToChangeRequest(row) });
@@ -1096,6 +1226,7 @@ app.delete('/api/change-requests/:id', async (req, res) => {
       username: user.username, displayName: user.displayName,
       action: 'deleted', section: 'change_request',
       itemId: id, itemTitle: existing.title,
+      fieldName: 'Change Request', oldValue: existing.title,
     });
 
     res.json({ success: true });
@@ -1148,6 +1279,7 @@ app.post('/api/feature-addons', async (req, res) => {
       username: user.username, displayName: user.displayName,
       action: 'created', section: 'feature_addon',
       itemId: row.id, itemTitle: row.title,
+      fieldName: 'Feature Add-On', newValue: row.title,
     });
 
     res.json({ success: true, data: rowToFeatureAddon(row) });
@@ -1159,7 +1291,7 @@ app.put('/api/feature-addons/:id', async (req, res) => {
     const id = parseInt(req.params.id);
     const { title, description, priority, status } = req.body;
 
-    const existing = await prisma.feature_addons.findUnique({ where: { id }, select: { progress_id: true, title: true, status: true } });
+    const existing = await prisma.feature_addons.findUnique({ where: { id }, select: { progress_id: true, title: true, description: true, priority: true, status: true } });
     if (!existing) return res.status(404).json({ success: false, error: 'Not found' });
 
     const access = await requireProjectAccess(existing.progress_id, req, res);
@@ -1178,21 +1310,18 @@ app.put('/api/feature-addons/:id', async (req, res) => {
     });
 
     const user = access.user || await getUserFromHeaders(req);
-    if (status !== undefined && status !== existing.status) {
-      await writeAuditLog({
-        projectId: existing.progress_id, projectName: proj?.process,
-        username: user.username, displayName: user.displayName,
-        action: 'updated', section: 'feature_addon',
-        itemId: id, itemTitle: existing.title,
-        fieldName: 'status', oldValue: existing.status, newValue: status,
-      });
-    } else {
-      await writeAuditLog({
-        projectId: existing.progress_id, projectName: proj?.process,
-        username: user.username, displayName: user.displayName,
-        action: 'updated', section: 'feature_addon',
-        itemId: id, itemTitle: existing.title,
-      });
+    const faNewVals = { title: title !== undefined ? String(title).trim() : undefined, description: description !== undefined ? String(description).trim() : undefined, priority, status };
+    const faOldVals = { title: existing.title, description: existing.description, priority: existing.priority, status: existing.status };
+    for (const [f, newVal] of Object.entries(faNewVals)) {
+      if (newVal !== undefined && String(newVal ?? '') !== String(faOldVals[f] ?? '')) {
+        await writeAuditLog({
+          projectId: existing.progress_id, projectName: proj?.process,
+          username: user.username, displayName: user.displayName,
+          action: 'updated', section: 'feature_addon',
+          itemId: id, itemTitle: existing.title,
+          fieldName: f, oldValue: faOldVals[f], newValue: newVal,
+        });
+      }
     }
 
     res.json({ success: true, data: rowToFeatureAddon(row) });
@@ -1220,6 +1349,7 @@ app.delete('/api/feature-addons/:id', async (req, res) => {
       username: user.username, displayName: user.displayName,
       action: 'deleted', section: 'feature_addon',
       itemId: id, itemTitle: existing.title,
+      fieldName: 'Feature Add-On', oldValue: existing.title,
     });
 
     res.json({ success: true });
@@ -1272,6 +1402,7 @@ app.post('/api/bug-fixes', async (req, res) => {
       username: user.username, displayName: user.displayName,
       action: 'created', section: 'bug_fix',
       itemId: row.id, itemTitle: row.title,
+      fieldName: 'Bug Fix', newValue: row.title,
     });
 
     res.json({ success: true, data: { ...row, _id: row.id } });
@@ -1283,7 +1414,7 @@ app.put('/api/bug-fixes/:id', async (req, res) => {
     const id = parseInt(req.params.id);
     const { title, description, priority, status } = req.body;
 
-    const existing = await prisma.bug_fixes.findUnique({ where: { id }, select: { progress_id: true, title: true, status: true } });
+    const existing = await prisma.bug_fixes.findUnique({ where: { id }, select: { progress_id: true, title: true, description: true, priority: true, status: true } });
     if (!existing) return res.status(404).json({ success: false, error: 'Not found' });
 
     const access = await requireProjectAccess(existing.progress_id, req, res);
@@ -1302,21 +1433,18 @@ app.put('/api/bug-fixes/:id', async (req, res) => {
     });
 
     const user = access.user || await getUserFromHeaders(req);
-    if (status !== undefined && status !== existing.status) {
-      await writeAuditLog({
-        projectId: existing.progress_id, projectName: proj?.process,
-        username: user.username, displayName: user.displayName,
-        action: 'updated', section: 'bug_fix',
-        itemId: id, itemTitle: existing.title,
-        fieldName: 'status', oldValue: existing.status, newValue: status,
-      });
-    } else {
-      await writeAuditLog({
-        projectId: existing.progress_id, projectName: proj?.process,
-        username: user.username, displayName: user.displayName,
-        action: 'updated', section: 'bug_fix',
-        itemId: id, itemTitle: existing.title,
-      });
+    const bfNewVals = { title: title !== undefined ? String(title).trim() : undefined, description: description !== undefined ? String(description).trim() : undefined, priority, status };
+    const bfOldVals = { title: existing.title, description: existing.description, priority: existing.priority, status: existing.status };
+    for (const [f, newVal] of Object.entries(bfNewVals)) {
+      if (newVal !== undefined && String(newVal ?? '') !== String(bfOldVals[f] ?? '')) {
+        await writeAuditLog({
+          projectId: existing.progress_id, projectName: proj?.process,
+          username: user.username, displayName: user.displayName,
+          action: 'updated', section: 'bug_fix',
+          itemId: id, itemTitle: existing.title,
+          fieldName: f, oldValue: bfOldVals[f], newValue: newVal,
+        });
+      }
     }
 
     res.json({ success: true, data: { ...row, _id: row.id } });
@@ -1344,8 +1472,116 @@ app.delete('/api/bug-fixes/:id', async (req, res) => {
       username: user.username, displayName: user.displayName,
       action: 'deleted', section: 'bug_fix',
       itemId: id, itemTitle: existing.title,
+      fieldName: 'Bug Fix', oldValue: existing.title,
     });
 
+    res.json({ success: true });
+  } catch (err) {
+    if (err.code === 'P2025') return res.status(404).json({ success: false, error: 'Not found' });
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// DOC INFO ROUTE (doc%, doc_status, doc_note per project)
+// ══════════════════════════════════════════════════════════════════════════════
+
+app.put('/api/progress/:id/doc-info', docEditorOnly, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ success: false, error: 'Invalid ID' });
+
+    const { doc, doc_status, doc_note } = req.body;
+
+    // doc is a known field — update via Prisma
+    const row = await prisma.progress.update({
+      where: { id },
+      data: {
+        ...(doc !== undefined && { doc: parseFloat(doc) || 0 }),
+        updated_at: new Date(),
+      },
+    });
+
+    // doc_status and doc_note are new fields — use raw SQL
+    await prisma.$executeRawUnsafe(
+      `UPDATE progress SET doc_status = COALESCE($1, doc_status), doc_note = COALESCE($2, doc_note) WHERE id = $3`,
+      doc_status !== undefined ? String(doc_status) : null,
+      doc_note   !== undefined ? String(doc_note)   : null,
+      id
+    );
+
+    const extra = await fetchNewCols([id]);
+    const merged = { ...row, ...extra[id] };
+    res.json({ success: true, data: rowToProject(merged) });
+  } catch (err) {
+    if (err.code === 'P2025') return res.status(404).json({ success: false, error: 'Not found' });
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// DOC TASKS ROUTES
+// ══════════════════════════════════════════════════════════════════════════════
+
+app.get('/api/doc-tasks/:progressId', async (req, res) => {
+  try {
+    const pid = parseInt(req.params.progressId);
+    if (isNaN(pid)) return res.status(400).json({ success: false, error: 'Invalid ID' });
+    const rows = await prisma.doc_tasks.findMany({
+      where:   { progress_id: pid },
+      orderBy: { created_at: 'asc' },
+    });
+    res.json({ success: true, data: rows });
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+});
+
+app.post('/api/doc-tasks', docEditorOnly, async (req, res) => {
+  try {
+    const { progress_id, title, status } = req.body;
+    const pid = parseInt(progress_id);
+    if (isNaN(pid) || !String(title || '').trim())
+      return res.status(400).json({ success: false, error: 'progress_id and title required' });
+
+    const row = await prisma.doc_tasks.create({
+      data: {
+        progress_id: pid,
+        title:  String(title).trim(),
+        status: status || 'Pending',
+      },
+    });
+    res.json({ success: true, data: row });
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+});
+
+app.put('/api/doc-tasks/:id', docEditorOnly, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { title, status } = req.body;
+    const existing = await prisma.doc_tasks.findUnique({ where: { id }, select: { progress_id: true } });
+    if (!existing) return res.status(404).json({ success: false, error: 'Not found' });
+
+    const row = await prisma.doc_tasks.update({
+      where: { id },
+      data: {
+        ...(title  !== undefined && { title: String(title).trim() }),
+        ...(status !== undefined && { status }),
+        updated_at: new Date(),
+      },
+    });
+    res.json({ success: true, data: row });
+  } catch (err) {
+    if (err.code === 'P2025') return res.status(404).json({ success: false, error: 'Not found' });
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/doc-tasks/:id', docEditorOnly, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const existing = await prisma.doc_tasks.findUnique({ where: { id }, select: { progress_id: true } });
+    if (!existing) return res.status(404).json({ success: false, error: 'Not found' });
+
+    await prisma.doc_tasks.delete({ where: { id } });
     res.json({ success: true });
   } catch (err) {
     if (err.code === 'P2025') return res.status(404).json({ success: false, error: 'Not found' });
@@ -1418,6 +1654,27 @@ app.delete('/api/run-dates/:id', adminOnly, async (req, res) => {
     if (err.code === 'P2025') return res.status(404).json({ success: false, error: 'Not found' });
     res.status(500).json({ success: false, error: err.message });
   }
+});
+
+// ── DEBUG: check assigned_ba in DB ───────────────────────────────────────────
+app.get('/api/debug/assigned-ba', async (req, res) => {
+  try {
+    const rows = await prisma.$queryRawUnsafe(
+      `SELECT id, process, assigned_ba FROM progress WHERE assigned_ba IS NOT NULL AND assigned_ba != '{}' ORDER BY process`
+    );
+    res.json({
+      success: true,
+      count: rows.length,
+      data: rows.map(r => ({
+        id:          String(r.id),
+        process:     r.process,
+        assigned_ba: r.assigned_ba,
+        type:        typeof r.assigned_ba,
+        isArray:     Array.isArray(r.assigned_ba),
+        parsed:      parsePgTextArray(r.assigned_ba),
+      }))
+    });
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 // ── STATIC ROUTES ─────────────────────────────────────────────────────────────

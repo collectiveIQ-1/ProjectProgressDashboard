@@ -4,8 +4,8 @@
   "description": "Progress Dashboard with PostgreSQL (AWS RDS) backend",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js",
+    "start": "prisma generate && node server.js",
+    "dev": "prisma generate && nodemon server.js",
     "postinstall": "prisma generate"
   },
   "dependencies": {
