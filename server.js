@@ -1607,13 +1607,16 @@ app.get('/api/run-dates/:progressId', async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
-// POST toggle run date (admin only)
-app.post('/api/run-dates', adminOnly, async (req, res) => {
+// POST toggle run date (admin or assigned member)
+app.post('/api/run-dates', async (req, res) => {
   try {
     const { progress_id, run_date } = req.body;
     const pid = parseInt(progress_id);
     if (isNaN(pid) || !run_date)
       return res.status(400).json({ success: false, error: 'progress_id and run_date required' });
+
+    const access = await requireProjectAccess(pid, req, res);
+    if (!access.allowed) return;
 
     const existing = await prisma.run_dates.findFirst({
       where: { progress_id: pid, run_date },

@@ -14,6 +14,8 @@
       window._userName        = user.username || '';
       window._userDisplayName = user.displayName || user.display_name || '';
       window._isAdmin         = window._userRole === 'admin';
+      const _docEditorNames   = ['cvithanage@collectivercm.com', 'imalshar@botmedfusion.com'];
+      window._isDocEditor     = window._isAdmin || _docEditorNames.includes(window._userName.toLowerCase());
     } catch(e) { window.location.replace('/login'); }
   })();
 </script>
@@ -502,13 +504,13 @@ body.role-admin #addProjectBtn{display:inline-flex !important}
 .rdcal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
 .rdcal-dow{text-align:center;font-size:9px;font-weight:700;color:var(--muted);letter-spacing:.4px;padding:4px 0 6px}
 .rdcal-day{width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:50%;font-size:11px;font-weight:500;color:var(--muted2);cursor:default;transition:all .15s;position:relative;border:1.5px solid transparent;min-width:0}
-body.role-admin .rdcal-day.in-month{cursor:pointer}
-body.role-admin .rdcal-day.in-month:hover:not(.has-run){background:rgba(124,95,230,0.08);border-color:rgba(124,95,230,0.35);color:var(--purple);transform:scale(1.1)}
+body.role-admin .rdcal-day.in-month,.rdcal-editable .rdcal-day.in-month{cursor:pointer}
+body.role-admin .rdcal-day.in-month:hover:not(.has-run),.rdcal-editable .rdcal-day.in-month:hover:not(.has-run){background:rgba(124,95,230,0.08);border-color:rgba(124,95,230,0.35);color:var(--purple);transform:scale(1.1)}
 .rdcal-day.other-month{color:rgba(122,141,176,0.28);font-size:10px}
 .rdcal-day.today:not(.has-run){border-color:var(--blue);color:var(--blue);font-weight:700;background:rgba(21,213,245,0.08)}
 .rdcal-day.has-run{background:linear-gradient(135deg,#7c5fe6,#5e3dc8);color:#fff !important;font-weight:700;box-shadow:0 3px 10px rgba(124,95,230,0.45);border-color:transparent;transform:scale(1.08)}
 .rdcal-day.is-latest{box-shadow:0 3px 14px rgba(124,95,230,0.6),0 0 0 2.5px #fff,0 0 0 4px #7c5fe6}
-body.role-admin .rdcal-day.has-run:hover{background:linear-gradient(135deg,#5e3dc8,#4a2db0);box-shadow:0 4px 14px rgba(124,95,230,0.6);transform:scale(1.15)}
+body.role-admin .rdcal-day.has-run:hover,.rdcal-editable .rdcal-day.has-run:hover{background:linear-gradient(135deg,#5e3dc8,#4a2db0);box-shadow:0 4px 14px rgba(124,95,230,0.6);transform:scale(1.15)}
 .rdcal-hint{font-size:9px;color:var(--muted);padding:6px 14px 4px;text-align:center;font-style:italic;border-top:1px solid var(--border)}
 .rdcal-latest-bar{display:flex;align-items:center;gap:6px;padding:7px 14px;background:rgba(124,95,230,0.05);border-top:1px solid rgba(124,95,230,0.12);font-size:10px;color:var(--purple);font-weight:600}
 .rdcal-latest-bar svg{flex-shrink:0}
@@ -691,6 +693,7 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover{opacity:1}
 
 /* ── RBAC: hide admin-only elements for members ── */
 body.role-member .admin-only { display: none !important; }
+body:not(.role-doc-editor) .doc-editor-only { display: none !important; }
 /* Read-only overlay for interactive controls in member mode */
 body.role-member .member-readonly {
   pointer-events: none !important;
@@ -1570,7 +1573,7 @@ function renderAll(projects, fromDB){
   try { renderTeam(projects);    }  catch(e){ console.error('renderTeam failed:',     e); }
   try { renderBreakdown(projects); } catch(e){ console.error('renderBreakdown failed:', e); }
   try { renderDocs(projects);    }  catch(e){ console.error('renderDocs failed:',     e); }
-  renderNavStatus(projects);
+  try { renderNavStatus(projects); } catch(e){ console.error('renderNavStatus failed:', e); }
   // Only sync to MongoDB if data came from Excel (not from DB itself)
   if(!fromDB) importToMongoDB(projects);
 }
@@ -1589,7 +1592,8 @@ function renderNavStatus(projects){
   const docDone=projects.filter(p=>p.doc>=1).length;
   const docEl=document.getElementById('nb-docs');
   if(docEl) docEl.textContent=docDone+'/'+total;
-  document.getElementById('navStatusSummary').innerHTML=`
+  const navSummaryEl = document.getElementById('navStatusSummary');
+  if (navSummaryEl) navSummaryEl.innerHTML=`
     <div style="display:flex;flex-direction:column;gap:6px;padding:4px 8px">
       ${[['Production','#27c99a'],['Developing','#5b8def'],['On Hold','#f0a832'],['To Do','#6b7394'],['Enhancement','#9b59b6']].map(([l,c])=>`
         <div style="display:flex;align-items:center;gap:8px;padding:4px 2px">
@@ -2334,6 +2338,11 @@ function openDocModal(projectId) {
   document.getElementById('docPctInput').value  = pct;
   document.getElementById('docStatusSel').value = p.docStatus || 'Pending';
   document.getElementById('docNoteInput').value = p.docNote   || '';
+  const canEditDoc = window._isDocEditor;
+  document.getElementById('docPctInput').disabled  = !canEditDoc;
+  document.getElementById('docStatusSel').disabled = !canEditDoc;
+  document.getElementById('docNoteInput').readOnly = !canEditDoc;
+  document.getElementById('docNoteInput').style.opacity = canEditDoc ? '1' : '0.65';
   updateDocPctBar();
 
   switchDocTab('overview');
@@ -2408,17 +2417,26 @@ function renderDocTasksList(tasks) {
     el.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:8px 0;font-style:italic">No tasks yet — add one below</div>';
     return;
   }
+  const canEdit = window._isDocEditor;
   el.innerHTML = tasks.map(t => {
-    const sel = ['Pending','In Progress','Complete'].map(s =>
-      `<option value="${s}" ${t.status===s?'selected':''}>${s}</option>`
-    ).join('');
-    return `<div class="doc-task-row" id="doc-task-row-${t.id}">
-      <span class="doc-task-title">${escapeHtml(t.title)}</span>
-      <select class="doc-task-status-sel" onchange="updateDocTaskStatus(${t.id},this.value)">${sel}</select>
-      <button class="doc-task-del" onclick="deleteDocTask(${t.id})" title="Delete task">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-      </button>
-    </div>`;
+    if (canEdit) {
+      const sel = ['Pending','In Progress','Complete'].map(s =>
+        `<option value="${s}" ${t.status===s?'selected':''}>${s}</option>`
+      ).join('');
+      return `<div class="doc-task-row" id="doc-task-row-${t.id}">
+        <span class="doc-task-title">${escapeHtml(t.title)}</span>
+        <select class="doc-task-status-sel" onchange="updateDocTaskStatus(${t.id},this.value)">${sel}</select>
+        <button class="doc-task-del" onclick="deleteDocTask(${t.id})" title="Delete task">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+        </button>
+      </div>`;
+    } else {
+      const statusColor = t.status==='Complete' ? 'var(--teal)' : t.status==='In Progress' ? 'var(--amber)' : 'var(--muted)';
+      return `<div class="doc-task-row" id="doc-task-row-${t.id}">
+        <span class="doc-task-title">${escapeHtml(t.title)}</span>
+        <span style="font-size:10px;font-weight:600;color:${statusColor};background:${statusColor}1a;padding:3px 9px;border-radius:8px;white-space:nowrap">${escapeHtml(t.status)}</span>
+      </div>`;
+    }
   }).join('');
 }
 
@@ -2580,6 +2598,7 @@ function applyRoleToDOM() {
   const isAdmin = window._isAdmin;
   // Body class drives .admin-only visibility via CSS
   document.body.classList.add(isAdmin ? 'role-admin' : 'role-member');
+  if (window._isDocEditor) document.body.classList.add('role-doc-editor');
   // User pill — prefer displayName, fall back to email prefix
   const displayName = window._userDisplayName || '';
   const uname = window._userName || '';
@@ -2883,9 +2902,11 @@ function openModal(idx){
             <div class="modal-field-label">Start Date</div>
             <div class="modal-field-value" style="font-size:12px">${fmtStartDate}</div>
           </div>
-          <div>
-            <div class="modal-field-label">Deadline</div>
-            <div class="modal-field-value" style="font-size:12px">${fmtDate(p.deadline, true, p.completion)}</div>
+        </div>
+        <div style="margin-bottom:12px">
+          <div class="modal-field-label" style="margin-bottom:6px">Deadline</div>
+          <div id="modalDeadlineTable">
+            <div style="font-size:11px;color:var(--muted);font-style:italic">Loading phases…</div>
           </div>
         </div>
         <div class="modal-grid" style="margin-bottom:0">
@@ -2934,7 +2955,19 @@ function openModal(idx){
               </div>
             </div>
 
-            ${(p.type.toLowerCase() === 'automation' && p.manualFTE !== null && !isNaN(p.manualFTE)) ? `
+            ${(p.type.toLowerCase() === 'automation' && p.autoFTE !== null && !isNaN(p.autoFTE)) ? `
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:2px">
+              <div style="background:rgba(23,185,138,0.07);border:1px solid rgba(23,185,138,0.22);border-radius:9px;padding:9px 12px">
+                <div style="font-size:9px;color:rgba(23,185,138,0.75);text-transform:uppercase;letter-spacing:.6px;font-weight:600;margin-bottom:2px">Monthly FTE Savings</div>
+                <div style="font-size:18px;font-family:var(--font-d);color:#17b98a;line-height:1">${parseFloat(p.autoFTE.toFixed(3))}</div>
+                <div style="font-size:9px;color:var(--muted);margin-top:3px">FTE saved / month</div>
+              </div>
+              <div style="background:rgba(232,106,170,0.07);border:1px solid rgba(232,106,170,0.22);border-radius:9px;padding:9px 12px">
+                <div style="font-size:9px;color:rgba(232,106,170,0.8);text-transform:uppercase;letter-spacing:.6px;font-weight:600;margin-bottom:2px">Daily FTE Savings</div>
+                <div style="font-size:18px;font-family:var(--font-d);color:#e86aaa;line-height:1">${(()=>{const freq=(p.frequency||'').toLowerCase();const v=freq==='monthly'?p.autoFTE/20:p.autoFTE;return parseFloat(v.toFixed(3));})()}</div>
+                <div style="font-size:9px;color:var(--muted);margin-top:3px">${(p.frequency||'').toLowerCase()==='monthly'?'autoFTE ÷ 20':'FTE saved / day'}</div>
+              </div>
+            </div>
             <div style="position:relative;overflow:hidden;border-radius:12px;padding:13px 16px;margin-top:2px;
                         background:linear-gradient(135deg,rgba(23,185,138,0.14),rgba(21,213,245,0.08));
                         border:1px solid rgba(23,185,138,0.3);
@@ -2949,11 +2982,11 @@ function openModal(idx){
               </div>
               <div style="flex:1;min-width:0">
                 <div style="font-size:9px;color:rgba(23,185,138,0.75);text-transform:uppercase;letter-spacing:.7px;font-weight:600;margin-bottom:3px">Monthly Cost Savings</div>
-                <div style="font-family:var(--font-d);font-size:24px;color:#17b98a;letter-spacing:-1px;line-height:1">$${Math.round(p.manualFTE * 800).toLocaleString()}</div>
+                <div style="font-family:var(--font-d);font-size:24px;color:#17b98a;letter-spacing:-1px;line-height:1">$${Math.round(p.autoFTE * 800).toLocaleString()}</div>
               </div>
               <div style="flex-shrink:0;text-align:right">
                 <div style="font-size:9px;color:var(--muted);margin-bottom:3px">Formula</div>
-                <div style="font-size:11px;font-weight:600;color:#17b98a">${p.manualFTE} FTE × $800</div>
+                <div style="font-size:11px;font-weight:600;color:#17b98a">${p.autoFTE} FTE × $800</div>
               </div>
             </div>` : ''}
 
@@ -3584,6 +3617,7 @@ function openModal(idx){
     ['mu-inline-count','ms-inline-count','req-inline-count','cr-inline-count','fa-inline-count'].forEach(id => {
       const el = document.getElementById(id); if(el) el.textContent = '0';
     });
+    updateDeadlineTable([], projects[idx]);
   }
 }
 
@@ -4270,18 +4304,50 @@ function toggleInlineMsForm() {
 
 async function loadInlineMilestones(idx) {
   const p = (window._projects||[])[idx];
+  if(!p || !p._id) return;
   const container = document.getElementById('inlineMsList');
-  if(!container || !p || !p._id) return;
   try {
     const resp = await fetch(`${API_BASE}/api/milestones/${p._id}`);
     const data = await resp.json();
     if(!data.success) throw new Error(data.error);
-    renderInlineMilestones(data.data, idx);
+    if(container) renderInlineMilestones(data.data, idx);
+    updateDeadlineTable(data.data, p);
     const badge = document.getElementById('ms-inline-count');
     if(badge) badge.textContent = data.data.length;
   } catch(err) {
     if(container) container.innerHTML = `<div class="imu-empty"><div>Could not load: ${err.message}</div></div>`;
+    updateDeadlineTable([], p);
   }
+}
+
+function updateDeadlineTable(milestones, p) {
+  const el = document.getElementById('modalDeadlineTable');
+  if (!el) return;
+  const phases = milestones.filter(m => m.due_date);
+  const bodyRows = phases.length
+    ? phases.map((m, i) => {
+        const isLast = i === phases.length - 1;
+        const done = m.status === 'Completed';
+        return `<tr style="background:${i%2===1?'rgba(59,125,232,0.03)':'transparent'}">
+          <td style="padding:6px 10px;font-size:11px;font-weight:500;color:${done?'var(--muted)':'var(--text)'};${done?'text-decoration:line-through;':''}${isLast?'':'border-bottom:1px solid var(--border)'}">
+            ${done?'<svg style="vertical-align:-2px;margin-right:4px" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>':''}${escapeHtml(m.title)}
+          </td>
+          <td style="padding:6px 10px;${isLast?'':'border-bottom:1px solid var(--border)'}">${getImsDueDisplay(m.due_date)}</td>
+        </tr>`;
+      }).join('')
+    : `<tr><td colspan="2" style="padding:9px 10px;font-size:11px;color:var(--muted);font-style:italic;text-align:center">No deadline phases yet — add one in the Milestones tab →</td></tr>`;
+  el.innerHTML = `
+    <div style="border:1px solid var(--border);border-radius:9px;overflow:hidden">
+      <table style="width:100%;border-collapse:collapse">
+        <thead>
+          <tr style="background:rgba(59,125,232,0.07)">
+            <th style="text-align:left;padding:6px 10px;font-size:10px;font-weight:700;color:var(--muted2);letter-spacing:.05em;border-bottom:1px solid var(--border)">Phase Name</th>
+            <th style="text-align:left;padding:6px 10px;font-size:10px;font-weight:700;color:var(--muted2);letter-spacing:.05em;border-bottom:1px solid var(--border)">Deadline</th>
+          </tr>
+        </thead>
+        <tbody>${bodyRows}</tbody>
+      </table>
+    </div>`;
 }
 
 function getImsPillClass(status) {
@@ -4485,7 +4551,8 @@ function renderRunCalendar() {
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const daysInPrev = new Date(year, month, 0).getDate();
-  const isAdmin = window._isAdmin;
+  const currentProject = (window._currentModalIdx != null && window._projects) ? window._projects[window._currentModalIdx] : null;
+  const canEditCal = canEdit(currentProject);
 
   const thisMonthPfx = `${String(year).padStart(4,'0')}-${String(month+1).padStart(2,'0')}`;
   const monthCount = dates.filter(d => d.startsWith(thisMonthPfx)).length;
@@ -4515,7 +4582,7 @@ function renderRunCalendar() {
     if(isRun) cls += ' has-run';
     if(isLatest) cls += ' is-latest';
     if(isTod && !isRun) cls += ' today';
-    const onclick = isAdmin ? `onclick="toggleRunDate(${progressId},'${dateStr}')"` : '';
+    const onclick = canEditCal ? `onclick="toggleRunDate(${progressId},'${dateStr}')"` : '';
     const tip = isLatest ? `title="Last run: ${dateStr}"` : `title="${dateStr}"`;
     gridHTML += `<div class="${cls}" ${onclick} ${tip}>${d}</div>`;
   }
@@ -4527,7 +4594,7 @@ function renderRunCalendar() {
   }
 
   el.innerHTML = `
-    <div class="rdcal">
+    <div class="rdcal${canEditCal ? ' rdcal-editable' : ''}"
       <!-- Purple header band -->
       <div class="rdcal-top">
         <div class="rdcal-title">
@@ -4557,7 +4624,7 @@ function renderRunCalendar() {
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         Latest run: <strong>${fmtD(latestDate)}</strong>
       </div>` : ''}
-      ${isAdmin ? `<div class="rdcal-hint">Click any day to mark / unmark a run date</div>` : ''}
+      ${canEditCal ? `<div class="rdcal-hint">Click any day to mark / unmark a run date</div>` : ''}
     </div>`;
 }
 
@@ -4580,7 +4647,8 @@ function nextRunCalMonth() {
 }
 
 async function toggleRunDate(progressId, dateStr) {
-  if(!window._isAdmin) return;
+  const currentProject = (window._currentModalIdx != null && window._projects) ? window._projects[window._currentModalIdx] : null;
+  if(!canEdit(currentProject)) return;
   try {
     const resp = await authFetch(`${API_BASE}/api/run-dates`, {
       method:'POST',
@@ -5807,7 +5875,7 @@ function esc(str) {
             style="width:100%;padding:10px 12px;border-radius:9px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:12px;font-family:var(--font-b);outline:none;resize:vertical;box-sizing:border-box;transition:border-color .15s"
             onfocus="this.style.borderColor='var(--blue)'" onblur="this.style.borderColor='var(--border2)'"></textarea>
         </div>
-        <div style="display:flex;justify-content:flex-end">
+        <div style="display:flex;justify-content:flex-end" class="doc-editor-only">
           <button onclick="saveDocInfo()"
             style="padding:9px 22px;border-radius:10px;background:var(--blue);border:none;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font-b);transition:opacity .15s"
             onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Save</button>
@@ -5816,7 +5884,7 @@ function esc(str) {
       <!-- TASKS TAB -->
       <div id="docPane-tasks" style="display:none">
         <div id="docTasksList" style="min-height:60px"></div>
-        <div class="doc-add-task-row">
+        <div class="doc-add-task-row doc-editor-only">
           <input class="doc-add-task-input" id="docNewTaskInput" placeholder="New task title…"
             onkeydown="if(event.key==='Enter')addDocTask()" />
           <select id="docNewTaskStatus"
