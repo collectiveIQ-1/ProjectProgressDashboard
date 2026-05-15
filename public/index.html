@@ -16,6 +16,7 @@
       window._isAdmin         = window._userRole === 'admin';
       const _docEditorNames   = ['cvithanage@collectivercm.com', 'imalshar@botmedfusion.com'];
       window._isDocEditor     = window._isAdmin || _docEditorNames.includes(window._userName.toLowerCase());
+      window._canEditDocTasks = window._isAdmin || window._userRole === 'member';
     } catch(e) { window.location.replace('/login'); }
   })();
 </script>
@@ -691,6 +692,61 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover{opacity:1}
 .ms-table tr:hover td{background:rgba(21,213,245,0.05)}
 
 
+/* ── NOTIFICATION BELL ── */
+.notif-wrap{position:relative;display:flex;align-items:center}
+.notif-bell{background:rgba(255,255,255,0.06);border:1px solid var(--border2);border-radius:9px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s;flex-shrink:0;position:relative}
+.notif-bell:hover{background:rgba(255,255,255,0.1)}
+.notif-bell svg{width:17px;height:17px;stroke:var(--muted2);fill:none;stroke-width:2}
+.notif-badge{position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;border-radius:9px;background:#e06aaa;color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px;box-sizing:border-box;border:2px solid var(--card);pointer-events:none}
+.notif-panel{position:absolute;top:calc(100% + 10px);right:0;width:330px;max-height:380px;background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,0.5);z-index:500;overflow:hidden;display:flex;flex-direction:column}
+.notif-panel-hdr{padding:12px 16px;font-size:12px;font-weight:700;color:var(--text);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.notif-list{overflow-y:auto;max-height:310px;padding:4px 0}
+.notif-item{padding:10px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s}
+.notif-item:last-child{border-bottom:none}
+.notif-item:hover{background:rgba(224,106,170,0.07)}
+.notif-item-task{font-size:12px;font-weight:600;color:var(--text)}
+.notif-item-proj{font-size:10px;color:var(--muted);margin-top:2px}
+.notif-item-due{font-size:10px;color:#e06aaa;font-weight:600;margin-top:2px}
+.notif-empty{padding:24px 16px;text-align:center;color:var(--muted);font-size:12px;font-style:italic}
+/* ── DOC TASK TABLE ── */
+.doc-task-tbl-wrap{border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:16px;box-shadow:0 2px 12px rgba(0,0,0,0.15)}
+.doc-task-tbl-scroll{overflow-x:auto;width:100%}
+.doc-task-table{width:100%;border-collapse:collapse;font-size:12px}
+.doc-task-table thead tr{background:linear-gradient(135deg,rgba(59,125,232,0.12),rgba(124,95,230,0.08))}
+.doc-task-table th{padding:10px 14px;text-align:left;font-size:10px;color:var(--muted2);text-transform:uppercase;letter-spacing:.7px;font-weight:700;border-bottom:1px solid var(--border);white-space:nowrap}
+.doc-task-table td{padding:11px 14px;border-bottom:1px solid var(--border);vertical-align:middle;color:var(--text);font-size:12px}
+.doc-task-table tbody tr:last-child td{border-bottom:none}
+.doc-task-table tbody tr{transition:background .12s}
+.doc-task-table tbody tr:hover td{background:rgba(59,125,232,0.05)}
+.doc-task-table tbody tr.dt-edit-row:hover td{background:rgba(59,125,232,0.08)}
+.doc-task-status-sel{padding:5px 9px;border-radius:8px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:11px;font-family:var(--font-b);outline:none;cursor:pointer;transition:border-color .15s}
+.doc-task-status-sel:focus{border-color:var(--blue)}
+.doc-task-actions{display:flex;gap:5px;align-items:center}
+.doc-task-edit-btn{background:rgba(59,125,232,0.1);border:1px solid rgba(59,125,232,0.25);color:var(--blue);border-radius:7px;padding:4px 10px;cursor:pointer;font-size:11px;transition:all .15s;font-family:var(--font-b);font-weight:600}
+.doc-task-edit-btn:hover{background:rgba(59,125,232,0.22);border-color:var(--blue)}
+.doc-task-del{background:rgba(224,106,170,0.1);border:1px solid rgba(224,106,170,0.25);color:#e06aaa;border-radius:7px;padding:4px 8px;cursor:pointer;font-size:11px;transition:all .15s;display:inline-flex;align-items:center}
+.doc-task-del:hover{background:rgba(224,106,170,0.22);border-color:#e06aaa}
+.dt-edit-row td{background:rgba(59,125,232,0.04) !important;padding:10px 14px}
+.doc-task-edit-form{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.doc-task-edit-form .dte-full{grid-column:1/-1}
+.doc-task-edit-form input,.doc-task-edit-form select{padding:8px 11px;border-radius:8px;border:1px solid var(--border2);background:var(--surface);color:var(--text);font-size:11px;font-family:var(--font-b);outline:none;width:100%;box-sizing:border-box;transition:border-color .15s}
+.doc-task-edit-form input:focus,.doc-task-edit-form select:focus{border-color:var(--blue)}
+.doc-task-edit-form label{font-size:9px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px}
+.dte-actions{display:flex;gap:7px;justify-content:flex-end;grid-column:1/-1;margin-top:2px}
+.dte-btn{padding:7px 16px;border-radius:8px;border:none;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font-b);transition:opacity .15s}
+.dte-btn:hover{opacity:.85}
+/* ── DOC OVERDUE BADGE on project row ── */
+.doc-overdue-badge{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;background:#e06aaa;color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:0 4px;margin-left:6px;vertical-align:middle;box-sizing:border-box}
+/* ── DOC ADD TASK CARD ── */
+.doc-add-task-card{background:rgba(59,125,232,0.04);border:1px solid rgba(59,125,232,0.15);border-radius:12px;padding:16px;margin-top:4px}
+.doc-add-task-card-title{font-size:11px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.doc-add-task-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.doc-add-task-grid .span2{grid-column:1/-1}
+.doc-add-field label{font-size:9px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px}
+.doc-add-field input,.doc-add-field select{width:100%;padding:8px 11px;border-radius:9px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:12px;font-family:var(--font-b);outline:none;box-sizing:border-box;transition:border-color .15s}
+.doc-add-field input:focus,.doc-add-field select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(59,125,232,0.08)}
+.doc-add-task-btn{width:100%;padding:10px;border-radius:9px;background:linear-gradient(135deg,var(--blue),#5b48d4);border:none;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font-b);transition:opacity .15s;letter-spacing:.2px}
+.doc-add-task-btn:hover{opacity:.88}
 /* ── RBAC: hide admin-only elements for members ── */
 body.role-member .admin-only { display: none !important; }
 body:not(.role-doc-editor) .doc-editor-only { display: none !important; }
@@ -759,7 +815,7 @@ body.role-member .pcard[data-can-edit="true"]:hover .pcard-del { display: none !
 .doc-status-inprogress { background: rgba(240,168,50,0.15);  color: #f0a832; }
 .doc-status-pending    { background: rgba(107,115,148,0.15); color: #6b7394; }
 /* ── Doc detail modal ── */
-#docModal .modal-box { max-width: 560px; width: 95%; }
+#docModal .modal-box { max-width: 740px; width: 96%; }
 .doc-modal-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
 .doc-modal-tab { padding: 8px 18px; font-size: 12px; font-weight: 600; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all .15s; border-radius: 6px 6px 0 0; }
 .doc-modal-tab.active { color: var(--blue); border-bottom-color: var(--blue); }
@@ -843,6 +899,20 @@ body.role-member .view-only-banner { display: flex; }
       <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
       Upload Excel
     </button>
+    <!-- Notification bell -->
+    <div class="notif-wrap" id="notifBellWrap">
+      <button class="notif-bell" id="notifBell" onclick="toggleNotifPanel()" title="Overdue tasks">
+        <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span class="notif-badge" id="notifBadge" style="display:none">0</span>
+      </button>
+      <div class="notif-panel" id="notifPanel" style="display:none">
+        <div class="notif-panel-hdr">
+          <span>Overdue Tasks</span>
+          <button onclick="closeNotifPanel()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;line-height:1;padding:0">✕</button>
+        </div>
+        <div class="notif-list" id="notifList"><div class="notif-empty">Loading…</div></div>
+      </div>
+    </div>
     <!-- User identity pill -->
     <div class="user-pill">
       <div class="user-av" id="userAv"></div>
@@ -2269,11 +2339,15 @@ function renderDocsGrid() {
     );
 
     const rows = sorted.map(p => {
-      const pct      = Math.round(p.doc * 100);
-      const pctColor = pct >= 100 ? '#17b98a' : pct >= 60 ? '#f0a832' : pct > 0 ? '#e06aaa' : '#6b7394';
-      const pillCls  = docStatusPillClass(p.docStatus);
+      const pct        = Math.round(p.doc * 100);
+      const pctColor   = pct >= 100 ? '#17b98a' : pct >= 60 ? '#f0a832' : pct > 0 ? '#e06aaa' : '#6b7394';
+      const pillCls    = docStatusPillClass(p.docStatus);
+      const overdueCnt = (window._overdueByProject || {})[p._id];
+      const overdueBadge = overdueCnt > 0
+        ? `<span class="doc-overdue-badge" title="${overdueCnt} overdue task${overdueCnt>1?'s':''}">${overdueCnt}</span>`
+        : '';
       return `<div class="doc-proj-row" onclick="openDocModal('${p._id}')">
-        <span class="doc-proj-name" title="${escapeHtml(p.process)}">${escapeHtml(p.process)}</span>
+        <span class="doc-proj-name" title="${escapeHtml(p.process)}">${escapeHtml(p.process)}${overdueBadge}</span>
         <span class="doc-proj-pct" style="color:${pctColor}">${pct}%</span>
         <span class="doc-status-pill ${pillCls}">${escapeHtml(p.docStatus || 'Pending')}</span>
       </div>`;
@@ -2345,6 +2419,20 @@ function openDocModal(projectId) {
   document.getElementById('docNoteInput').style.opacity = canEditDoc ? '1' : '0.65';
   updateDocPctBar();
 
+  // Populate assigner datalist from BA persons only
+  const datalist = document.getElementById('docAssignerList');
+  if (datalist) {
+    const baNames = (p.assignedBa || []).filter(Boolean);
+    datalist.innerHTML = baNames.map(n => `<option value="${escapeHtml(n)}">`).join('');
+    // Auto-fill when there is exactly one BA
+    const assignerEl = document.getElementById('docNewTaskAssigner');
+    if (assignerEl) assignerEl.value = baNames.length === 1 ? baNames[0] : '';
+  }
+
+  // Show add-task form only for users who can edit tasks
+  const addRow = document.getElementById('docAddTaskRow');
+  if (addRow) addRow.style.display = window._canEditDocTasks ? '' : 'none';
+
   switchDocTab('overview');
   document.getElementById('docModal').style.display = 'flex';
 }
@@ -2410,64 +2498,175 @@ async function loadDocTasks(projectId) {
   }
 }
 
+function fmtDocTaskDate(d) {
+  if (!d) return '—';
+  const p = d.split('-');
+  if (p.length !== 3) return d;
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${parseInt(p[2])} ${months[parseInt(p[1])-1]} ${p[0]}`;
+}
+
 function renderDocTasksList(tasks) {
   const el = document.getElementById('docTasksList');
   if (!el) return;
-  if (!tasks.length) {
-    el.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:8px 0;font-style:italic">No tasks yet — add one below</div>';
-    return;
+  const canEdit = window._canEditDocTasks;
+  const today   = new Date().toISOString().split('T')[0];
+
+  function statusPill(s) {
+    const cfg = s==='Complete'
+      ? {bg:'rgba(23,185,138,0.15)',color:'#17b98a',dot:'#17b98a'}
+      : s==='In Progress'
+      ? {bg:'rgba(240,168,50,0.15)',color:'#f0a832',dot:'#f0a832'}
+      : {bg:'rgba(107,115,148,0.15)',color:'#8892aa',dot:'#8892aa'};
+    return `<span style="display:inline-flex;align-items:center;gap:5px;background:${cfg.bg};color:${cfg.color};font-size:10px;font-weight:700;padding:4px 10px;border-radius:20px;white-space:nowrap">
+      <span style="width:5px;height:5px;border-radius:50%;background:${cfg.dot};flex-shrink:0"></span>${escapeHtml(s)}
+    </span>`;
   }
-  const canEdit = window._isDocEditor;
-  el.innerHTML = tasks.map(t => {
+
+  function taskRow(t) {
+    const isOverdue = t.due_date && t.due_date < today && t.status !== 'Complete';
+    const dueCellStyle = isOverdue
+      ? 'color:#e06aaa;font-weight:600'
+      : 'color:var(--muted2)';
+    const overdueTag = isOverdue
+      ? `<span style="background:rgba(224,106,170,0.15);color:#e06aaa;font-size:9px;font-weight:700;padding:2px 6px;border-radius:5px;margin-left:6px;vertical-align:middle">OVERDUE</span>`
+      : '';
+    const assignerBadge = t.assigner
+      ? `<span style="display:inline-flex;align-items:center;gap:5px;background:rgba(124,95,230,0.12);color:#a88ff0;font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px">
+           <span style="width:18px;height:18px;border-radius:50%;background:rgba(124,95,230,0.3);color:#c4aff8;font-size:9px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">${escapeHtml(t.assigner[0].toUpperCase())}</span>${escapeHtml(t.assigner)}
+         </span>`
+      : `<span style="color:var(--muted);font-style:italic;font-size:11px">—</span>`;
+    const completedCell = t.actual_completed_date
+      ? `<span style="color:#17b98a;font-size:11px;font-weight:500">✓ ${fmtDocTaskDate(t.actual_completed_date)}</span>`
+      : `<span style="color:var(--muted);font-size:11px">—</span>`;
+
     if (canEdit) {
-      const sel = ['Pending','In Progress','Complete'].map(s =>
-        `<option value="${s}" ${t.status===s?'selected':''}>${s}</option>`
-      ).join('');
-      return `<div class="doc-task-row" id="doc-task-row-${t.id}">
-        <span class="doc-task-title">${escapeHtml(t.title)}</span>
-        <select class="doc-task-status-sel" onchange="updateDocTaskStatus(${t.id},this.value)">${sel}</select>
-        <button class="doc-task-del" onclick="deleteDocTask(${t.id})" title="Delete task">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-        </button>
-      </div>`;
+      const statusOpts = ['Pending','In Progress','Complete'].map(s =>
+        `<option value="${s}"${t.status===s?' selected':''}>${s}</option>`).join('');
+      return `
+        <tr id="doc-task-row-${t.id}">
+          <td style="font-weight:500;max-width:180px;word-break:break-word">${escapeHtml(t.title)}${overdueTag}</td>
+          <td>${assignerBadge}</td>
+          <td style="${dueCellStyle};font-size:11px">${fmtDocTaskDate(t.due_date)}</td>
+          <td>${completedCell}</td>
+          <td><select class="doc-task-status-sel" onchange="updateDocTaskStatus(${t.id},this.value)">${statusOpts}</select></td>
+          <td>
+            <div class="doc-task-actions">
+              <button class="doc-task-edit-btn" onclick="toggleDocTaskEdit(${t.id})" title="Edit">✏</button>
+              <button class="doc-task-del" onclick="deleteDocTask(${t.id})" title="Delete">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+              </button>
+            </div>
+          </td>
+        </tr>
+        <tr id="doc-task-edit-row-${t.id}" class="dt-edit-row" style="display:none">
+          <td colspan="6">
+            <div class="doc-task-edit-form">
+              <div class="dte-full">
+                <label>Task Name</label>
+                <input type="text" id="dte-title-${t.id}" value="${escapeHtml(t.title)}" placeholder="Task name" />
+              </div>
+              <div>
+                <label>Assigner (BA)</label>
+                <input type="text" id="dte-assigner-${t.id}" value="${t.assigner?escapeHtml(t.assigner):''}" placeholder="BA name" list="docAssignerList" />
+              </div>
+              <div>
+                <label>Development Status</label>
+                <select id="dte-status-${t.id}">
+                  ${['Pending','In Progress','Complete'].map(s=>`<option value="${s}"${t.status===s?' selected':''}>${s}</option>`).join('')}
+                </select>
+              </div>
+              <div>
+                <label>Due Date</label>
+                <input type="date" id="dte-due-${t.id}" value="${t.due_date||''}" style="color-scheme:dark" />
+              </div>
+              <div>
+                <label>Actual Completed Date</label>
+                <input type="date" id="dte-actual-${t.id}" value="${t.actual_completed_date||''}" style="color-scheme:dark" />
+              </div>
+              <div class="dte-actions">
+                <button class="dte-btn" onclick="cancelDocTaskEdit(${t.id})" style="background:var(--surface2);color:var(--muted2);border:1px solid var(--border2)">Cancel</button>
+                <button class="dte-btn" onclick="saveDocTaskEdit(${t.id})" style="background:var(--blue);color:#fff">Save Changes</button>
+              </div>
+            </div>
+          </td>
+        </tr>`;
     } else {
-      const statusColor = t.status==='Complete' ? 'var(--teal)' : t.status==='In Progress' ? 'var(--amber)' : 'var(--muted)';
-      return `<div class="doc-task-row" id="doc-task-row-${t.id}">
-        <span class="doc-task-title">${escapeHtml(t.title)}</span>
-        <span style="font-size:10px;font-weight:600;color:${statusColor};background:${statusColor}1a;padding:3px 9px;border-radius:8px;white-space:nowrap">${escapeHtml(t.status)}</span>
-      </div>`;
+      return `<tr id="doc-task-row-${t.id}">
+        <td style="font-weight:500;max-width:180px;word-break:break-word">${escapeHtml(t.title)}${overdueTag}</td>
+        <td>${assignerBadge}</td>
+        <td style="${dueCellStyle};font-size:11px">${fmtDocTaskDate(t.due_date)}</td>
+        <td>${completedCell}</td>
+        <td>${statusPill(t.status)}</td>
+      </tr>`;
     }
-  }).join('');
+  }
+
+  const cols = canEdit ? 6 : 5;
+  const emptyRow = tasks.length === 0
+    ? `<tr><td colspan="${cols}" style="text-align:center;padding:28px 14px;color:var(--muted);font-size:12px;font-style:italic">No tasks yet${canEdit?' — add one using the form below':''}</td></tr>`
+    : '';
+
+  const actionsHeader = canEdit ? '<th style="width:80px"></th>' : '';
+  el.innerHTML = `<div class="doc-task-tbl-wrap"><div class="doc-task-tbl-scroll">
+    <table class="doc-task-table">
+      <thead><tr>
+        <th style="min-width:140px">Task Name</th>
+        <th style="min-width:130px">Assigner</th>
+        <th style="min-width:100px">Due Date</th>
+        <th style="min-width:140px">Actual Completed Date</th>
+        <th style="min-width:140px">Development Status</th>
+        ${actionsHeader}
+      </tr></thead>
+      <tbody>${emptyRow}${tasks.map(taskRow).join('')}</tbody>
+    </table>
+  </div></div>`;
 }
 
 async function addDocTask() {
-  const input  = document.getElementById('docNewTaskInput');
-  const selEl  = document.getElementById('docNewTaskStatus');
-  const title  = (input?.value || '').trim();
-  const status = selEl?.value || 'Pending';
+  const titleEl      = document.getElementById('docNewTaskInput');
+  const assignerEl   = document.getElementById('docNewTaskAssigner');
+  const dueDateEl    = document.getElementById('docNewTaskDueDate');
+  const actualDateEl = document.getElementById('docNewTaskActualDate');
+  const statusEl     = document.getElementById('docNewTaskStatus');
+  const title        = (titleEl?.value || '').trim();
+  const assigner     = (assignerEl?.value || '').trim() || null;
+  const due_date     = dueDateEl?.value || null;
+  const actual_completed_date = actualDateEl?.value || null;
+  const status       = statusEl?.value || 'Pending';
   if (!title || !_docModalProjectId) return;
   try {
     const resp = await authFetch(`${API_BASE}/api/doc-tasks`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ progress_id: _docModalProjectId, title, status }),
+      body:    JSON.stringify({ progress_id: _docModalProjectId, title, assigner, due_date, actual_completed_date, status }),
     });
     const data = await resp.json();
     if (!data.success) throw new Error(data.error);
-    input.value = '';
+    if (titleEl)      titleEl.value      = '';
+    if (assignerEl)   assignerEl.value   = '';
+    if (dueDateEl)    dueDateEl.value    = '';
+    if (actualDateEl) actualDateEl.value = '';
     loadDocTasks(_docModalProjectId);
+    loadOverdueTasks();
   } catch (e) { showToast('Failed to add task: ' + e.message, 'error'); }
 }
 
 async function updateDocTaskStatus(taskId, status) {
+  const payload = { status };
+  if (status === 'Complete') {
+    payload.actual_completed_date = new Date().toISOString().split('T')[0];
+  }
   try {
     const resp = await authFetch(`${API_BASE}/api/doc-tasks/${taskId}`, {
       method:  'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ status }),
+      body:    JSON.stringify(payload),
     });
     const data = await resp.json();
     if (!data.success) throw new Error(data.error);
+    loadDocTasks(_docModalProjectId);
+    loadOverdueTasks();
   } catch (e) { showToast('Failed to update task: ' + e.message, 'error'); }
 }
 
@@ -2477,11 +2676,105 @@ async function deleteDocTask(taskId) {
     const resp = await authFetch(`${API_BASE}/api/doc-tasks/${taskId}`, { method: 'DELETE' });
     const data = await resp.json();
     if (!data.success) throw new Error(data.error);
-    document.getElementById('doc-task-row-' + taskId)?.remove();
-    const remaining = document.querySelectorAll('#docTasksList .doc-task-row').length;
-    if (!remaining) document.getElementById('docTasksList').innerHTML =
-      '<div style="color:var(--muted);font-size:12px;padding:8px 0;font-style:italic">No tasks yet — add one below</div>';
+    loadDocTasks(_docModalProjectId);
+    loadOverdueTasks();
   } catch (e) { showToast('Failed to delete task: ' + e.message, 'error'); }
+}
+
+function toggleDocTaskEdit(taskId) {
+  const row = document.getElementById('doc-task-edit-row-' + taskId);
+  if (!row) return;
+  row.style.display = row.style.display === 'none' ? 'table-row' : 'none';
+}
+
+function cancelDocTaskEdit(taskId) {
+  const row = document.getElementById('doc-task-edit-row-' + taskId);
+  if (row) row.style.display = 'none';
+}
+
+async function saveDocTaskEdit(taskId) {
+  const title    = (document.getElementById('dte-title-'    + taskId)?.value || '').trim();
+  const assigner = (document.getElementById('dte-assigner-' + taskId)?.value || '').trim() || null;
+  const status   = document.getElementById('dte-status-'    + taskId)?.value || null;
+  const due_date = document.getElementById('dte-due-'       + taskId)?.value || null;
+  const actual   = document.getElementById('dte-actual-'    + taskId)?.value || null;
+  if (!title) return showToast('Task name is required', 'warn');
+  const payload = { title, assigner, due_date, actual_completed_date: actual };
+  if (status) payload.status = status;
+  // Auto-set completed date when marked Complete
+  if (status === 'Complete' && !actual) {
+    payload.actual_completed_date = new Date().toISOString().split('T')[0];
+  }
+  try {
+    const resp = await authFetch(`${API_BASE}/api/doc-tasks/${taskId}`, {
+      method:  'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(payload),
+    });
+    const data = await resp.json();
+    if (!data.success) throw new Error(data.error);
+    loadDocTasks(_docModalProjectId);
+    loadOverdueTasks();
+  } catch (e) { showToast('Failed to save: ' + e.message, 'error'); }
+}
+
+// ── OVERDUE TASK NOTIFICATIONS ────────────────────────────────────────────────
+
+async function loadOverdueTasks() {
+  try {
+    const resp = await authFetch(`${API_BASE}/api/doc-tasks/overdue`);
+    const data = await resp.json();
+    if (!data.success) return;
+    const tasks = data.data || [];
+    window._overdueDocTasks = tasks;
+    const byProject = {};
+    tasks.forEach(t => {
+      const pid = String(t.progress_id);
+      byProject[pid] = (byProject[pid] || 0) + 1;
+    });
+    window._overdueByProject = byProject;
+    const badge = document.getElementById('notifBadge');
+    if (badge) {
+      if (tasks.length > 0) {
+        badge.textContent = tasks.length > 99 ? '99+' : tasks.length;
+        badge.style.display = 'flex';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+    renderNotifList(tasks);
+    if (window._docsProjects) { try { renderDocsGrid(); } catch(e) {} }
+  } catch (e) { console.warn('loadOverdueTasks failed:', e); }
+}
+
+function renderNotifList(tasks) {
+  const el = document.getElementById('notifList');
+  if (!el) return;
+  if (!tasks.length) {
+    el.innerHTML = '<div class="notif-empty">No overdue tasks 🎉</div>';
+    return;
+  }
+  el.innerHTML = tasks.map(t => {
+    const projName = escapeHtml(t.project_name || String(t.progress_id));
+    const dueStr   = fmtDocTaskDate(t.due_date);
+    return `<div class="notif-item" onclick="closeNotifPanel();navTo('docs');setTimeout(()=>openDocModal('${t.progress_id}'),150)">
+      <div class="notif-item-task">${escapeHtml(t.title)}</div>
+      <div class="notif-item-proj">${projName}</div>
+      <div class="notif-item-due">Due: ${dueStr}</div>
+    </div>`;
+  }).join('');
+}
+
+function toggleNotifPanel() {
+  const panel = document.getElementById('notifPanel');
+  if (!panel) return;
+  panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
+  if (panel.style.display === 'flex') panel.style.flexDirection = 'column';
+}
+
+function closeNotifPanel() {
+  const panel = document.getElementById('notifPanel');
+  if (panel) panel.style.display = 'none';
 }
 
 // ── API CONFIG ────────────────────────────────────────────────────────────────
@@ -5503,8 +5796,14 @@ window.addEventListener('DOMContentLoaded', () => {
   refreshDisplayName().then(() => {
     applyRoleToDOM();
     loadFromMongoDB();
+    loadOverdueTasks();
   });
   initSidebar();
+  // Close notification panel when clicking outside
+  document.addEventListener('click', e => {
+    const wrap = document.getElementById('notifBellWrap');
+    if (wrap && !wrap.contains(e.target)) closeNotifPanel();
+  });
 });
 
 // Fetch display_name from server and update session + window globals
@@ -5833,7 +6132,7 @@ function esc(str) {
 </div>
 <!-- ── DOC DETAIL MODAL ── -->
 <div class="modal-overlay" id="docModal" style="display:none" onclick="if(event.target===this)closeDocModal()">
-  <div class="modal-box" style="max-width:560px;width:95%;padding:0;overflow:hidden">
+  <div class="modal-box" style="max-width:740px;width:96%;padding:0;overflow:hidden;display:flex;flex-direction:column;max-height:92dvh">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 22px 14px;border-bottom:1px solid var(--border)">
       <div>
         <div style="font-size:15px;font-weight:700;color:var(--text)" id="docModalTitle">Project</div>
@@ -5841,7 +6140,7 @@ function esc(str) {
       </div>
       <button class="modal-close" onclick="closeDocModal()">✕</button>
     </div>
-    <div style="padding:18px 22px 22px">
+    <div style="padding:18px 22px 22px;overflow-y:auto;flex:1">
       <div class="doc-modal-tabs">
         <div class="doc-modal-tab active" id="docTab-overview" onclick="switchDocTab('overview')">Overview</div>
         <div class="doc-modal-tab" id="docTab-tasks" onclick="switchDocTab('tasks')">Tasks</div>
@@ -5883,17 +6182,42 @@ function esc(str) {
       </div>
       <!-- TASKS TAB -->
       <div id="docPane-tasks" style="display:none">
+        <datalist id="docAssignerList"></datalist>
         <div id="docTasksList" style="min-height:60px"></div>
-        <div class="doc-add-task-row doc-editor-only">
-          <input class="doc-add-task-input" id="docNewTaskInput" placeholder="New task title…"
-            onkeydown="if(event.key==='Enter')addDocTask()" />
-          <select id="docNewTaskStatus"
-            style="padding:8px 10px;border-radius:9px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:11px;font-family:var(--font-b);outline:none">
-            <option value="Pending">Pending</option>
-            <option value="In Progress">In Progress</option>
-            <option value="Complete">Complete</option>
-          </select>
-          <button class="doc-add-task-btn" onclick="addDocTask()">+ Add</button>
+        <div id="docAddTaskRow" style="display:none">
+          <div class="doc-add-task-card">
+            <div class="doc-add-task-card-title">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add New Task
+            </div>
+            <div class="doc-add-task-grid">
+              <div class="doc-add-field span2">
+                <label>Task Name</label>
+                <input id="docNewTaskInput" placeholder="Enter task name…" onkeydown="if(event.key==='Enter')addDocTask()" />
+              </div>
+              <div class="doc-add-field">
+                <label>Assigner (BA Person)</label>
+                <input type="text" id="docNewTaskAssigner" placeholder="BA name" list="docAssignerList" />
+              </div>
+              <div class="doc-add-field">
+                <label>Development Status</label>
+                <select id="docNewTaskStatus">
+                  <option value="Pending">Pending</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Complete">Complete</option>
+                </select>
+              </div>
+              <div class="doc-add-field">
+                <label>Due Date</label>
+                <input type="date" id="docNewTaskDueDate" style="color-scheme:dark" />
+              </div>
+              <div class="doc-add-field">
+                <label>Actual Completed Date</label>
+                <input type="date" id="docNewTaskActualDate" style="color-scheme:dark" />
+              </div>
+            </div>
+            <button class="doc-add-task-btn" onclick="addDocTask()">+ Add Task</button>
+          </div>
         </div>
       </div>
     </div>

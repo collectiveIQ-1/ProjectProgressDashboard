@@ -124,6 +124,13 @@ function docEditorOnly(req, res, next) {
   return res.status(403).json({ success: false, error: 'Permission denied. Only documentation editors can make changes.' });
 }
 
+// Any logged-in member or admin can edit doc tasks
+function memberOrAdmin(req, res, next) {
+  const role = (req.headers['x-user-role'] || '').toLowerCase();
+  if (role === 'admin' || role === 'member') return next();
+  return res.status(403).json({ success: false, error: 'Access denied.' });
+}
+
 // Project-level access: admin OR user is assigned to the project
 async function requireProjectAccess(projectId, req, res) {
   const role = (req.headers['x-user-role'] || 'member').toLowerCase();
@@ -1523,6 +1530,32 @@ app.put('/api/progress/:id/doc-info', docEditorOnly, async (req, res) => {
 // DOC TASKS ROUTES
 // ══════════════════════════════════════════════════════════════════════════════
 
+// Overdue tasks across all projects (due_date < today AND status != Complete)
+app.get('/api/doc-tasks/overdue', async (req, res) => {
+  try {
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const rows = await prisma.doc_tasks.findMany({
+      where: {
+        due_date: { lt: today },
+        status:   { not: 'Complete' },
+      },
+      include: { progress: { select: { process: true } } },
+      orderBy: { due_date: 'asc' },
+    });
+    const data = rows.map(r => ({
+      id: r.id,
+      progress_id: r.progress_id,
+      title: r.title,
+      status: r.status,
+      assigner: r.assigner,
+      due_date: r.due_date,
+      actual_completed_date: r.actual_completed_date,
+      project_name: r.progress?.process || '',
+    }));
+    res.json({ success: true, data });
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+});
+
 app.get('/api/doc-tasks/:progressId', async (req, res) => {
   try {
     const pid = parseInt(req.params.progressId);
@@ -1535,9 +1568,9 @@ app.get('/api/doc-tasks/:progressId', async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
-app.post('/api/doc-tasks', docEditorOnly, async (req, res) => {
+app.post('/api/doc-tasks', memberOrAdmin, async (req, res) => {
   try {
-    const { progress_id, title, status } = req.body;
+    const { progress_id, title, status, assigner, due_date, actual_completed_date } = req.body;
     const pid = parseInt(progress_id);
     if (isNaN(pid) || !String(title || '').trim())
       return res.status(400).json({ success: false, error: 'progress_id and title required' });
@@ -1547,24 +1580,30 @@ app.post('/api/doc-tasks', docEditorOnly, async (req, res) => {
         progress_id: pid,
         title:  String(title).trim(),
         status: status || 'Pending',
+        ...(assigner              != null && { assigner: String(assigner).trim() || null }),
+        ...(due_date              != null && { due_date: due_date || null }),
+        ...(actual_completed_date != null && { actual_completed_date: actual_completed_date || null }),
       },
     });
     res.json({ success: true, data: row });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
-app.put('/api/doc-tasks/:id', docEditorOnly, async (req, res) => {
+app.put('/api/doc-tasks/:id', memberOrAdmin, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
-    const { title, status } = req.body;
+    const { title, status, assigner, due_date, actual_completed_date } = req.body;
     const existing = await prisma.doc_tasks.findUnique({ where: { id }, select: { progress_id: true } });
     if (!existing) return res.status(404).json({ success: false, error: 'Not found' });
 
     const row = await prisma.doc_tasks.update({
       where: { id },
       data: {
-        ...(title  !== undefined && { title: String(title).trim() }),
-        ...(status !== undefined && { status }),
+        ...(title                 !== undefined && { title: String(title).trim() }),
+        ...(status                !== undefined && { status }),
+        ...(assigner              !== undefined && { assigner: assigner ? String(assigner).trim() : null }),
+        ...(due_date              !== undefined && { due_date: due_date || null }),
+        ...(actual_completed_date !== undefined && { actual_completed_date: actual_completed_date || null }),
         updated_at: new Date(),
       },
     });
@@ -1575,7 +1614,7 @@ app.put('/api/doc-tasks/:id', docEditorOnly, async (req, res) => {
   }
 });
 
-app.delete('/api/doc-tasks/:id', docEditorOnly, async (req, res) => {
+app.delete('/api/doc-tasks/:id', memberOrAdmin, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     const existing = await prisma.doc_tasks.findUnique({ where: { id }, select: { progress_id: true } });
