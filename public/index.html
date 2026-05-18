@@ -224,7 +224,7 @@ td{padding:9px 14px;font-size:12px;white-space:nowrap;overflow:hidden;text-overf
 .ts-sub{font-size:11px;color:var(--muted);margin-top:5px}
 .ts-breakdown{font-size:9px;color:var(--muted);margin-top:6px;line-height:1.6;opacity:.75}
 .proj-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
-.pcard{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;transition:border-color .15s,transform .2s;box-shadow:0 1px 12px rgba(0,0,0,0.25)}
+.pcard{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;transition:border-color .15s,transform .2s;box-shadow:0 1px 12px rgba(0,0,0,0.25);position:relative;overflow:hidden}
 .pcard:hover{border-color:rgba(21,213,245,0.3);transform:translateY(-2px);box-shadow:0 6px 24px rgba(0,0,0,0.4)}
 .pcard-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:12px}
 .pcard-name{font-size:14px;font-weight:600;line-height:1.45;flex:1}
@@ -700,6 +700,8 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover{opacity:1}
 .notif-badge{position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;border-radius:9px;background:#e06aaa;color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px;box-sizing:border-box;border:2px solid var(--card);pointer-events:none}
 .notif-panel{position:absolute;top:calc(100% + 10px);right:0;width:330px;max-height:380px;background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,0.5);z-index:500;overflow:hidden;display:flex;flex-direction:column}
 .notif-panel-hdr{padding:12px 16px;font-size:12px;font-weight:700;color:var(--text);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.notif-item-stale{border-left:3px solid #e06aaa !important;background:rgba(224,106,170,0.04) !important}
+.notif-item-stale:hover{background:rgba(224,106,170,0.09) !important}
 .notif-list{overflow-y:auto;max-height:310px;padding:4px 0}
 .notif-item{padding:10px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s}
 .notif-item:last-child{border-bottom:none}
@@ -735,6 +737,35 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover{opacity:1}
 .dte-actions{display:flex;gap:7px;justify-content:flex-end;grid-column:1/-1;margin-top:2px}
 .dte-btn{padding:7px 16px;border-radius:8px;border:none;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font-b);transition:opacity .15s}
 .dte-btn:hover{opacity:.85}
+/* ── DOC UPLOADS ── */
+.doc-upload-tbl-wrap{border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:16px;box-shadow:0 2px 12px rgba(0,0,0,0.15)}
+.doc-upload-table{width:100%;border-collapse:collapse;font-size:12px}
+.doc-upload-table thead tr{background:linear-gradient(135deg,rgba(23,185,138,0.12),rgba(59,125,232,0.08))}
+.doc-upload-table th{padding:10px 14px;text-align:left;font-size:10px;color:var(--muted2);text-transform:uppercase;letter-spacing:.7px;font-weight:700;border-bottom:1px solid var(--border);white-space:nowrap}
+.doc-upload-table td{padding:11px 14px;border-bottom:1px solid var(--border);vertical-align:middle;color:var(--text)}
+.doc-upload-table tbody tr:last-child td{border-bottom:none}
+.doc-upload-table tbody tr{transition:background .12s}
+.doc-upload-table tbody tr:hover td{background:rgba(23,185,138,0.04)}
+.doc-upload-file-icon{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:7px;font-size:11px;font-weight:700;flex-shrink:0}
+.doc-upload-filename{font-size:11px;color:var(--muted2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
+.doc-upload-view-btn{display:inline-flex;align-items:center;gap:5px;background:rgba(59,125,232,0.1);border:1px solid rgba(59,125,232,0.25);color:var(--blue);border-radius:7px;padding:5px 11px;cursor:pointer;font-size:11px;font-weight:600;font-family:var(--font-b);transition:all .15s;text-decoration:none}
+.doc-upload-view-btn:hover{background:rgba(59,125,232,0.22);border-color:var(--blue)}
+.doc-upload-dl-btn{display:inline-flex;align-items:center;gap:5px;background:rgba(23,185,138,0.1);border:1px solid rgba(23,185,138,0.25);color:#17b98a;border-radius:7px;padding:5px 11px;cursor:pointer;font-size:11px;font-weight:600;font-family:var(--font-b);transition:all .15s;text-decoration:none}
+.doc-upload-dl-btn:hover{background:rgba(23,185,138,0.22);border-color:#17b98a}
+.doc-upload-del-btn{display:inline-flex;align-items:center;background:rgba(224,106,170,0.1);border:1px solid rgba(224,106,170,0.25);color:#e06aaa;border-radius:7px;padding:5px 8px;cursor:pointer;font-size:11px;transition:all .15s}
+.doc-upload-del-btn:hover{background:rgba(224,106,170,0.22);border-color:#e06aaa}
+.doc-upload-add-card{background:rgba(23,185,138,0.04);border:1px solid rgba(23,185,138,0.18);border-radius:12px;padding:16px;margin-top:4px}
+.doc-upload-add-title{font-size:11px;font-weight:700;color:#17b98a;text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.doc-upload-form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.doc-upload-field label{font-size:9px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px}
+.doc-upload-field input{width:100%;padding:8px 11px;border-radius:9px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:12px;font-family:var(--font-b);outline:none;box-sizing:border-box;transition:border-color .15s}
+.doc-upload-field input:focus{border-color:#17b98a;box-shadow:0 0 0 3px rgba(23,185,138,0.08)}
+.doc-upload-file-drop{display:flex;align-items:center;justify-content:center;gap:10px;border:2px dashed rgba(23,185,138,0.35);border-radius:9px;padding:14px;cursor:pointer;transition:all .2s;background:rgba(23,185,138,0.03)}
+.doc-upload-file-drop:hover{border-color:#17b98a;background:rgba(23,185,138,0.07)}
+.doc-upload-file-drop.has-file{border-color:#17b98a;background:rgba(23,185,138,0.08)}
+.doc-upload-submit-btn{width:100%;margin-top:10px;padding:10px;border-radius:9px;background:linear-gradient(135deg,#17b98a,#129e76);border:none;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font-b);transition:opacity .15s;letter-spacing:.2px}
+.doc-upload-submit-btn:hover{opacity:.88}
+.doc-upload-submit-btn:disabled{opacity:.45;cursor:not-allowed}
 /* ── DOC OVERDUE BADGE on project row ── */
 .doc-overdue-badge{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;background:#e06aaa;color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:0 4px;margin-left:6px;vertical-align:middle;box-sizing:border-box}
 /* ── DOC ADD TASK CARD ── */
@@ -2164,7 +2195,13 @@ function renderTypeGrid(projects){
         const h2=Math.floor(m/60); if(h2<24) return h2+'h ago';
         const d=Math.floor(h2/24); return d+'d ago';
       })() : '';
+      const isStale = window._staleDevelopingIds && window._staleDevelopingIds.has(String(p._id));
+      const staleBadge = isStale ? `<div style="position:absolute;top:0;right:0;background:linear-gradient(135deg,#e06aaa,#c04488);color:#fff;font-size:8px;font-weight:800;padding:4px 10px;border-radius:0 10px 0 10px;letter-spacing:.5px;display:flex;align-items:center;gap:4px;z-index:2">
+  <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15" stroke="currentColor" stroke-width="2"/></svg>
+  UPDATE NEEDED
+</div>` : '';
       h+=`<div class="pcard" onclick="openModal(${pidx})" title="Click to view full details" data-can-edit="${canEdit(p)}">
+        ${staleBadge}
         <div class="pcard-top">
           <div class="pcard-name">${p.process}</div>
           <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
@@ -2443,10 +2480,11 @@ function closeDocModal() {
 }
 
 function switchDocTab(tab) {
-  ['overview','tasks'].forEach(t => {
+  ['overview','tasks','uploads'].forEach(t => {
     document.getElementById('docTab-'  + t).classList.toggle('active', t === tab);
     document.getElementById('docPane-' + t).style.display = t === tab ? '' : 'none';
   });
+  if (tab === 'uploads' && _docModalProjectId) loadDocUploads(_docModalProjectId);
   if (tab === 'tasks' && _docModalProjectId) loadDocTasks(_docModalProjectId);
 }
 
@@ -2718,51 +2756,327 @@ async function saveDocTaskEdit(taskId) {
   } catch (e) { showToast('Failed to save: ' + e.message, 'error'); }
 }
 
-// ── OVERDUE TASK NOTIFICATIONS ────────────────────────────────────────────────
+// ── MODAL DOC UPLOADS (compact view in project popup) ─────────────────────────
+
+async function loadModalDocUploads(projectDbId) {
+  const el = document.getElementById('modalDocUploads');
+  if (!el) return;
+  try {
+    const resp = await authFetch(`${API_BASE}/api/doc-uploads/${projectDbId}`);
+    const data = await resp.json();
+    if (!data.success) throw new Error(data.error);
+    const uploads = data.data;
+    if (!uploads.length) {
+      el.innerHTML = `<div style="font-size:11px;color:var(--muted);font-style:italic;padding:4px 0">No documents uploaded yet</div>`;
+      return;
+    }
+    el.innerHTML = uploads.map(u => {
+      const { icon, bg, color } = getFileIcon(u.mime_type, u.original_name);
+      const url = `/uploads/docs/${encodeURIComponent(u.filename)}`;
+      const viewable = canViewInline(u.mime_type, u.original_name);
+      return `<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:9px;background:var(--surface2);border:1px solid var(--border);margin-bottom:6px">
+        <div style="width:26px;height:26px;border-radius:6px;background:${bg};color:${color};font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${icon}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:11px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(u.doc_type)}</div>
+          <div style="font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(u.original_name)}</div>
+        </div>
+        <div style="display:flex;gap:5px;flex-shrink:0">
+          ${viewable ? `<a href="${url}" target="_blank" rel="noopener"
+            style="background:rgba(59,125,232,0.1);border:1px solid rgba(59,125,232,0.25);color:var(--blue);border-radius:6px;padding:4px 8px;font-size:10px;font-weight:600;text-decoration:none;white-space:nowrap">View</a>` : ''}
+          <a href="${url}" download="${escapeHtml(u.original_name)}"
+            style="background:rgba(23,185,138,0.1);border:1px solid rgba(23,185,138,0.25);color:#17b98a;border-radius:6px;padding:4px 8px;font-size:10px;font-weight:600;text-decoration:none;white-space:nowrap">↓</a>
+        </div>
+      </div>`;
+    }).join('');
+  } catch (e) {
+    const el2 = document.getElementById('modalDocUploads');
+    if (el2) el2.innerHTML = `<div style="font-size:11px;color:var(--muted);font-style:italic">Could not load</div>`;
+  }
+}
+
+// ── DOC UPLOADS ──────────────────────────────────────────────────────────────
+
+function getFileIcon(mimeType, filename) {
+  const ext = (filename || '').split('.').pop().toLowerCase();
+  const m = (mimeType || '').toLowerCase();
+  if (m.includes('pdf') || ext === 'pdf')
+    return { icon: 'PDF', bg: 'rgba(224,106,170,0.15)', color: '#e06aaa' };
+  if (m.includes('image') || ['png','jpg','jpeg','gif','webp','svg'].includes(ext))
+    return { icon: 'IMG', bg: 'rgba(240,168,50,0.15)', color: '#f0a832' };
+  if (m.includes('word') || ['doc','docx'].includes(ext))
+    return { icon: 'DOC', bg: 'rgba(59,125,232,0.15)', color: '#3b7de8' };
+  if (m.includes('sheet') || m.includes('excel') || ['xls','xlsx','csv'].includes(ext))
+    return { icon: 'XLS', bg: 'rgba(23,185,138,0.15)', color: '#17b98a' };
+  if (m.includes('presentation') || ['ppt','pptx'].includes(ext))
+    return { icon: 'PPT', bg: 'rgba(240,168,50,0.15)', color: '#f0a832' };
+  return { icon: ext.toUpperCase() || 'FILE', bg: 'rgba(124,95,230,0.15)', color: '#9b7ff0' };
+}
+
+function fmtFileSize(bytes) {
+  if (!bytes) return '—';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function canViewInline(mimeType, filename) {
+  const ext = (filename || '').split('.').pop().toLowerCase();
+  const m = (mimeType || '').toLowerCase();
+  return m.includes('pdf') || m.includes('image') || ext === 'pdf'
+    || ['png','jpg','jpeg','gif','webp','svg'].includes(ext);
+}
+
+async function loadDocUploads(pid) {
+  const el = document.getElementById('docUploadsList');
+  if (!el) return;
+  try {
+    const resp = await authFetch(`${API_BASE}/api/doc-uploads/${pid}`);
+    const data = await resp.json();
+    if (!data.success) throw new Error(data.error);
+    renderDocUploads(data.data);
+  } catch (e) {
+    if (el) el.innerHTML = `<div style="color:var(--muted);font-size:12px;padding:16px 0;text-align:center">Could not load uploads: ${escapeHtml(e.message)}</div>`;
+  }
+}
+
+function renderDocUploads(uploads) {
+  const el = document.getElementById('docUploadsList');
+  if (!el) return;
+  const canEdit = window._canEditDocTasks;
+
+  const emptyRow = uploads.length === 0
+    ? `<tr><td colspan="${canEdit?5:4}" style="text-align:center;padding:28px 14px;color:var(--muted);font-size:12px;font-style:italic">No documents uploaded yet — use the form below to add one</td></tr>`
+    : '';
+
+  const rows = uploads.map(u => {
+    const { icon, bg, color } = getFileIcon(u.mime_type, u.original_name);
+    const url = `/uploads/docs/${encodeURIComponent(u.filename)}`;
+    const viewable = canViewInline(u.mime_type, u.original_name);
+    const uploadedDate = u.created_at ? new Date(u.created_at).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+    const delBtn = canEdit
+      ? `<button class="doc-upload-del-btn" onclick="deleteDocUpload(${u.id})" title="Delete">
+           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+         </button>` : '';
+    return `<tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="doc-upload-file-icon" style="background:${bg};color:${color}">${icon}</div>
+          <div>
+            <div style="font-weight:600;font-size:12px">${escapeHtml(u.doc_type)}</div>
+            <div class="doc-upload-filename" title="${escapeHtml(u.original_name)}">${escapeHtml(u.original_name)}</div>
+          </div>
+        </div>
+      </td>
+      <td style="color:var(--muted2);font-size:11px">${fmtFileSize(u.file_size)}</td>
+      <td style="color:var(--muted2);font-size:11px">${uploadedDate}</td>
+      <td>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          ${viewable ? `<a class="doc-upload-view-btn" href="${url}" target="_blank" rel="noopener">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>View
+          </a>` : ''}
+          <a class="doc-upload-dl-btn" href="${url}" download="${escapeHtml(u.original_name)}">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download
+          </a>
+          ${delBtn}
+        </div>
+      </td>
+      ${canEdit ? '<td></td>' : ''}
+    </tr>`;
+  }).join('');
+
+  const actionsHeader = canEdit ? '<th style="width:30px"></th>' : '';
+  el.innerHTML = `<div class="doc-upload-tbl-wrap"><div style="overflow-x:auto">
+    <table class="doc-upload-table">
+      <thead><tr>
+        <th>Document Type</th>
+        <th style="min-width:70px">Size</th>
+        <th style="min-width:110px">Uploaded</th>
+        <th style="min-width:200px">Actions</th>
+        ${actionsHeader}
+      </tr></thead>
+      <tbody>${emptyRow}${rows}</tbody>
+    </table>
+  </div></div>`;
+}
+
+function goToProjectCard() {
+  const pid = _docModalProjectId;
+  if (!pid) return;
+  closeDocModal();
+  navTo('breakdown');
+  // Find the project index by DB id and open its modal
+  const idx = (window._projects || []).findIndex(p => String(p._id) === String(pid));
+  if (idx >= 0) setTimeout(() => openModal(idx), 120);
+}
+
+function onDocFileChosen(input) {
+  const file = input.files[0];
+  const label = document.getElementById('docUploadDropLabel');
+  const zone  = document.getElementById('docUploadDropZone');
+  const btn   = document.getElementById('docUploadSubmitBtn');
+  if (file) {
+    label.textContent = file.name;
+    label.style.color = '#17b98a';
+    zone.classList.add('has-file');
+    // Enable submit only if type also filled
+    const typeVal = (document.getElementById('docUploadTypeInput')?.value || '').trim();
+    btn.disabled = !typeVal;
+  } else {
+    label.textContent = 'Click to choose file';
+    label.style.color = '';
+    zone.classList.remove('has-file');
+    btn.disabled = true;
+  }
+}
+
+// Also enable submit when type is typed
+document.addEventListener('DOMContentLoaded', () => {
+  const typeInput = document.getElementById('docUploadTypeInput');
+  if (typeInput) {
+    typeInput.addEventListener('input', () => {
+      const fileInput = document.getElementById('docUploadFileInput');
+      const btn = document.getElementById('docUploadSubmitBtn');
+      if (btn) btn.disabled = !(typeInput.value.trim() && fileInput?.files?.length);
+    });
+  }
+});
+
+async function uploadDocFile() {
+  const typeInput = document.getElementById('docUploadTypeInput');
+  const fileInput = document.getElementById('docUploadFileInput');
+  const btn       = document.getElementById('docUploadSubmitBtn');
+  const docType   = (typeInput?.value || '').trim();
+  const file      = fileInput?.files?.[0];
+  if (!docType)  return showToast('Please enter a document type', 'warn');
+  if (!file)     return showToast('Please choose a file', 'warn');
+  if (!_docModalProjectId) return;
+
+  btn.disabled = true;
+  btn.textContent = 'Uploading…';
+  try {
+    const fd = new FormData();
+    fd.append('progress_id', _docModalProjectId);
+    fd.append('doc_type', docType);
+    fd.append('file', file);
+    const resp = await authFetch(`${API_BASE}/api/doc-uploads`, { method: 'POST', body: fd });
+    const data = await resp.json();
+    if (!data.success) throw new Error(data.error);
+    showToast('✅ Document uploaded', 'success');
+    // Reset form
+    typeInput.value = '';
+    fileInput.value = '';
+    document.getElementById('docUploadDropLabel').textContent = 'Click to choose file';
+    document.getElementById('docUploadDropLabel').style.color = '';
+    document.getElementById('docUploadDropZone').classList.remove('has-file');
+    loadDocUploads(_docModalProjectId);
+  } catch (e) {
+    showToast('Upload failed: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Upload Document';
+  }
+}
+
+async function deleteDocUpload(id) {
+  if (!confirm('Delete this uploaded document?')) return;
+  try {
+    const resp = await authFetch(`${API_BASE}/api/doc-uploads/${id}`, { method: 'DELETE' });
+    const data = await resp.json();
+    if (!data.success) throw new Error(data.error);
+    showToast('Document deleted', 'info');
+    loadDocUploads(_docModalProjectId);
+  } catch (e) {
+    showToast('Failed to delete: ' + e.message, 'error');
+  }
+}
+
+// ── UNIFIED NOTIFICATIONS ─────────────────────────────────────────────────────
+
+window._overdueDocTasks         = [];
+window._staleDevelopingProjects = [];
 
 async function loadOverdueTasks() {
   try {
     const resp = await authFetch(`${API_BASE}/api/doc-tasks/overdue`);
     const data = await resp.json();
     if (!data.success) return;
-    const tasks = data.data || [];
-    window._overdueDocTasks = tasks;
-    const byProject = {};
-    tasks.forEach(t => {
-      const pid = String(t.progress_id);
-      byProject[pid] = (byProject[pid] || 0) + 1;
-    });
-    window._overdueByProject = byProject;
-    const badge = document.getElementById('notifBadge');
-    if (badge) {
-      if (tasks.length > 0) {
-        badge.textContent = tasks.length > 99 ? '99+' : tasks.length;
-        badge.style.display = 'flex';
-      } else {
-        badge.style.display = 'none';
-      }
-    }
-    renderNotifList(tasks);
-    if (window._docsProjects) { try { renderDocsGrid(); } catch(e) {} }
+    window._overdueDocTasks = data.data || [];
   } catch (e) { console.warn('loadOverdueTasks failed:', e); }
+  await loadStaleDeveloping();
 }
 
-function renderNotifList(tasks) {
+async function loadStaleDeveloping() {
+  try {
+    const resp = await authFetch(`${API_BASE}/api/stale-developing`);
+    const data = await resp.json();
+    if (!data.success) return;
+    window._staleDevelopingProjects = data.data || [];
+    // Store as Set of string IDs for quick card lookups
+    window._staleDevelopingIds = new Set((data.data||[]).map(p => String(p.id)));
+  } catch (e) { console.warn('loadStaleDeveloping failed:', e); }
+  refreshNotifUI();
+}
+
+function refreshNotifUI() {
+  const overdue = window._overdueDocTasks || [];
+  const stale   = window._staleDevelopingProjects || [];
+  const total   = overdue.length + stale.length;
+  const badge   = document.getElementById('notifBadge');
+  if (badge) {
+    badge.textContent = total > 99 ? '99+' : total;
+    badge.style.display = total > 0 ? 'flex' : 'none';
+  }
+  renderNotifList(overdue, stale);
+  if (window._docsProjects) { try { renderDocsGrid(); } catch(e) {} }
+  // Re-render project cards to show/hide red flags
+  if (window._projects) { try { renderTypeGrid(window._projects); } catch(e) {} }
+}
+
+function renderNotifList(overdueTasks, staleProjects) {
   const el = document.getElementById('notifList');
   if (!el) return;
-  if (!tasks.length) {
-    el.innerHTML = '<div class="notif-empty">No overdue tasks 🎉</div>';
+  const overdue = overdueTasks || window._overdueDocTasks || [];
+  const stale   = staleProjects || window._staleDevelopingProjects || [];
+
+  if (!overdue.length && !stale.length) {
+    el.innerHTML = '<div class="notif-empty">All clear — no alerts 🎉</div>';
     return;
   }
-  el.innerHTML = tasks.map(t => {
-    const projName = escapeHtml(t.project_name || String(t.progress_id));
-    const dueStr   = fmtDocTaskDate(t.due_date);
-    return `<div class="notif-item" onclick="closeNotifPanel();navTo('docs');setTimeout(()=>openDocModal('${t.progress_id}'),150)">
-      <div class="notif-item-task">${escapeHtml(t.title)}</div>
-      <div class="notif-item-proj">${projName}</div>
-      <div class="notif-item-due">Due: ${dueStr}</div>
-    </div>`;
-  }).join('');
+
+  const staleHtml = stale.length ? `
+    <div style="padding:8px 14px 4px;font-size:9px;font-weight:700;color:#e06aaa;text-transform:uppercase;letter-spacing:.7px;border-bottom:1px solid rgba(224,106,170,0.15)">
+      ⚑ Developing — Update Needed (${stale.length})
+    </div>
+    ${stale.map(p => {
+      const lastUpdate = p.last_activity_at
+        ? new Date(p.last_activity_at).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})
+        : 'Never updated';
+      return `<div class="notif-item notif-item-stale" onclick="closeNotifPanel();navTo('breakdown');setTimeout(()=>{const idx=(window._projects||[]).findIndex(x=>String(x._id)===String(${p.id}));if(idx>=0)openModal(idx);},150)">
+        <div style="display:flex;align-items:center;gap:7px">
+          <span style="font-size:14px">⚑</span>
+          <div>
+            <div class="notif-item-task" style="color:#e06aaa">${escapeHtml(p.process)}</div>
+            <div class="notif-item-proj" style="color:var(--muted)">Last activity: ${lastUpdate}</div>
+          </div>
+        </div>
+      </div>`;
+    }).join('')}` : '';
+
+  const overdueHtml = overdue.length ? `
+    <div style="padding:8px 14px 4px;font-size:9px;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:.7px;border-bottom:1px solid rgba(240,168,50,0.15)">
+      ⏰ Overdue Tasks (${overdue.length})
+    </div>
+    ${overdue.map(t => {
+      const projName = escapeHtml(t.project_name || String(t.progress_id));
+      const dueStr   = fmtDocTaskDate(t.due_date);
+      return `<div class="notif-item" onclick="closeNotifPanel();navTo('docs');setTimeout(()=>openDocModal('${t.progress_id}'),150)">
+        <div class="notif-item-task">${escapeHtml(t.title)}</div>
+        <div class="notif-item-proj">${projName}</div>
+        <div class="notif-item-due">Due: ${dueStr}</div>
+      </div>`;
+    }).join('')}` : '';
+
+  el.innerHTML = staleHtml + overdueHtml;
 }
 
 function toggleNotifPanel() {
@@ -3350,6 +3664,24 @@ function openModal(idx){
           <div id="modalVideoContent">${buildVideoSection(p, idx)}</div>
         </div>
 
+        <!-- Uploaded Documents (from Documentation tab) -->
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <div style="font-size:10px;color:#17b98a;text-transform:uppercase;letter-spacing:.8px;font-weight:700;display:flex;align-items:center;gap:6px">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+              Uploaded Documents
+            </div>
+            <button onclick="closeModal();openDocModal('${p._id}');setTimeout(()=>switchDocTab('uploads'),80)"
+              style="background:rgba(23,185,138,0.1);border:1px solid rgba(23,185,138,0.3);color:#17b98a;border-radius:7px;padding:4px 10px;font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font-b);display:flex;align-items:center;gap:5px">
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              Manage
+            </button>
+          </div>
+          <div id="modalDocUploads" style="min-height:32px">
+            <div style="font-size:11px;color:var(--muted);font-style:italic">Loading…</div>
+          </div>
+        </div>
+
         <!-- Quick nav buttons -->
         <div style="margin-top:14px;display:flex;gap:7px">
           <button class="modal-go-btn" style="flex:1;justify-content:center" onclick="closeModal();openMeetingUpdatesPage(${idx})">
@@ -3901,6 +4233,7 @@ function openModal(idx){
     loadInlineCrs(idx);
     loadInlineFas(idx);
     loadInlineBfs(idx);
+    loadModalDocUploads(p._id);
     if(p.type && p.type.toLowerCase() === 'automation') loadRunDates(p._id);
   } else {
     ['inlineMuList','inlineMsList','inlineReqList','inlineCrList','inlineFaList'].forEach(id => {
@@ -3911,6 +4244,8 @@ function openModal(idx){
       const el = document.getElementById(id); if(el) el.textContent = '0';
     });
     updateDeadlineTable([], projects[idx]);
+    const mdu = document.getElementById('modalDocUploads');
+    if (mdu) mdu.innerHTML = '<div style="font-size:11px;color:var(--muted);font-style:italic;padding:4px 0">No documents uploaded yet</div>';
   }
 }
 
@@ -5804,6 +6139,8 @@ window.addEventListener('DOMContentLoaded', () => {
     const wrap = document.getElementById('notifBellWrap');
     if (wrap && !wrap.contains(e.target)) closeNotifPanel();
   });
+  // Refresh stale-developing check every 5 minutes
+  setInterval(() => { try { loadStaleDeveloping(); } catch(e){} }, 5 * 60 * 1000);
 });
 
 // Fetch display_name from server and update session + window globals
@@ -6144,6 +6481,7 @@ function esc(str) {
       <div class="doc-modal-tabs">
         <div class="doc-modal-tab active" id="docTab-overview" onclick="switchDocTab('overview')">Overview</div>
         <div class="doc-modal-tab" id="docTab-tasks" onclick="switchDocTab('tasks')">Tasks</div>
+        <div class="doc-modal-tab" id="docTab-uploads" onclick="switchDocTab('uploads')">Uploads</div>
       </div>
       <!-- OVERVIEW TAB -->
       <div id="docPane-overview">
@@ -6217,6 +6555,42 @@ function esc(str) {
               </div>
             </div>
             <button class="doc-add-task-btn" onclick="addDocTask()">+ Add Task</button>
+          </div>
+        </div>
+      </div>
+      <!-- UPLOADS TAB -->
+      <div id="docPane-uploads" style="display:none">
+        <!-- Link back to project card -->
+        <div style="display:flex;justify-content:flex-end;margin-bottom:14px">
+          <button onclick="goToProjectCard()"
+            style="display:inline-flex;align-items:center;gap:6px;background:rgba(124,95,230,0.1);border:1px solid rgba(124,95,230,0.3);color:#9b7ff0;border-radius:9px;padding:6px 14px;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font-b);transition:all .15s"
+            onmouseover="this.style.background='rgba(124,95,230,0.2)'" onmouseout="this.style.background='rgba(124,95,230,0.1)'">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+            View Project Card
+          </button>
+        </div>
+        <div id="docUploadsList" style="min-height:60px"></div>
+        <div id="docUploadAddRow">
+          <div class="doc-upload-add-card">
+            <div class="doc-upload-add-title">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+              Upload Document
+            </div>
+            <div class="doc-upload-form-row">
+              <div class="doc-upload-field">
+                <label>Document Type</label>
+                <input id="docUploadTypeInput" placeholder="e.g. Requirements, Design Spec, SOP…" />
+              </div>
+              <div class="doc-upload-field">
+                <label>File</label>
+                <div class="doc-upload-file-drop" id="docUploadDropZone" onclick="document.getElementById('docUploadFileInput').click()">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#17b98a" stroke-width="2"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+                  <span id="docUploadDropLabel" style="font-size:12px;color:var(--muted2)">Click to choose file</span>
+                  <input type="file" id="docUploadFileInput" style="display:none" onchange="onDocFileChosen(this)" />
+                </div>
+              </div>
+            </div>
+            <button class="doc-upload-submit-btn" id="docUploadSubmitBtn" onclick="uploadDocFile()" disabled>Upload Document</button>
           </div>
         </div>
       </div>

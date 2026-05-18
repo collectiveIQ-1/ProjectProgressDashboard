@@ -26,6 +26,22 @@ const videoUpload = multer({
   }
 });
 
+// ── DOC FILE UPLOAD CONFIG ────────────────────────────────────────────────────
+const docFileUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      const dir = path.join(__dirname, 'public', 'uploads', 'docs');
+      fs.mkdirSync(dir, { recursive: true });
+      cb(null, dir);
+    },
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname) || '';
+      cb(null, `doc_${Date.now()}${ext}`);
+    }
+  }),
+  limits: { fileSize: 100 * 1024 * 1024 }, // 100 MB
+});
+
 const app    = express();
 const prisma = new PrismaClient();
 
@@ -83,6 +99,27 @@ async function writeAuditLog({ projectId, projectName, username, displayName, ac
   } catch (e) {
     console.error('Audit log error:', e.message);
   }
+}
+
+// ── ACTIVITY TRACKER ─────────────────────────────────────────────────────────
+async function touchProjectActivity(progressId) {
+  try {
+    const pid = parseInt(progressId);
+    if (!isNaN(pid)) {
+      await prisma.progress.update({
+        where: { id: pid },
+        data:  { last_activity_at: new Date() },
+      });
+    }
+  } catch (_) {} // non-critical — never block the main response
+}
+
+function getStalenessThreshold() {
+  const now = new Date();
+  const t = new Date(now);
+  t.setHours(15, 0, 0, 0); // 3:00 PM local time today
+  if (now < t) t.setDate(t.getDate() - 1); // before 3 PM → yesterday's 3 PM
+  return t;
 }
 
 // Helper: get user info from request headers
@@ -636,6 +673,7 @@ app.put('/api/progress/:id', async (req, res) => {
       itemTitle: row.process,
     });
 
+    await touchProjectActivity(id);
     res.json({ success: true, data: rowToProject(row) });
   } catch (err) {
     if (err.code === 'P2025') return res.status(404).json({ success: false, error: 'Not found' });
@@ -772,6 +810,7 @@ app.post('/api/meeting-updates', async (req, res) => {
       fieldName: 'Meeting Update', newValue: String(note).trim().slice(0, 80),
     });
 
+    await touchProjectActivity(progress_id);
     res.json({ success: true, data: rowToMeetingUpdate(row) });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
@@ -816,6 +855,7 @@ app.put('/api/meeting-updates/:id', async (req, res) => {
       }
     }
 
+    await touchProjectActivity(existing.progress_id);
     res.json({ success: true, data: rowToMeetingUpdate(row) });
   } catch (err) {
     if (err.code === 'P2025') return res.status(404).json({ success: false, error: 'Not found' });
@@ -916,6 +956,7 @@ app.post('/api/milestones', async (req, res) => {
       fieldName: 'Milestone', newValue: row.title,
     });
 
+    await touchProjectActivity(progress_id);
     res.json({ success: true, data: rowToMilestone(row) });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
@@ -959,6 +1000,7 @@ app.put('/api/milestones/:id', async (req, res) => {
       }
     }
 
+    await touchProjectActivity(existing.progress_id);
     res.json({ success: true, data: rowToMilestone(row) });
   } catch (err) {
     if (err.code === 'P2025') return res.status(404).json({ success: false, error: 'Not found' });
@@ -1043,6 +1085,7 @@ app.post('/api/requirements', async (req, res) => {
       fieldName: 'Requirement', newValue: row.title,
     });
 
+    await touchProjectActivity(progress_id);
     res.json({ success: true, data: rowToRequirement(row) });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
@@ -1085,6 +1128,7 @@ app.put('/api/requirements/:id', async (req, res) => {
       }
     }
 
+    await touchProjectActivity(existing.progress_id);
     res.json({ success: true, data: rowToRequirement(row) });
   } catch (err) {
     if (err.code === 'P2025') return res.status(404).json({ success: false, error: 'Not found' });
@@ -1166,6 +1210,7 @@ app.post('/api/change-requests', async (req, res) => {
       fieldName: 'Change Request', newValue: row.title,
     });
 
+    await touchProjectActivity(progress_id);
     res.json({ success: true, data: rowToChangeRequest(row) });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
@@ -1208,6 +1253,7 @@ app.put('/api/change-requests/:id', async (req, res) => {
       }
     }
 
+    await touchProjectActivity(existing.progress_id);
     res.json({ success: true, data: rowToChangeRequest(row) });
   } catch (err) {
     if (err.code === 'P2025') return res.status(404).json({ success: false, error: 'Not found' });
@@ -1289,6 +1335,7 @@ app.post('/api/feature-addons', async (req, res) => {
       fieldName: 'Feature Add-On', newValue: row.title,
     });
 
+    await touchProjectActivity(progress_id);
     res.json({ success: true, data: rowToFeatureAddon(row) });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
@@ -1331,6 +1378,7 @@ app.put('/api/feature-addons/:id', async (req, res) => {
       }
     }
 
+    await touchProjectActivity(existing.progress_id);
     res.json({ success: true, data: rowToFeatureAddon(row) });
   } catch (err) {
     if (err.code === 'P2025') return res.status(404).json({ success: false, error: 'Not found' });
@@ -1412,6 +1460,7 @@ app.post('/api/bug-fixes', async (req, res) => {
       fieldName: 'Bug Fix', newValue: row.title,
     });
 
+    await touchProjectActivity(progress_id);
     res.json({ success: true, data: { ...row, _id: row.id } });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
@@ -1454,6 +1503,7 @@ app.put('/api/bug-fixes/:id', async (req, res) => {
       }
     }
 
+    await touchProjectActivity(existing.progress_id);
     res.json({ success: true, data: { ...row, _id: row.id } });
   } catch (err) {
     if (err.code === 'P2025') return res.status(404).json({ success: false, error: 'Not found' });
@@ -1624,6 +1674,89 @@ app.delete('/api/doc-tasks/:id', memberOrAdmin, async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     if (err.code === 'P2025') return res.status(404).json({ success: false, error: 'Not found' });
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// DOC UPLOADS ROUTES
+// ══════════════════════════════════════════════════════════════════════════════
+
+// GET all uploads for a project
+app.get('/api/doc-uploads/:progressId', async (req, res) => {
+  try {
+    const pid = parseInt(req.params.progressId);
+    if (isNaN(pid)) return res.status(400).json({ success: false, error: 'Invalid ID' });
+    const rows = await prisma.doc_uploads.findMany({
+      where:   { progress_id: pid },
+      orderBy: { created_at: 'asc' },
+    });
+    res.json({ success: true, data: rows });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST upload a document file
+app.post('/api/doc-uploads', memberOrAdmin, docFileUpload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ success: false, error: 'No file uploaded' });
+    const { progress_id, doc_type } = req.body;
+    const pid = parseInt(progress_id);
+    if (isNaN(pid) || !doc_type) {
+      fs.unlinkSync(req.file.path);
+      return res.status(400).json({ success: false, error: 'progress_id and doc_type required' });
+    }
+    const row = await prisma.doc_uploads.create({
+      data: {
+        progress_id:   pid,
+        doc_type:      String(doc_type).trim(),
+        filename:      req.file.filename,
+        original_name: req.file.originalname,
+        mime_type:     req.file.mimetype,
+        file_size:     req.file.size,
+      },
+    });
+    res.json({ success: true, data: row });
+  } catch (err) {
+    if (req.file) try { fs.unlinkSync(req.file.path); } catch (_) {}
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// DELETE a document upload
+app.delete('/api/doc-uploads/:id', memberOrAdmin, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const row = await prisma.doc_uploads.findUnique({ where: { id } });
+    if (!row) return res.status(404).json({ success: false, error: 'Not found' });
+    // Delete the physical file
+    const filePath = path.join(__dirname, 'public', 'uploads', 'docs', row.filename);
+    try { fs.unlinkSync(filePath); } catch (_) {}
+    await prisma.doc_uploads.delete({ where: { id } });
+    res.json({ success: true });
+  } catch (err) {
+    if (err.code === 'P2025') return res.status(404).json({ success: false, error: 'Not found' });
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// GET developing projects that haven't been updated since the last 3 PM threshold
+app.get('/api/stale-developing', async (req, res) => {
+  try {
+    const threshold = getStalenessThreshold();
+    const projects = await prisma.progress.findMany({
+      where: {
+        status: 'Developing',
+        OR: [
+          { last_activity_at: null },
+          { last_activity_at: { lt: threshold } },
+        ],
+      },
+      select: { id: true, process: true, last_activity_at: true },
+    });
+    res.json({ success: true, data: projects });
+  } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });

@@ -36,9 +36,11 @@ model Progress {
   assigned_ba       String[]
   doc_status        String?           @default("Pending")
   doc_note          String?           @default("")
+  last_activity_at  DateTime?         @db.Timestamptz(6)
   bug_fixes         bug_fixes[]
   change_requests   change_requests[]
   doc_tasks         doc_tasks[]
+  doc_uploads       doc_uploads[]
   feature_addons    feature_addons[]
   meeting_updates   MeetingUpdate[]
   milestones        Milestone[]
@@ -175,6 +177,21 @@ model doc_tasks {
   progress              Progress  @relation(fields: [progress_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([progress_id], map: "idx_doc_tasks_progress_id")
+}
+
+model doc_uploads {
+  id            Int       @id @default(autoincrement())
+  progress_id   Int
+  doc_type      String
+  filename      String
+  original_name String
+  mime_type     String?
+  file_size     Int?
+  created_at    DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime? @default(now()) @db.Timestamptz(6)
+  progress      Progress  @relation(fields: [progress_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([progress_id], map: "idx_doc_uploads_progress_id")
 }
 
 model run_dates {
