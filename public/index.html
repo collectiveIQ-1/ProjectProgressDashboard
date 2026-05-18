@@ -698,18 +698,26 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover{opacity:1}
 .notif-bell:hover{background:rgba(255,255,255,0.1)}
 .notif-bell svg{width:17px;height:17px;stroke:var(--muted2);fill:none;stroke-width:2}
 .notif-badge{position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;border-radius:9px;background:#e06aaa;color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px;box-sizing:border-box;border:2px solid var(--card);pointer-events:none}
-.notif-panel{position:absolute;top:calc(100% + 10px);right:0;width:330px;max-height:380px;background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,0.5);z-index:500;overflow:hidden;display:flex;flex-direction:column}
-.notif-panel-hdr{padding:12px 16px;font-size:12px;font-weight:700;color:var(--text);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
-.notif-item-stale{border-left:3px solid #e06aaa !important;background:rgba(224,106,170,0.04) !important}
-.notif-item-stale:hover{background:rgba(224,106,170,0.09) !important}
-.notif-list{overflow-y:auto;max-height:310px;padding:4px 0}
-.notif-item{padding:10px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s}
+.notif-panel{position:absolute;top:calc(100% + 10px);right:0;width:370px;max-height:480px;background:#0b1a26;border:1px solid rgba(255,255,255,0.09);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.75);z-index:500;overflow:hidden;display:flex;flex-direction:column}
+.notif-panel-hdr{padding:14px 18px;font-size:13px;font-weight:700;color:#e2eaf4;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:rgba(255,255,255,0.025)}
+.notif-list{overflow-y:auto;flex:1}
+.notif-section-hdr{padding:9px 16px 7px;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.9px;display:flex;align-items:center;gap:6px;position:sticky;top:0;z-index:1}
+.notif-section-stale{background:rgba(224,106,170,0.13);color:#e06aaa;border-bottom:1px solid rgba(224,106,170,0.18)}
+.notif-section-overdue{background:rgba(240,168,50,0.11);color:#f0a832;border-bottom:1px solid rgba(240,168,50,0.16)}
+.notif-item{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;transition:background .12s;display:flex;align-items:flex-start;gap:10px}
 .notif-item:last-child{border-bottom:none}
-.notif-item:hover{background:rgba(224,106,170,0.07)}
-.notif-item-task{font-size:12px;font-weight:600;color:var(--text)}
-.notif-item-proj{font-size:10px;color:var(--muted);margin-top:2px}
-.notif-item-due{font-size:10px;color:#e06aaa;font-weight:600;margin-top:2px}
-.notif-empty{padding:24px 16px;text-align:center;color:var(--muted);font-size:12px;font-style:italic}
+.notif-item-stale{border-left:3px solid rgba(224,106,170,0.7)}
+.notif-item-stale:hover{background:rgba(224,106,170,0.08)}
+.notif-item-overdue{border-left:3px solid rgba(240,168,50,0.6)}
+.notif-item-overdue:hover{background:rgba(240,168,50,0.07)}
+.notif-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px}
+.notif-icon-stale{background:rgba(224,106,170,0.18);color:#e06aaa}
+.notif-icon-overdue{background:rgba(240,168,50,0.18);color:#f0a832}
+.notif-body{flex:1;min-width:0}
+.notif-title{font-size:12px;font-weight:600;color:#e2eaf4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4}
+.notif-sub{font-size:10px;color:#5a7a96;margin-top:3px;line-height:1.4}
+.notif-tag{display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:700;padding:2px 8px;border-radius:20px;margin-top:5px}
+.notif-empty{padding:32px 20px;text-align:center;color:var(--muted);font-size:12px;line-height:1.6}
 /* ── DOC TASK TABLE ── */
 .doc-task-tbl-wrap{border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:16px;box-shadow:0 2px 12px rgba(0,0,0,0.15)}
 .doc-task-tbl-scroll{overflow-x:auto;width:100%}
@@ -938,8 +946,12 @@ body.role-member .view-only-banner { display: flex; }
       </button>
       <div class="notif-panel" id="notifPanel" style="display:none">
         <div class="notif-panel-hdr">
-          <span>Overdue Tasks</span>
-          <button onclick="closeNotifPanel()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;line-height:1;padding:0">✕</button>
+          <div style="display:flex;align-items:center;gap:8px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e06aaa" stroke-width="2.2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span>Notifications</span>
+            <span id="notifTotalCount" style="background:rgba(224,106,170,0.15);color:#e06aaa;font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;display:none"></span>
+          </div>
+          <button onclick="closeNotifPanel()" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#8aa0b8;cursor:pointer;font-size:12px;line-height:1;padding:4px 8px;border-radius:6px;font-family:inherit">✕</button>
         </div>
         <div class="notif-list" id="notifList"><div class="notif-empty">Loading…</div></div>
       </div>
@@ -3038,41 +3050,59 @@ function renderNotifList(overdueTasks, staleProjects) {
   const overdue = overdueTasks || window._overdueDocTasks || [];
   const stale   = staleProjects || window._staleDevelopingProjects || [];
 
+  // Update count chip in header
+  const total = overdue.length + stale.length;
+  const countEl = document.getElementById('notifTotalCount');
+  if (countEl) {
+    countEl.textContent = total;
+    countEl.style.display = total > 0 ? 'inline' : 'none';
+  }
+
   if (!overdue.length && !stale.length) {
-    el.innerHTML = '<div class="notif-empty">All clear — no alerts 🎉</div>';
+    el.innerHTML = `<div class="notif-empty">
+      <div style="font-size:28px;margin-bottom:8px">✅</div>
+      <div style="color:#e2eaf4;font-weight:600;margin-bottom:4px">All clear!</div>
+      <div style="color:#5a7a96">No overdue tasks or pending updates</div>
+    </div>`;
     return;
   }
 
   const staleHtml = stale.length ? `
-    <div style="padding:8px 14px 4px;font-size:9px;font-weight:700;color:#e06aaa;text-transform:uppercase;letter-spacing:.7px;border-bottom:1px solid rgba(224,106,170,0.15)">
-      ⚑ Developing — Update Needed (${stale.length})
+    <div class="notif-section-hdr notif-section-stale">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15" stroke="currentColor" stroke-width="2"/></svg>
+      Developing — Update Needed &nbsp;<span style="background:rgba(224,106,170,0.25);padding:1px 6px;border-radius:10px">${stale.length}</span>
     </div>
     ${stale.map(p => {
       const lastUpdate = p.last_activity_at
         ? new Date(p.last_activity_at).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})
         : 'Never updated';
-      return `<div class="notif-item notif-item-stale" onclick="closeNotifPanel();navTo('breakdown');setTimeout(()=>{const idx=(window._projects||[]).findIndex(x=>String(x._id)===String(${p.id}));if(idx>=0)openModal(idx);},150)">
-        <div style="display:flex;align-items:center;gap:7px">
-          <span style="font-size:14px">⚑</span>
-          <div>
-            <div class="notif-item-task" style="color:#e06aaa">${escapeHtml(p.process)}</div>
-            <div class="notif-item-proj" style="color:var(--muted)">Last activity: ${lastUpdate}</div>
-          </div>
+      return `<div class="notif-item notif-item-stale"
+        onclick="closeNotifPanel();navTo('breakdown');setTimeout(()=>{const idx=(window._projects||[]).findIndex(x=>String(x._id)===String(${p.id}));if(idx>=0)openModal(idx);},150)">
+        <div class="notif-icon notif-icon-stale">⚑</div>
+        <div class="notif-body">
+          <div class="notif-title">${escapeHtml(p.process)}</div>
+          <div class="notif-sub">Last activity: ${lastUpdate}</div>
+          <span class="notif-tag" style="background:rgba(224,106,170,0.15);color:#e06aaa">Needs update today</span>
         </div>
       </div>`;
     }).join('')}` : '';
 
   const overdueHtml = overdue.length ? `
-    <div style="padding:8px 14px 4px;font-size:9px;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:.7px;border-bottom:1px solid rgba(240,168,50,0.15)">
-      ⏰ Overdue Tasks (${overdue.length})
+    <div class="notif-section-hdr notif-section-overdue">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Overdue Tasks &nbsp;<span style="background:rgba(240,168,50,0.25);padding:1px 6px;border-radius:10px">${overdue.length}</span>
     </div>
     ${overdue.map(t => {
       const projName = escapeHtml(t.project_name || String(t.progress_id));
       const dueStr   = fmtDocTaskDate(t.due_date);
-      return `<div class="notif-item" onclick="closeNotifPanel();navTo('docs');setTimeout(()=>openDocModal('${t.progress_id}'),150)">
-        <div class="notif-item-task">${escapeHtml(t.title)}</div>
-        <div class="notif-item-proj">${projName}</div>
-        <div class="notif-item-due">Due: ${dueStr}</div>
+      return `<div class="notif-item notif-item-overdue"
+        onclick="closeNotifPanel();navTo('docs');setTimeout(()=>openDocModal('${t.progress_id}'),150)">
+        <div class="notif-icon notif-icon-overdue">⏰</div>
+        <div class="notif-body">
+          <div class="notif-title">${escapeHtml(t.title)}</div>
+          <div class="notif-sub">${projName}</div>
+          <span class="notif-tag" style="background:rgba(240,168,50,0.15);color:#f0a832">Due: ${dueStr}</span>
+        </div>
       </div>`;
     }).join('')}` : '';
 
