@@ -3027,11 +3027,19 @@ async function loadStaleDeveloping() {
   try {
     const resp = await authFetch(`${API_BASE}/api/stale-developing`);
     const data = await resp.json();
-    if (!data.success) return;
+    if (!data.success) {
+      console.warn('[Stale Check] API returned error:', data.error);
+      return;
+    }
     window._staleDevelopingProjects = data.data || [];
     // Store as Set of string IDs for quick card lookups
     window._staleDevelopingIds = new Set((data.data||[]).map(p => String(p.id)));
-  } catch (e) { console.warn('loadStaleDeveloping failed:', e); }
+    if (data.data.length > 0) {
+      console.log(`[Stale Check] ${data.data.length} project(s) need updating:`, data.data.map(p => p.process));
+    } else {
+      console.log('[Stale Check] No stale developing projects — all updated within the current 5 PM window.');
+    }
+  } catch (e) { console.warn('[Stale Check] loadStaleDeveloping failed:', e); }
   refreshNotifUI();
 }
 

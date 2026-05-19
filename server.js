@@ -1741,22 +1741,38 @@ app.delete('/api/doc-uploads/:id', memberOrAdmin, async (req, res) => {
   }
 });
 
-// GET developing projects that haven't been updated since the last 3 PM threshold
+// GET developing projects that haven't been updated since the last 5 PM threshold
 app.get('/api/stale-developing', async (req, res) => {
   try {
     const threshold = getStalenessThreshold();
-    const projects = await prisma.progress.findMany({
-      where: {
-        status: 'Developing',
-        OR: [
-          { last_activity_at: null },
-          { last_activity_at: { lt: threshold } },
-        ],
-      },
-      select: { id: true, process: true, last_activity_at: true },
-    });
+    let projects;
+    try {
+      // Primary: use last_activity_at (tracks explicit user edits)
+      projects = await prisma.progress.findMany({
+        where: {
+          status: 'Developing',
+          OR: [
+            { last_activity_at: null },
+            { last_activity_at: { lt: threshold } },
+          ],
+        },
+        select: { id: true, process: true, last_activity_at: true },
+      });
+    } catch (innerErr) {
+      // Fallback: last_activity_at column missing — use updated_at instead
+      console.warn('[stale-developing] last_activity_at query failed, using updated_at fallback:', innerErr.message);
+      projects = await prisma.progress.findMany({
+        where: {
+          status: 'Developing',
+          updated_at: { lt: threshold },
+        },
+        select: { id: true, process: true, updated_at: true },
+      });
+    }
+    console.log(`[stale-developing] threshold=${threshold.toISOString()}, found ${projects.length} stale project(s)`);
     res.json({ success: true, data: projects });
   } catch (err) {
+    console.error('[stale-developing] error:', err.message);
     res.status(500).json({ success: false, error: err.message });
   }
 });
@@ -1899,11 +1915,34 @@ app.get('*', (req, res) => {
 // ── START SERVER ──────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
 
+// Ensure optional columns exist (safe to run on every startup)
+async function ensureSchemaExtras() {
+  try {
+    await prisma.$executeRawUnsafe(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'progress' AND column_name = 'last_activity_at'
+        ) THEN
+          ALTER TABLE progress ADD COLUMN last_activity_at TIMESTAMPTZ;
+          RAISE NOTICE 'Added last_activity_at column to progress table';
+        END IF;
+      END
+      $$;
+    `);
+    console.log('✅  Schema extras verified (last_activity_at)');
+  } catch (e) {
+    console.warn('⚠️  ensureSchemaExtras failed (non-fatal):', e.message);
+  }
+}
+
 prisma.$connect()
   .then(() => {
     console.log(`✅  Connected to PostgreSQL — ${process.env.PG_DATABASE || 'db'} @ ${process.env.PG_HOST || 'localhost'}`);
     return seedCredentials();
   })
+  .then(() => ensureSchemaExtras())
   .then(() => {
     app.listen(PORT, () => {
       console.log(`🚀  Server running  →  http://localhost:${PORT}`);
