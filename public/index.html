@@ -1286,6 +1286,12 @@ function navTo(id){
   if(id==='docs' && window._projects && document.querySelector('#docsContent .locked')){
     try { renderDocs(window._projects); } catch(e){ console.error('renderDocs (lazy):', e); }
   }
+  // Charts must always re-render on tab activation — Chart.js can't size canvases
+  // correctly when the parent container is hidden (display:none), so we destroy
+  // any previously-created chart instances and redraw now that the tab is visible.
+  if(id==='charts' && window._projects && window._projects.length){
+    try { renderCharts(window._projects); } catch(e){ console.error('renderCharts (lazy):', e); }
+  }
   if(id==='auditlog') { try { loadAuditLogs(); } catch(e){ console.error('loadAuditLogs:', e); } }
 }
 
@@ -6135,6 +6141,7 @@ async function saveProjectEdit(idx) {
         updated_at:  r.updated_at
       });
       showToast('✅ Project details updated successfully', 'success');
+      try { loadStaleDeveloping(); } catch(_) {}
       // Re-render and reopen modal — in a separate try so render bugs never
       // falsely show "Save failed" when the data was already saved successfully
       try {
@@ -6160,8 +6167,8 @@ window.addEventListener('DOMContentLoaded', () => {
   // Refresh displayName from server in case session was saved before displayName was added
   refreshDisplayName().then(() => {
     applyRoleToDOM();
-    loadFromMongoDB();
-    loadOverdueTasks();
+    // Load projects first, THEN check stale/overdue so window._projects is set
+    loadFromMongoDB().then(() => loadOverdueTasks());
   });
   initSidebar();
   // Close notification panel when clicking outside
@@ -6169,8 +6176,8 @@ window.addEventListener('DOMContentLoaded', () => {
     const wrap = document.getElementById('notifBellWrap');
     if (wrap && !wrap.contains(e.target)) closeNotifPanel();
   });
-  // Refresh stale-developing check every 5 minutes
-  setInterval(() => { try { loadStaleDeveloping(); } catch(e){} }, 5 * 60 * 1000);
+  // Re-check stale developing every 2 minutes — catches the 5 PM rollover quickly
+  setInterval(() => { try { loadStaleDeveloping(); } catch(e){} }, 2 * 60 * 1000);
 });
 
 // Fetch display_name from server and update session + window globals
