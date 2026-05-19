@@ -191,8 +191,8 @@ async function touchProjectActivity(progressId) {
 function getStalenessThreshold() {
   const now = new Date();
   const t = new Date(now);
-  t.setHours(19, 30, 0, 0); // 7:30 PM local time today
-  if (now < t) t.setDate(t.getDate() - 1); // before 7:30 PM → yesterday's 7:30 PM
+  t.setHours(17, 0, 0, 0); // 5:00 PM local time today
+  if (now < t) t.setDate(t.getDate() - 1); // before 5:00 PM → yesterday's 5:00 PM
   return t;
 }
 
