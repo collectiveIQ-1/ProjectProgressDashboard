@@ -6,39 +6,88 @@ const path              = require('path');
 const multer            = require('multer');
 const fs                = require('fs');
 
+// ── S3 / LOCAL STORAGE DETECTION ─────────────────────────────────────────────
+// S3 is used when S3_BUCKET env var is present (set in AWS .env, absent on localhost).
+// Localhost always uses local disk storage — no code changes needed.
+const USE_S3    = !!process.env.S3_BUCKET;
+const S3_BUCKET = process.env.S3_BUCKET  || 'ppd-assets-prods';
+const AWS_REGION= process.env.AWS_REGION || 'us-east-1';
+
+// Lazy S3 client — only initialised on first use in production
+let _s3Client = null;
+function getS3() {
+  if (!_s3Client) {
+    const { S3Client } = require('@aws-sdk/client-s3');
+    _s3Client = new S3Client({ region: AWS_REGION });
+    // EC2 IAM role supplies credentials automatically — no keys needed
+  }
+  return _s3Client;
+}
+
+// Upload a Buffer to S3
+async function s3Put(key, buffer, contentType) {
+  const { PutObjectCommand } = require('@aws-sdk/client-s3');
+  await getS3().send(new PutObjectCommand({
+    Bucket: S3_BUCKET, Key: key, Body: buffer, ContentType: contentType,
+  }));
+}
+
+// Delete an object from S3 (silent — never blocks a response)
+async function s3Del(key) {
+  try {
+    const { DeleteObjectCommand } = require('@aws-sdk/client-s3');
+    await getS3().send(new DeleteObjectCommand({ Bucket: S3_BUCKET, Key: key }));
+  } catch (_) {}
+}
+
+// Generate a 1-hour pre-signed download URL
+async function s3SignedUrl(key, expiresIn = 3600) {
+  const { GetObjectCommand }  = require('@aws-sdk/client-s3');
+  const { getSignedUrl }      = require('@aws-sdk/s3-request-presigner');
+  return getSignedUrl(getS3(), new GetObjectCommand({ Bucket: S3_BUCKET, Key: key }), { expiresIn });
+}
+
 // ── VIDEO UPLOAD CONFIG ───────────────────────────────────────────────────────
+// S3 mode  → memory storage (buffer available as req.file.buffer)
+// Local    → disk storage   (existing behaviour)
 const videoUpload = multer({
-  storage: multer.diskStorage({
-    destination: (req, file, cb) => {
-      const dir = path.join(__dirname, 'public', 'uploads', 'videos');
-      fs.mkdirSync(dir, { recursive: true });
-      cb(null, dir);
-    },
-    filename: (req, file, cb) => {
-      const ext = path.extname(file.originalname).toLowerCase() || '.mp4';
-      cb(null, `demo_${req.params.id}_${Date.now()}${ext}`);
-    }
-  }),
-  limits: { fileSize: 500 * 1024 * 1024 }, // 500 MB
+  storage: USE_S3
+    ? multer.memoryStorage()
+    : multer.diskStorage({
+        destination: (req, file, cb) => {
+          const dir = path.join(__dirname, 'public', 'uploads', 'videos');
+          fs.mkdirSync(dir, { recursive: true });
+          cb(null, dir);
+        },
+        filename: (req, file, cb) => {
+          const ext = path.extname(file.originalname).toLowerCase() || '.mp4';
+          cb(null, `demo_${req.params.id}_${Date.now()}${ext}`);
+        },
+      }),
+  limits:     { fileSize: 500 * 1024 * 1024 }, // 500 MB
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith('video/')) cb(null, true);
     else cb(new Error('Only video files are allowed'));
-  }
+  },
 });
 
 // ── DOC FILE UPLOAD CONFIG ────────────────────────────────────────────────────
+// S3 mode  → memory storage
+// Local    → disk storage
 const docFileUpload = multer({
-  storage: multer.diskStorage({
-    destination: (req, file, cb) => {
-      const dir = path.join(__dirname, 'public', 'uploads', 'docs');
-      fs.mkdirSync(dir, { recursive: true });
-      cb(null, dir);
-    },
-    filename: (req, file, cb) => {
-      const ext = path.extname(file.originalname) || '';
-      cb(null, `doc_${Date.now()}${ext}`);
-    }
-  }),
+  storage: USE_S3
+    ? multer.memoryStorage()
+    : multer.diskStorage({
+        destination: (req, file, cb) => {
+          const dir = path.join(__dirname, 'public', 'uploads', 'docs');
+          fs.mkdirSync(dir, { recursive: true });
+          cb(null, dir);
+        },
+        filename: (req, file, cb) => {
+          const ext = path.extname(file.originalname) || '';
+          cb(null, `doc_${Date.now()}${ext}`);
+        },
+      }),
   limits: { fileSize: 100 * 1024 * 1024 }, // 100 MB
 });
 
@@ -48,6 +97,31 @@ const prisma = new PrismaClient();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
+
+// ── S3 FILE-SERVING ROUTES ────────────────────────────────────────────────────
+// In production (S3 mode) the files are not on disk, so express.static passes
+// through and these routes generate a pre-signed URL and redirect the browser.
+// In local mode the files ARE on disk so express.static handles them first and
+// these routes are never reached — no behaviour change for localhost.
+app.get('/uploads/videos/:filename', async (req, res) => {
+  if (!USE_S3) return res.status(404).send('Not found');
+  try {
+    const url = await s3SignedUrl(`videos/${req.params.filename}`);
+    res.redirect(302, url);
+  } catch (e) {
+    res.status(404).send('File not found in S3');
+  }
+});
+
+app.get('/uploads/docs/:filename', async (req, res) => {
+  if (!USE_S3) return res.status(404).send('Not found');
+  try {
+    const url = await s3SignedUrl(`documents/${req.params.filename}`);
+    res.redirect(302, url);
+  } catch (e) {
+    res.status(404).send('File not found in S3');
+  }
+});
 
 // ── SEED CREDENTIALS ON STARTUP ───────────────────────────────────────────────
 async function seedCredentials() {
@@ -1704,14 +1778,26 @@ app.post('/api/doc-uploads', memberOrAdmin, docFileUpload.single('file'), async 
     const { progress_id, doc_type } = req.body;
     const pid = parseInt(progress_id);
     if (isNaN(pid) || !doc_type) {
-      fs.unlinkSync(req.file.path);
+      // Clean up — disk mode has a file path; S3 mode has a buffer (nothing to clean)
+      if (!USE_S3 && req.file.path) try { fs.unlinkSync(req.file.path); } catch (_) {}
       return res.status(400).json({ success: false, error: 'progress_id and doc_type required' });
     }
+
+    let filename;
+    if (USE_S3) {
+      // Generate filename and upload buffer to S3 documents/ folder
+      const ext = path.extname(req.file.originalname) || '';
+      filename   = `doc_${Date.now()}${ext}`;
+      await s3Put(`documents/${filename}`, req.file.buffer, req.file.mimetype || 'application/octet-stream');
+    } else {
+      filename = req.file.filename; // multer already wrote to disk
+    }
+
     const row = await prisma.doc_uploads.create({
       data: {
         progress_id:   pid,
         doc_type:      String(doc_type).trim(),
-        filename:      req.file.filename,
+        filename,
         original_name: req.file.originalname,
         mime_type:     req.file.mimetype,
         file_size:     req.file.size,
@@ -1719,7 +1805,7 @@ app.post('/api/doc-uploads', memberOrAdmin, docFileUpload.single('file'), async 
     });
     res.json({ success: true, data: row });
   } catch (err) {
-    if (req.file) try { fs.unlinkSync(req.file.path); } catch (_) {}
+    if (!USE_S3 && req.file?.path) try { fs.unlinkSync(req.file.path); } catch (_) {}
     res.status(500).json({ success: false, error: err.message });
   }
 });
@@ -1730,9 +1816,13 @@ app.delete('/api/doc-uploads/:id', memberOrAdmin, async (req, res) => {
     const id = parseInt(req.params.id);
     const row = await prisma.doc_uploads.findUnique({ where: { id } });
     if (!row) return res.status(404).json({ success: false, error: 'Not found' });
-    // Delete the physical file
-    const filePath = path.join(__dirname, 'public', 'uploads', 'docs', row.filename);
-    try { fs.unlinkSync(filePath); } catch (_) {}
+    // Remove the physical file — S3 or local disk
+    if (USE_S3) {
+      await s3Del(`documents/${row.filename}`);
+    } else {
+      const filePath = path.join(__dirname, 'public', 'uploads', 'docs', row.filename);
+      try { fs.unlinkSync(filePath); } catch (_) {}
+    }
     await prisma.doc_uploads.delete({ where: { id } });
     res.json({ success: true });
   } catch (err) {
@@ -1881,12 +1971,26 @@ app.post('/api/progress/:id/video', adminOnly, (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const existing = await prisma.progress.findUnique({ where: { id }, select: { demo_video: true } });
-      if (existing?.demo_video) {
-        const oldPath = path.join(__dirname, 'public', 'uploads', 'videos', existing.demo_video);
-        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      let filename;
+
+      if (USE_S3) {
+        // Generate filename and upload buffer to S3
+        const ext = path.extname(req.file.originalname).toLowerCase() || '.mp4';
+        filename   = `demo_${id}_${Date.now()}${ext}`;
+        await s3Put(`videos/${filename}`, req.file.buffer, req.file.mimetype || 'video/mp4');
+        // Remove old S3 object
+        if (existing?.demo_video) await s3Del(`videos/${existing.demo_video}`);
+      } else {
+        // Local: multer already wrote file to disk
+        filename = req.file.filename;
+        if (existing?.demo_video) {
+          const oldPath = path.join(__dirname, 'public', 'uploads', 'videos', existing.demo_video);
+          if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+        }
       }
-      await prisma.progress.update({ where: { id }, data: { demo_video: req.file.filename } });
-      res.json({ success: true, filename: req.file.filename });
+
+      await prisma.progress.update({ where: { id }, data: { demo_video: filename } });
+      res.json({ success: true, filename });
     } catch (e) {
       res.status(500).json({ success: false, error: e.message });
     }
@@ -1898,8 +2002,12 @@ app.delete('/api/progress/:id/video', adminOnly, async (req, res) => {
     const id = parseInt(req.params.id);
     const existing = await prisma.progress.findUnique({ where: { id }, select: { demo_video: true } });
     if (existing?.demo_video) {
-      const filePath = path.join(__dirname, 'public', 'uploads', 'videos', existing.demo_video);
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      if (USE_S3) {
+        await s3Del(`videos/${existing.demo_video}`);
+      } else {
+        const filePath = path.join(__dirname, 'public', 'uploads', 'videos', existing.demo_video);
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      }
       await prisma.progress.update({ where: { id }, data: { demo_video: null } });
     }
     res.json({ success: true });
