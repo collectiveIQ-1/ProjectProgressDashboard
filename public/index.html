@@ -697,21 +697,21 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover{opacity:1}
 .notif-bell{background:rgba(255,255,255,0.06);border:1px solid var(--border2);border-radius:9px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s;flex-shrink:0;position:relative}
 .notif-bell:hover{background:rgba(255,255,255,0.1)}
 .notif-bell svg{width:17px;height:17px;stroke:var(--muted2);fill:none;stroke-width:2}
-.notif-badge{position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;border-radius:9px;background:#e06aaa;color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px;box-sizing:border-box;border:2px solid var(--card);pointer-events:none}
+.notif-badge{position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;border-radius:9px;background:#e85c5c;color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px;box-sizing:border-box;border:2px solid var(--card);pointer-events:none}
 .notif-panel{position:absolute;top:calc(100% + 10px);right:0;width:370px;max-height:480px;background:#0b1a26;border:1px solid rgba(255,255,255,0.09);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.75);z-index:500;overflow:hidden;display:flex;flex-direction:column}
 .notif-panel-hdr{padding:14px 18px;font-size:13px;font-weight:700;color:#e2eaf4;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:rgba(255,255,255,0.025)}
 .notif-list{overflow-y:auto;flex:1}
 .notif-section-hdr{padding:9px 16px 7px;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.9px;display:flex;align-items:center;gap:6px;position:sticky;top:0;z-index:1}
-.notif-section-stale{background:rgba(224,106,170,0.13);color:#e06aaa;border-bottom:1px solid rgba(224,106,170,0.18)}
+.notif-section-stale{background:rgba(232,92,92,0.13);color:#e85c5c;border-bottom:1px solid rgba(232,92,92,0.18)}
 .notif-section-overdue{background:rgba(240,168,50,0.11);color:#f0a832;border-bottom:1px solid rgba(240,168,50,0.16)}
 .notif-item{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;transition:background .12s;display:flex;align-items:flex-start;gap:10px}
 .notif-item:last-child{border-bottom:none}
-.notif-item-stale{border-left:3px solid rgba(224,106,170,0.7)}
-.notif-item-stale:hover{background:rgba(224,106,170,0.08)}
+.notif-item-stale{border-left:3px solid rgba(232,92,92,0.7)}
+.notif-item-stale:hover{background:rgba(232,92,92,0.08)}
 .notif-item-overdue{border-left:3px solid rgba(240,168,50,0.6)}
 .notif-item-overdue:hover{background:rgba(240,168,50,0.07)}
 .notif-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px}
-.notif-icon-stale{background:rgba(224,106,170,0.18);color:#e06aaa}
+.notif-icon-stale{background:rgba(232,92,92,0.18);color:#e85c5c}
 .notif-icon-overdue{background:rgba(240,168,50,0.18);color:#f0a832}
 .notif-body{flex:1;min-width:0}
 .notif-title{font-size:12px;font-weight:600;color:#e2eaf4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4}
@@ -947,9 +947,9 @@ body.role-member .view-only-banner { display: flex; }
       <div class="notif-panel" id="notifPanel" style="display:none">
         <div class="notif-panel-hdr">
           <div style="display:flex;align-items:center;gap:8px">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e06aaa" stroke-width="2.2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e85c5c" stroke-width="2.2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
             <span>Notifications</span>
-            <span id="notifTotalCount" style="background:rgba(224,106,170,0.15);color:#e06aaa;font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;display:none"></span>
+            <span id="notifTotalCount" style="background:rgba(232,92,92,0.15);color:#e85c5c;font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;display:none"></span>
           </div>
           <button onclick="closeNotifPanel()" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#8aa0b8;cursor:pointer;font-size:12px;line-height:1;padding:4px 8px;border-radius:6px;font-family:inherit">✕</button>
         </div>
@@ -2214,7 +2214,7 @@ function renderTypeGrid(projects){
         const d=Math.floor(h2/24); return d+'d ago';
       })() : '';
       const isStale = window._staleDevelopingIds && window._staleDevelopingIds.has(String(p._id));
-      const staleBadge = isStale ? `<div style="position:absolute;top:0;right:0;background:linear-gradient(135deg,#e06aaa,#c04488);color:#fff;font-size:8px;font-weight:800;padding:4px 10px;border-radius:0 10px 0 10px;letter-spacing:.5px;display:flex;align-items:center;gap:4px;z-index:2">
+      const staleBadge = isStale ? `<div style="position:absolute;top:0;right:0;background:linear-gradient(135deg,#e85c5c,#c0392b);color:#fff;font-size:8px;font-weight:800;padding:4px 10px;border-radius:0 10px 0 10px;letter-spacing:.5px;display:flex;align-items:center;gap:4px;z-index:2">
   <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15" stroke="currentColor" stroke-width="2"/></svg>
   UPDATE NEEDED
 </div>` : '';
@@ -3084,7 +3084,7 @@ function renderNotifList(overdueTasks, staleProjects) {
   const staleHtml = stale.length ? `
     <div class="notif-section-hdr notif-section-stale">
       <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15" stroke="currentColor" stroke-width="2"/></svg>
-      Developing — Update Needed &nbsp;<span style="background:rgba(224,106,170,0.25);padding:1px 6px;border-radius:10px">${stale.length}</span>
+      Developing — Update Needed &nbsp;<span style="background:rgba(232,92,92,0.25);padding:1px 6px;border-radius:10px">${stale.length}</span>
     </div>
     ${stale.map(p => {
       const lastUpdate = p.last_activity_at
@@ -3096,7 +3096,7 @@ function renderNotifList(overdueTasks, staleProjects) {
         <div class="notif-body">
           <div class="notif-title">${escapeHtml(p.process)}</div>
           <div class="notif-sub">Last activity: ${lastUpdate}</div>
-          <span class="notif-tag" style="background:rgba(224,106,170,0.15);color:#e06aaa">Needs update today</span>
+          <span class="notif-tag" style="background:rgba(232,92,92,0.15);color:#e85c5c">Needs update today</span>
         </div>
       </div>`;
     }).join('')}` : '';
