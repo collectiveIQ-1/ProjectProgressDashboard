@@ -1991,7 +1991,7 @@ function applyTableFilters(projectsArg){
   const projects=projectsArg||window._projects||[];
   const f=window._activeStatus||'all';
   const person=window._activePerson||'all';
-  let list=f==='all'?projects:projects.filter(p=>f==='Production'?p.status.toLowerCase()==='production':f==='Developing'?p.status.toLowerCase()==='developing':f==='Enhancement'?p.status.toLowerCase()==='enhancement':p.status.toLowerCase().includes('hold'));
+  let list=f==='all'?projects:projects.filter(p=>f==='Production'?(p.status.toLowerCase()==='production'||p.status.toLowerCase()==='enhancement'):f==='Developing'?p.status.toLowerCase()==='developing':f==='Enhancement'?p.status.toLowerCase()==='enhancement':p.status.toLowerCase().includes('hold'));
   if(person!=='all') list=list.filter(p=>p.people.includes(person));
   const tbody=document.getElementById('projectTable');
   if(!tbody)return;
@@ -2085,7 +2085,11 @@ function getBdFiltered(projects){
   const pf=window._bdPersonFilter||'all';
   const sf=window._bdStatusFilter||'all';
   if(pf!=='all') list=list.filter(p=>p.people.includes(pf));
-  if(sf!=='all') list=list.filter(p=>p.status===sf);
+  if(sf!=='all') list=list.filter(p=>{
+    // "Production" tab shows Production + Enhancement projects together
+    if(sf==='Production') return p.status.toLowerCase()==='production'||p.status.toLowerCase()==='enhancement';
+    return p.status===sf;
+  });
   return list;
 }
 
@@ -3517,6 +3521,12 @@ function openModal(idx){
         : p.startDate)
     : '—';
 
+  const fmtDeadline = p.deadline
+    ? (p.deadline instanceof Date
+        ? (()=>{const m=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return m[p.deadline.getMonth()]+' '+p.deadline.getDate()+', '+p.deadline.getFullYear();})()
+        : p.deadline)
+    : '—';
+
   document.getElementById('modalBody').innerHTML = `
     <div class="modal-3col">
 
@@ -3553,9 +3563,13 @@ function openModal(idx){
             <div class="modal-field-label">Start Date</div>
             <div class="modal-field-value" style="font-size:12px">${fmtStartDate}</div>
           </div>
+          <div>
+            <div class="modal-field-label">End Date</div>
+            <div class="modal-field-value" style="font-size:12px">${fmtDeadline}</div>
+          </div>
         </div>
         <div style="margin-bottom:12px">
-          <div class="modal-field-label" style="margin-bottom:6px">Deadline</div>
+          <div class="modal-field-label" style="margin-bottom:6px">Milestone Deadline</div>
           <div id="modalDeadlineTable">
             <div style="font-size:11px;color:var(--muted);font-style:italic">Loading phases…</div>
           </div>
@@ -3962,11 +3976,7 @@ function openModal(idx){
 
         <!-- Tab bar -->
         <div class="rcol-tabs">
-          <button class="rcol-tab active" onclick="switchRcolTab('mu',this)">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="14" x2="16" y2="14"/></svg>
-            Meeting Updates <span class="rtab-count" id="mu-inline-count">…</span>
-          </button>
-          <button class="rcol-tab" onclick="switchRcolTab('ms',this)">
+          <button class="rcol-tab active" onclick="switchRcolTab('ms',this)">
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 12h18M3 6l9-3 9 3M3 18l9 3 9-3"/></svg>
             Milestones <span class="rtab-count" id="ms-inline-count">…</span>
           </button>
@@ -3986,46 +3996,14 @@ function openModal(idx){
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 9c-.64.64-1.521.954-2.402 1.165A6 6 0 0 0 8 22a13.96 13.96 0 0 0 2-.143"/><path d="M10.75 5c-.098.132-.226.26-.375.375A6.002 6.002 0 0 0 8 10c0 .426.044.842.128 1.242"/><path d="M2 12h4"/><path d="M18 12h4"/><path d="M8 2c0 2.2 1.8 4 4 4s4-1.8 4-4"/><path d="M12 6v16"/><path d="M16 22a6 6 0 0 0 0-12"/><path d="M22 6l-3 3"/><path d="M2 6l3 3"/></svg>
             Bug Fixing <span class="rtab-count" id="bf-inline-count">…</span>
           </button>
-        </div>
-
-        <!-- Panel: Meeting Updates -->
-        <div class="rcol-panel active" id="rcol-panel-mu">
-          <div class="modal-panel-header" style="padding:12px 16px 10px;flex-shrink:0">
-            <div class="modal-panel-title" style="color:var(--purple)">
-              <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="14" x2="16" y2="14"/></svg>
-              Meeting Updates
-            </div>
-            <button class="imu-btn imu-btn-primary modal-edit-ctrl" style="font-size:10px;padding:5px 11px" onclick="toggleInlineMuForm()">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              Add
-            </button>
-          </div>
-          <div class="imu-add-form" id="inlineMuAddForm" style="margin:0 14px 8px">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:7px">
-              <div><div class="mu-label" style="margin-bottom:3px">Date</div><input class="imu-input" type="date" id="imuNewDate"/></div>
-              <div><div class="mu-label" style="margin-bottom:3px">Time</div><input class="imu-input" type="time" id="imuNewTime"/></div>
-            </div>
-            <div style="margin-bottom:7px">
-              <div class="mu-label" style="margin-bottom:3px">Note <span style="color:var(--coral)">*</span></div>
-              <textarea class="imu-input imu-textarea" id="imuNewNote" placeholder="Meeting discussion, decision or action item…" style="min-height:52px"></textarea>
-            </div>
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-              <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer">
-                <input type="checkbox" id="imuNewDone" style="accent-color:var(--teal);width:13px;height:13px"/> Done
-              </label>
-              <div style="display:flex;gap:5px">
-                <button class="imu-btn imu-btn-primary" style="font-size:10px" onclick="saveInlineMeetingUpdate(${idx})">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Save
-                </button>
-                <button class="imu-btn imu-btn-sec" style="font-size:10px" onclick="toggleInlineMuForm()">Cancel</button>
-              </div>
-            </div>
-          </div>
-          <div id="inlineMuList" style="flex:1;overflow-y:auto;padding:0 14px 14px"><div class="imu-loader"><div class="mu-spin"></div> Loading…</div></div>
+          <button class="rcol-tab" onclick="switchRcolTab('mu',this)">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="14" x2="16" y2="14"/></svg>
+            Meeting Updates <span class="rtab-count" id="mu-inline-count">…</span>
+          </button>
         </div>
 
         <!-- Panel: Milestones -->
-        <div class="rcol-panel" id="rcol-panel-ms">
+        <div class="rcol-panel active" id="rcol-panel-ms">
           <div class="modal-panel-header" style="padding:12px 16px 10px;flex-shrink:0">
             <div class="modal-panel-title" style="color:var(--teal)">
               <svg viewBox="0 0 24 24"><path d="M3 12h18M3 6l9-3 9 3M3 18l9 3 9-3"/></svg>
@@ -4060,6 +4038,36 @@ function openModal(idx){
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Save
               </button>
               <button class="imu-btn imu-btn-sec" style="font-size:10px" onclick="toggleInlineMsForm()">Cancel</button>
+            </div>
+          </div>
+          <!-- Milestone Progress Chart -->
+          <div id="msMilestoneChartWrap" style="padding:0 14px 10px;flex-shrink:0;display:none">
+            <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 12px">
+              <div style="font-size:10px;font-weight:700;color:var(--muted2);letter-spacing:.06em;margin-bottom:8px;text-transform:uppercase;display:flex;align-items:center;gap:6px">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                Progress Timeline
+              </div>
+              <div style="position:relative;height:185px">
+                <canvas id="msMilestoneChart"></canvas>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;margin-top:8px;flex-wrap:wrap">
+                <div style="display:flex;align-items:center;gap:5px">
+                  <svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" stroke="rgba(21,213,245,0.8)" stroke-width="2" stroke-dasharray="4,3"/></svg>
+                  <span style="font-size:9px;color:var(--muted2)">Planned</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:5px">
+                  <svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" stroke="rgba(23,217,164,1)" stroke-width="2"/></svg>
+                  <span style="font-size:9px;color:var(--muted2)">Actual</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:5px">
+                  <svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" stroke="rgba(232,92,92,1)" stroke-width="2"/></svg>
+                  <span style="font-size:9px;color:var(--muted2)">Completed</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:5px">
+                  <svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" stroke="rgba(240,168,50,0.85)" stroke-width="2" stroke-dasharray="3,3"/></svg>
+                  <span style="font-size:9px;color:var(--muted2)">Today</span>
+                </div>
+              </div>
             </div>
           </div>
           <div id="inlineMsList" style="flex:1;overflow-y:auto;padding:0 14px 14px"><div class="imu-loader"><div class="mu-spin"></div> Loading…</div></div>
@@ -4253,6 +4261,42 @@ function openModal(idx){
             </div>
           </div>
           <div id="inlineBfList" style="flex:1;overflow-y:auto;padding:0 14px 14px"><div class="imu-loader"><div class="mu-spin"></div> Loading…</div></div>
+        </div>
+
+        <!-- Panel: Meeting Updates -->
+        <div class="rcol-panel" id="rcol-panel-mu">
+          <div class="modal-panel-header" style="padding:12px 16px 10px;flex-shrink:0">
+            <div class="modal-panel-title" style="color:var(--purple)">
+              <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="14" x2="16" y2="14"/></svg>
+              Meeting Updates
+            </div>
+            <button class="imu-btn imu-btn-primary modal-edit-ctrl" style="font-size:10px;padding:5px 11px" onclick="toggleInlineMuForm()">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add
+            </button>
+          </div>
+          <div class="imu-add-form" id="inlineMuAddForm" style="margin:0 14px 8px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:7px">
+              <div><div class="mu-label" style="margin-bottom:3px">Date</div><input class="imu-input" type="date" id="imuNewDate"/></div>
+              <div><div class="mu-label" style="margin-bottom:3px">Time</div><input class="imu-input" type="time" id="imuNewTime"/></div>
+            </div>
+            <div style="margin-bottom:7px">
+              <div class="mu-label" style="margin-bottom:3px">Note <span style="color:var(--coral)">*</span></div>
+              <textarea class="imu-input imu-textarea" id="imuNewNote" placeholder="Meeting discussion, decision or action item…" style="min-height:52px"></textarea>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+              <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer">
+                <input type="checkbox" id="imuNewDone" style="accent-color:var(--teal);width:13px;height:13px"/> Done
+              </label>
+              <div style="display:flex;gap:5px">
+                <button class="imu-btn imu-btn-primary" style="font-size:10px" onclick="saveInlineMeetingUpdate(${idx})">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Save
+                </button>
+                <button class="imu-btn imu-btn-sec" style="font-size:10px" onclick="toggleInlineMuForm()">Cancel</button>
+              </div>
+            </div>
+          </div>
+          <div id="inlineMuList" style="flex:1;overflow-y:auto;padding:0 14px 14px"><div class="imu-loader"><div class="mu-spin"></div> Loading…</div></div>
         </div>
 
       </div>
@@ -4984,12 +5028,281 @@ async function loadInlineMilestones(idx) {
     if(!data.success) throw new Error(data.error);
     if(container) renderInlineMilestones(data.data, idx);
     updateDeadlineTable(data.data, p);
+    renderMilestoneChart(data.data, p);
     const badge = document.getElementById('ms-inline-count');
     if(badge) badge.textContent = data.data.length;
   } catch(err) {
     if(container) container.innerHTML = `<div class="imu-empty"><div>Could not load: ${err.message}</div></div>`;
     updateDeadlineTable([], p);
+    renderMilestoneChart([], p);
   }
+}
+
+function renderMilestoneChart(milestones, p) {
+  const wrap   = document.getElementById('msMilestoneChartWrap');
+  const canvas = document.getElementById('msMilestoneChart');
+  if (!wrap || !canvas) return;
+
+  if (window._msMilestoneChartInst) {
+    try { window._msMilestoneChartInst.destroy(); } catch(e){}
+    window._msMilestoneChartInst = null;
+  }
+
+  // ── helpers ──────────────────────────────────────────────────────────────
+  const toD = v => {
+    if (!v) return null;
+    if (v instanceof Date) { const d = new Date(v); d.setHours(12,0,0,0); return d; }
+    const d = new Date(typeof v === 'string' && v.length <= 10 ? v+'T00:00:00' : v);
+    return isNaN(d) ? null : d;
+  };
+
+  // Working days Mon–Fri between two dates (start inclusive, end exclusive)
+  const workDays = (from, to) => {
+    const a = new Date(from); a.setHours(0,0,0,0);
+    const b = new Date(to);   b.setHours(0,0,0,0);
+    if (a >= b) return 0;
+    let n = 0;
+    const cur = new Date(a);
+    while (cur < b) {
+      const day = cur.getDay();
+      if (day !== 0 && day !== 6) n++;
+      cur.setDate(cur.getDate() + 1);
+    }
+    return n;
+  };
+
+  const startD = toD(p.startDate);
+  const endD   = toD(p.deadline);
+
+  const msDated = milestones
+    .filter(m => m.due_date)
+    .map(m => ({ ...m, _d: toD(m.due_date) }))
+    .filter(m => m._d)
+    .sort((a, b) => a._d - b._d);
+
+  if (!msDated.length || !startD || !endD || endD <= startD) {
+    wrap.style.display = 'none';
+    return;
+  }
+  wrap.style.display = 'block';
+
+  const today   = new Date(); today.setHours(12,0,0,0);
+  const todayMs = today.getTime();
+  const xMin    = startD.getTime();
+  const xMax    = endD.getTime();
+  // Helper: index → next milestone's date (or project end for the last one)
+  const nextMsDate = i => (i + 1 < msDated.length ? msDated[i + 1]._d : endD);
+
+  // ── ACTUAL line (solid flat-step) ─────────────────────────────────────────
+  // Manually build stepped data: insert a "hold" point at (milestoneDate - 1ms, prevY)
+  // before each completion jump. Perfectly flat/horizontal between completions.
+  const firstBlockWD = workDays(startD, msDated[0]._d);
+  const actualData   = [{ x: xMin, y: firstBlockWD }];
+  let lastY = firstBlockWD;
+  let lastX = xMin;
+  msDated.forEach((m, i) => {
+    if (m.status === 'Completed') {
+      const mTs = m._d.getTime();
+      const wd  = Math.max(0, workDays(m._d, nextMsDate(i)));
+      actualData.push({ x: mTs - 1, y: lastY }); // hold flat until 1ms before milestone
+      actualData.push({ x: mTs,     y: wd     }); // jump to new block size
+      lastY = wd;
+      lastX = mTs;
+    }
+  });
+  // Extend flat to today if still within project range
+  if (todayMs > lastX && todayMs <= xMax) {
+    actualData.push({ x: todayMs, y: lastY });
+  }
+
+  // ── PLANNED line (dotted) ────────────────────────────────────────────────
+  // SAME stepped shape as the actual line, but steps at EVERY milestone's
+  // due date (completed AND future). Shows the full scheduled path ahead.
+  // Overlaps with actual where milestones are completed; continues ahead
+  // into future milestones showing where the project SHOULD be on schedule.
+  const plannedData = [{ x: xMin, y: firstBlockWD }];
+  let planY = firstBlockWD;
+  msDated.forEach((m, i) => {
+    const mTs = m._d.getTime();
+    const wd  = Math.max(0, workDays(m._d, nextMsDate(i)));
+    plannedData.push({ x: mTs - 1, y: planY }); // hold flat until milestone
+    plannedData.push({ x: mTs,     y: wd     }); // step to next block size
+    planY = wd;
+  });
+
+  // ── COMPLETED line (solid red) ───────────────────────────────────────────
+  // Same stepped shape, but ONLY for completed milestones.
+  // Stops at the last completed milestone — no flat extension to today.
+  const completedData = [{ x: xMin, y: firstBlockWD }];
+  let compY = firstBlockWD;
+  msDated.forEach((m, i) => {
+    if (m.status === 'Completed') {
+      const mTs = m._d.getTime();
+      const wd  = Math.max(0, workDays(m._d, nextMsDate(i)));
+      completedData.push({ x: mTs - 1, y: compY });
+      completedData.push({ x: mTs,     y: wd     });
+      compY = wd;
+    }
+  });
+
+  // Y-axis max = highest Y across all three datasets
+  const yMax = Math.max(...plannedData.map(pt => pt.y), ...actualData.map(pt => pt.y), ...completedData.map(pt => pt.y), 1);
+
+  // ── X-axis ticks: every milestone due date + start + end ─────────────────
+  const rawTicks = [xMin, ...msDated.map(m => m._d.getTime()), xMax];
+  const uniqueTicks = [...new Set(rawTicks)].sort((a, b) => a - b);
+
+  // ── Today vertical line plugin ────────────────────────────────────────────
+  const todayPlugin = {
+    id: 'msTodayLine',
+    afterDraw(chart) {
+      const { ctx, chartArea: ca, scales } = chart;
+      if (!scales.x || !ca) return;
+      const tx = scales.x.getPixelForValue(todayMs);
+      if (tx < ca.left || tx > ca.right) return;
+      ctx.save();
+      ctx.beginPath();
+      ctx.setLineDash([4, 3]);
+      ctx.strokeStyle = 'rgba(240,168,50,0.9)';
+      ctx.lineWidth = 1.5;
+      ctx.moveTo(tx, ca.top);
+      ctx.lineTo(tx, ca.bottom);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(240,168,50,0.95)';
+      ctx.font = 'bold 9px sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText('Today', tx + 3, ca.top + 11);
+      ctx.restore();
+    }
+  };
+
+  const MON  = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const fmtD = ts => { const d = new Date(ts); return MON[d.getMonth()]+' '+d.getDate()+', '+d.getFullYear(); };
+
+  window._msMilestoneChartInst = new Chart(canvas, {
+    type: 'line',
+    plugins: [todayPlugin],
+    data: {
+      datasets: [
+        {
+          // Planned (dotted) — diagonal line through scheduled milestone points
+          label: 'Expected',
+          data: plannedData,
+          borderColor: 'rgba(21,213,245,0.8)',
+          borderDash: [6, 4],
+          borderWidth: 2,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointBackgroundColor: 'rgba(21,213,245,0.9)',
+          pointBorderColor: 'transparent',
+          fill: false,
+          tension: 0
+          // NO stepped — straight lines between points = diagonal shape
+        },
+        {
+          // Actual (solid green) — flat between completions, drops at each Completed, extends to today
+          label: 'Actual',
+          data: actualData,
+          borderColor: 'rgba(23,217,164,1)',
+          borderWidth: 2.5,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointBackgroundColor: 'rgba(23,217,164,1)',
+          pointBorderColor: 'transparent',
+          fill: false,
+          tension: 0
+        },
+        {
+          // Completed (solid red) — same steps but stops at last completed milestone, no today extension
+          label: 'Completed',
+          data: completedData,
+          borderColor: 'rgba(232,92,92,1)',
+          borderWidth: 5,
+          pointRadius: 6,
+          pointHoverRadius: 8,
+          pointBackgroundColor: 'rgba(232,92,92,1)',
+          pointBorderColor: 'transparent',
+          fill: false,
+          tension: 0
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      parsing: false,
+      animation: { duration: 500 },
+      interaction: { mode: 'nearest', intersect: false, axis: 'x' },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'rgba(4,17,26,0.93)',
+          borderColor: 'rgba(21,213,245,0.2)',
+          borderWidth: 1,
+          titleColor: 'rgba(255,255,255,0.9)',
+          bodyColor: 'rgba(255,255,255,0.65)',
+          titleFont: { size: 10, weight: 'bold' },
+          bodyFont: { size: 10 },
+          padding: 9,
+          callbacks: {
+            title: items => fmtD(items[0].parsed.x),
+            label: item => {
+              const d = item.parsed.y;
+              return '  '+item.dataset.label+': '+d+' working day'+(d!==1?'s':'')+' to next milestone';
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          type: 'linear',
+          min: xMin,
+          max: xMax,
+          // Force exactly the milestone due dates + start + end as tick positions
+          afterBuildTicks: scale => {
+            scale.ticks = uniqueTicks.map(v => ({ value: v }));
+          },
+          ticks: {
+            color: 'rgba(255,255,255,0.55)',
+            font: { size: 8 },
+            maxRotation: 40,
+            minRotation: 30,
+            callback: val => {
+              const d = new Date(val);
+              return MON[d.getMonth()]+' '+d.getDate();
+            }
+          },
+          grid: { color: 'rgba(255,255,255,0.05)' },
+          border: { color: 'rgba(255,255,255,0.12)' },
+          title: {
+            display: true,
+            text: 'Due Date',
+            color: 'rgba(255,255,255,0.35)',
+            font: { size: 9 }
+          }
+        },
+        y: {
+          min: 0,
+          max: yMax,
+          ticks: {
+            color: 'rgba(255,255,255,0.55)',
+            font: { size: 9 },
+            stepSize: Math.max(1, Math.ceil(yMax / 6)),
+            callback: val => Number.isInteger(val) ? val : ''
+          },
+          grid: { color: 'rgba(255,255,255,0.05)' },
+          border: { color: 'rgba(255,255,255,0.12)' },
+          title: {
+            display: true,
+            text: 'Days Count',
+            color: 'rgba(255,255,255,0.35)',
+            font: { size: 9 }
+          }
+        }
+      }
+    }
+  });
 }
 
 function updateDeadlineTable(milestones, p) {
