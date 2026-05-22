@@ -2132,7 +2132,7 @@ function calcFTESavings(autoProjects){
 }
 function renderTypeSummary(projects){
   const list=getBdFiltered(projects);
-  const inP=list.filter(p=>p.status.toLowerCase()==='production').length;
+  const inP=list.filter(p=>p.status.toLowerCase()==='production'||p.status.toLowerCase()==='enhancement').length;
   const avgC=list.length?Math.round(list.reduce((s,p)=>s+p.completion,0)/list.length*100):0;
   const ppl=[...new Set(list.flatMap(p=>p.people))].filter(n=>n&&n.toLowerCase()!=='upcoming').length;
 
@@ -5086,7 +5086,9 @@ function renderMilestoneChart(milestones, p) {
   }
   wrap.style.display = 'block';
 
-  const today   = new Date(); today.setHours(12,0,0,0);
+  const _now = new Date();
+  const _todayLocalStr = _now.getFullYear() + '-' + String(_now.getMonth()+1).padStart(2,'0') + '-' + String(_now.getDate()).padStart(2,'0');
+  const today   = toD(_todayLocalStr);
   const todayMs = today.getTime();
   const xMin    = startD.getTime();
   const xMax    = endD.getTime();
