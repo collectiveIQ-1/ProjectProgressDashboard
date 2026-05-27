@@ -3702,7 +3702,7 @@ function openModal(idx){
               </div>
               <div style="background:rgba(59,125,232,0.07);border:1px solid rgba(59,125,232,0.18);border-radius:9px;padding:9px 12px">
                 <div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.6px;font-weight:500;margin-bottom:2px">Last Total Run Count</div>
-                <div style="font-size:18px;font-family:var(--font-d);color:var(--blue);line-height:1">${p.lastRunCount != null ? p.lastRunCount.toLocaleString() : '—'}</div>
+                <div id="modalLastRunCount" style="font-size:18px;font-family:var(--font-d);color:var(--blue);line-height:1">${p.lastRunCount != null ? p.lastRunCount.toLocaleString() : '—'}</div>
               </div>
             </div>
             <div id="runDatesCal" style="margin-top:2px"><div class="rdcal"><div style="font-size:11px;color:var(--muted);text-align:center;padding:8px 0">Loading run history…</div></div></div>
@@ -5660,10 +5660,19 @@ function renderRunCalendar() {
   const today = new Date();
   const todayStr = today.toISOString().split('T')[0];
   const datesSet = new Set(dates);
-  const latestDate = dates.length ? dates[dates.length - 1] : null;
-  // Always sync the Last Run Date field whenever the calendar renders
+  const latestDate  = dates.length ? dates[dates.length - 1] : null;
+  const latestCount = (latestDate != null && window._rdState.runCounts[latestDate] != null)
+    ? window._rdState.runCounts[latestDate] : null;
+  // Always sync the Last Run Date and Last Total Run Count fields whenever the calendar renders
   const lrdField = document.getElementById('modalLastRunDate');
   if(lrdField) lrdField.textContent = latestDate || '—';
+  const lrcField = document.getElementById('modalLastRunCount');
+  if(lrcField) lrcField.textContent = latestCount != null ? Number(latestCount).toLocaleString() : '—';
+  // Keep in-memory project in sync
+  const _calIdx = window._currentModalIdx;
+  if(_calIdx != null && window._projects?.[_calIdx]) {
+    window._projects[_calIdx].lastRunCount = latestCount;
+  }
 
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -5870,16 +5879,35 @@ function renderEditRunDates(rows, pid) {
     <tbody>${rowsHtml}</tbody>
   </table>`;
 
-  // Refresh readonly display fields
-  _refreshEditRunInfoDisplay(rows);
+  // Refresh readonly display fields + modal live elements + in-memory project
+  _refreshEditRunInfoDisplay(rows, pid);
 }
 
-function _refreshEditRunInfoDisplay(rows) {
+function _refreshEditRunInfoDisplay(rows, pid) {
   const latestRow = rows.length ? rows.reduce((a,b) => a.run_date > b.run_date ? a : b) : null;
+  const newDate  = latestRow ? latestRow.run_date : null;
+  const newCount = (latestRow && latestRow.run_count != null) ? latestRow.run_count : null;
+
+  // Edit form readonly fields
   const lrdEl = document.getElementById('peLastRunDate');
   const lrcEl = document.getElementById('peLastRunCount');
-  if (lrdEl) lrdEl.value = latestRow ? latestRow.run_date : '—';
-  if (lrcEl) lrcEl.value = (latestRow && latestRow.run_count != null) ? Number(latestRow.run_count).toLocaleString() : '—';
+  if (lrdEl) lrdEl.value = newDate  || '—';
+  if (lrcEl) lrcEl.value = newCount != null ? Number(newCount).toLocaleString() : '—';
+
+  // Modal left-column live elements
+  const modalLrd = document.getElementById('modalLastRunDate');
+  const modalLrc = document.getElementById('modalLastRunCount');
+  if (modalLrd) modalLrd.textContent = newDate  || '—';
+  if (modalLrc) modalLrc.textContent = newCount != null ? Number(newCount).toLocaleString() : '—';
+
+  // Keep in-memory project in sync so cards re-render correctly
+  if (pid && window._projects) {
+    const proj = window._projects.find(p => p._id === pid || p._id === String(pid));
+    if (proj) {
+      proj.lastRunDate  = newDate;
+      proj.lastRunCount = newCount;
+    }
+  }
 }
 
 async function addEditRunDate(pid) {
