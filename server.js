@@ -2095,10 +2095,18 @@ async function ensureSchemaExtras() {
           ALTER TABLE progress ADD COLUMN last_activity_at TIMESTAMPTZ;
           RAISE NOTICE 'Added last_activity_at column to progress table';
         END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'run_dates' AND column_name = 'run_count'
+        ) THEN
+          ALTER TABLE run_dates ADD COLUMN run_count INTEGER;
+          RAISE NOTICE 'Added run_count column to run_dates table';
+        END IF;
       END
       $$;
     `);
-    console.log('✅  Schema extras verified (last_activity_at)');
+    console.log('✅  Schema extras verified (last_activity_at, run_count)');
   } catch (e) {
     console.warn('⚠️  ensureSchemaExtras failed (non-fatal):', e.message);
   }
