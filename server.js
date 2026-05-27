@@ -1879,16 +1879,17 @@ app.get('/api/run-dates/:progressId', async (req, res) => {
     const rows = await prisma.run_dates.findMany({
       where:   { progress_id: progressId },
       orderBy: { run_date: 'asc' },
-      select:  { id: true, run_date: true },
+      select:  { id: true, run_date: true, run_count: true },
     });
     res.json({ success: true, data: rows });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 // POST toggle run date (admin or assigned member)
+// Pass create_only:true to upsert without toggle-delete (used by edit form table)
 app.post('/api/run-dates', async (req, res) => {
   try {
-    const { progress_id, run_date } = req.body;
+    const { progress_id, run_date, run_count, create_only } = req.body;
     const pid = parseInt(progress_id);
     if (isNaN(pid) || !run_date)
       return res.status(400).json({ success: false, error: 'progress_id and run_date required' });
@@ -1900,36 +1901,94 @@ app.post('/api/run-dates', async (req, res) => {
       where: { progress_id: pid, run_date },
     });
 
-    let action;
+    let action, record;
+    const countVal = (run_count != null && run_count !== '') ? parseInt(run_count) : null;
+
     if (existing) {
-      await prisma.run_dates.delete({ where: { id: existing.id } });
-      action = 'removed';
+      if (create_only) {
+        record = await prisma.run_dates.update({ where: { id: existing.id }, data: { run_count: countVal } });
+        action = 'updated';
+      } else {
+        await prisma.run_dates.delete({ where: { id: existing.id } });
+        action = 'removed';
+        record = null;
+      }
     } else {
-      await prisma.run_dates.create({ data: { progress_id: pid, run_date } });
+      record = await prisma.run_dates.create({ data: { progress_id: pid, run_date, run_count: countVal } });
       action = 'added';
     }
 
     const latest = await prisma.run_dates.findFirst({
       where:   { progress_id: pid },
       orderBy: { run_date: 'desc' },
-      select:  { run_date: true },
+      select:  { run_date: true, run_count: true },
     });
     const newLatest = latest ? latest.run_date : null;
+    const newLatestCount = latest ? latest.run_count : null;
     await prisma.progress.update({
       where: { id: pid },
-      data:  { last_run_date: newLatest, updated_at: new Date() },
+      data:  { last_run_date: newLatest, last_run_count: newLatestCount, updated_at: new Date() },
     });
 
-    res.json({ success: true, action, run_date, latest_run_date: newLatest });
+    res.json({ success: true, action, run_date, record, latest_run_date: newLatest, latest_run_count: newLatestCount });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
-// DELETE specific run date by id (admin only)
-app.delete('/api/run-dates/:id', adminOnly, async (req, res) => {
+// PUT update run_count for a specific run date
+app.put('/api/run-dates/:id', async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ success: false, error: 'Invalid ID' });
+
+    const existing = await prisma.run_dates.findUnique({ where: { id } });
+    if (!existing) return res.status(404).json({ success: false, error: 'Not found' });
+
+    const access = await requireProjectAccess(existing.progress_id, req, res);
+    if (!access.allowed) return;
+
+    const { run_count } = req.body;
+    const countVal = (run_count != null && run_count !== '') ? parseInt(run_count) : null;
+
+    const updated = await prisma.run_dates.update({ where: { id }, data: { run_count: countVal } });
+
+    const latest = await prisma.run_dates.findFirst({
+      where:   { progress_id: existing.progress_id },
+      orderBy: { run_date: 'desc' },
+      select:  { run_date: true, run_count: true },
+    });
+    await prisma.progress.update({
+      where: { id: existing.progress_id },
+      data:  { last_run_date: latest?.run_date || null, last_run_count: latest?.run_count || null, updated_at: new Date() },
+    });
+
+    res.json({ success: true, record: updated });
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+});
+
+// DELETE specific run date by id (admin or assigned member)
+app.delete('/api/run-dates/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ success: false, error: 'Invalid ID' });
+
+    const existing = await prisma.run_dates.findUnique({ where: { id } });
+    if (!existing) return res.status(404).json({ success: false, error: 'Not found' });
+
+    const access = await requireProjectAccess(existing.progress_id, req, res);
+    if (!access.allowed) return;
+
     await prisma.run_dates.delete({ where: { id } });
+
+    const latest = await prisma.run_dates.findFirst({
+      where:   { progress_id: existing.progress_id },
+      orderBy: { run_date: 'desc' },
+      select:  { run_date: true, run_count: true },
+    });
+    await prisma.progress.update({
+      where: { id: existing.progress_id },
+      data:  { last_run_date: latest?.run_date || null, last_run_count: latest?.run_count || null, updated_at: new Date() },
+    });
+
     res.json({ success: true });
   } catch (err) {
     if (err.code === 'P2025') return res.status(404).json({ success: false, error: 'Not found' });

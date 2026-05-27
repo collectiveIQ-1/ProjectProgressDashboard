@@ -262,6 +262,19 @@ td{padding:9px 14px;font-size:12px;white-space:nowrap;overflow:hidden;text-overf
 .tag-pill .tag-x{cursor:pointer;font-size:12px;line-height:1;margin-left:2px;opacity:.55;transition:opacity .12s}
 .tag-pill .tag-x:hover{opacity:1}
 .smart-tag{cursor:default;user-select:none}
+/* ── DOC TASK TOOLTIP ───────────────────────────────────────────────────────── */
+#docTaskTooltip{
+  display:none;position:fixed;z-index:9999;
+  background:#0a1e2c;border:1px solid rgba(21,213,245,0.28);
+  border-radius:10px;padding:10px 13px;min-width:180px;max-width:300px;
+  box-shadow:0 6px 24px rgba(0,0,0,0.55);pointer-events:none;
+  animation:fadeIn .12s ease;
+}
+#docTaskTooltip .dtt-title{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#15d5f5;margin-bottom:7px;padding-bottom:5px;border-bottom:1px solid rgba(21,213,245,0.15)}
+#docTaskTooltip .dtt-item{font-size:11px;color:#c8d8f0;padding:3px 0;display:flex;align-items:center;gap:7px;line-height:1.35}
+#docTaskTooltip .dtt-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+#docTaskTooltip .dtt-empty{font-size:11px;color:var(--muted);font-style:italic}
+#docTaskTooltip .dtt-loading{font-size:11px;color:var(--muted);font-style:italic}
 /* ── SMART TAG TOOLTIP ──────────────────────────────────────────────────────── */
 #smartTagTooltip{
   display:none;position:fixed;z-index:9999;
@@ -515,6 +528,31 @@ body.role-admin .rdcal-day.has-run:hover,.rdcal-editable .rdcal-day.has-run:hove
 .rdcal-hint{font-size:9px;color:var(--muted);padding:6px 14px 4px;text-align:center;font-style:italic;border-top:1px solid var(--border)}
 .rdcal-latest-bar{display:flex;align-items:center;gap:6px;padding:7px 14px;background:rgba(124,95,230,0.05);border-top:1px solid rgba(124,95,230,0.12);font-size:10px;color:var(--purple);font-weight:600}
 .rdcal-latest-bar svg{flex-shrink:0}
+/* ── RUN HISTORY TABLE (edit form) ─────────────────────────────────────────── */
+.rht-wrap{margin-top:14px;background:var(--surface);border:1px solid rgba(124,95,230,0.25);border-radius:12px;overflow:hidden}
+.rht-head{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:linear-gradient(135deg,rgba(124,95,230,0.12),rgba(94,61,200,0.08));border-bottom:1px solid rgba(124,95,230,0.15)}
+.rht-head-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--purple);display:flex;align-items:center;gap:6px}
+.rht-add-btn{font-size:10px;font-weight:700;padding:4px 11px;border-radius:7px;border:1.5px solid var(--purple);background:rgba(124,95,230,0.08);color:var(--purple);cursor:pointer;transition:all .13s;font-family:var(--font-b)}
+.rht-add-btn:hover{background:var(--purple);color:#fff}
+.rht-add-form{display:none;padding:10px 14px;border-bottom:1px solid var(--border);gap:8px;align-items:flex-end;flex-wrap:wrap}
+.rht-add-form.open{display:flex}
+.rht-add-form .pe-input{flex:1;min-width:100px}
+.rht-add-form label{font-size:10px;color:var(--muted2);font-weight:600;display:block;margin-bottom:3px}
+.rht-add-form .rht-save-btn{padding:7px 14px;border-radius:8px;border:none;background:var(--purple);color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font-b);white-space:nowrap}
+.rht-table{width:100%;border-collapse:collapse;font-size:12px}
+.rht-table th{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);padding:7px 14px;text-align:left;border-bottom:1px solid var(--border)}
+.rht-table td{padding:8px 14px;border-bottom:1px solid rgba(255,255,255,0.04);vertical-align:middle}
+.rht-table tr:last-child td{border-bottom:none}
+.rht-table tr:hover td{background:rgba(124,95,230,0.04)}
+.rht-count-input{width:100px;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:11px;padding:4px 8px;font-family:var(--font-b)}
+.rht-count-input:focus{outline:none;border-color:var(--purple)}
+.rht-action-btn{padding:3px 10px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--muted2);font-size:10px;font-weight:600;cursor:pointer;font-family:var(--font-b);transition:all .13s}
+.rht-action-btn.save{border-color:var(--teal);color:var(--teal)}
+.rht-action-btn.save:hover{background:var(--teal);color:#fff}
+.rht-action-btn.del{border-color:var(--coral,#f06868);color:var(--coral,#f06868)}
+.rht-action-btn.del:hover{background:var(--coral,#f06868);color:#fff}
+.rht-empty{padding:16px 14px;text-align:center;font-size:11px;color:var(--muted);font-style:italic}
+.rht-latest-badge{font-size:9px;font-weight:700;padding:1px 7px;border-radius:10px;background:rgba(124,95,230,0.15);color:var(--purple);margin-left:6px;vertical-align:middle}
 .modal-col-right{flex:1;display:flex;flex-direction:column;min-width:0;background:rgba(5,22,30,0.75);overflow:hidden}
 /* Right column tab bar */
 .rcol-tabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;overflow-x:auto}
@@ -2406,7 +2444,7 @@ function renderDocsGrid() {
         ? `<span class="doc-overdue-badge" title="${overdueCnt} overdue task${overdueCnt>1?'s':''}">${overdueCnt}</span>`
         : '';
       return `<div class="doc-proj-row" onclick="openDocModal('${p._id}')">
-        <span class="doc-proj-name" title="${escapeHtml(p.process)}">${escapeHtml(p.process)}${overdueBadge}</span>
+        <span class="doc-proj-name" data-pid="${p._id}" onmouseenter="showDocTaskTooltip(this,'${p._id}')" onmouseleave="hideDocTaskTooltip()">${escapeHtml(p.process)}${overdueBadge}</span>
         <span class="doc-proj-pct" style="color:${pctColor}">${pct}%</span>
         <span class="doc-status-pill ${pillCls}">${escapeHtml(p.docStatus || 'Pending')}</span>
       </div>`;
@@ -2552,6 +2590,7 @@ async function loadDocTasks(projectId) {
     const resp = await authFetch(`${API_BASE}/api/doc-tasks/${projectId}`);
     const data = await resp.json();
     if (!data.success) throw new Error(data.error);
+    delete window._docTaskCache[projectId];
     renderDocTasksList(data.data || []);
   } catch (e) {
     el.innerHTML = `<div style="color:var(--coral);font-size:12px">${e.message}</div>`;
@@ -3918,12 +3957,36 @@ function openModal(idx){
               </div>
               <div class="pe-row">
                 <div class="pe-field">
-                  <div class="pe-label">Last Run Date</div>
-                  <input class="pe-input" id="peLastRunDate" type="date" value="${p.lastRunDate ? toInputDate(p.lastRunDate) : ''}"/>
+                  <div class="pe-label">Last Run Date <span style="font-size:9px;color:var(--muted);font-weight:400">(auto)</span></div>
+                  <input class="pe-input" id="peLastRunDate" type="text" readonly style="opacity:.6;cursor:default" value="${p.lastRunDate || '—'}"/>
                 </div>
                 <div class="pe-field">
-                  <div class="pe-label">Last Total Run Count</div>
-                  <input class="pe-input" id="peLastRunCount" type="number" min="0" step="1" placeholder="e.g. 1500" value="${p.lastRunCount!=null?p.lastRunCount:''}"/>
+                  <div class="pe-label">Last Total Run Count <span style="font-size:9px;color:var(--muted);font-weight:400">(auto)</span></div>
+                  <input class="pe-input" id="peLastRunCount" type="text" readonly style="opacity:.6;cursor:default" value="${p.lastRunCount != null ? p.lastRunCount.toLocaleString() : '—'}"/>
+                </div>
+              </div>
+              <div class="rht-wrap">
+                <div class="rht-head">
+                  <div class="rht-head-label">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg>
+                    Run History
+                  </div>
+                  <button class="rht-add-btn modal-edit-ctrl" onclick="toggleRhtAddForm()">+ Add Entry</button>
+                </div>
+                <div class="rht-add-form" id="rhtAddForm">
+                  <div>
+                    <label>Date</label>
+                    <input class="pe-input" id="rhtNewDate" type="date" style="width:140px"/>
+                  </div>
+                  <div>
+                    <label>Run Count</label>
+                    <input class="pe-input" id="rhtNewCount" type="number" min="0" step="1" placeholder="e.g. 1500" style="width:120px"/>
+                  </div>
+                  <button class="rht-save-btn" onclick="addEditRunDate(${p._id})">Save</button>
+                  <button class="rht-action-btn" onclick="toggleRhtAddForm()" style="align-self:flex-end">Cancel</button>
+                </div>
+                <div id="rhtTableBody">
+                  <div class="rht-empty">Loading…</div>
                 </div>
               </div>
             </div>` : ''}
@@ -4436,6 +4499,70 @@ function showSmartTagTooltip(el) {
 }
 function hideSmartTagTooltip() {
   const t = document.getElementById('smartTagTooltip');
+  if (t) t.style.display = 'none';
+}
+
+// ── DOC TASK TOOLTIP ──────────────────────────────────────────────────────────
+window._docTaskCache = {};
+function showDocTaskTooltip(el, pid) {
+  const tooltip = document.getElementById('docTaskTooltip');
+  if (!tooltip) return;
+  const titleEl = document.getElementById('dttTitle');
+  const listEl  = document.getElementById('dttList');
+
+  function positionTooltip() {
+    const rect = el.getBoundingClientRect();
+    tooltip.style.left = rect.left + 'px';
+    tooltip.style.top  = (rect.bottom + 6) + 'px';
+    tooltip.style.display = 'block';
+    requestAnimationFrame(() => {
+      const tr = tooltip.getBoundingClientRect();
+      if (tr.right  > window.innerWidth  - 8) tooltip.style.left = (window.innerWidth  - tr.width  - 8) + 'px';
+      if (tr.bottom > window.innerHeight - 8) tooltip.style.top  = (rect.top - tr.height - 6) + 'px';
+    });
+  }
+
+  function renderTasks(tasks) {
+    titleEl.textContent = 'Tasks (' + tasks.length + ')';
+    if (!tasks.length) {
+      listEl.innerHTML = '<div class="dtt-empty">No tasks added yet</div>';
+      return;
+    }
+    const statusColor = s => s === 'Complete' ? '#17b98a' : s === 'In Progress' ? '#f0a832' : '#8892aa';
+    listEl.innerHTML = tasks.map(t =>
+      `<div class="dtt-item"><span class="dtt-dot" style="background:${statusColor(t.status)}"></span>${escapeHtml(t.title || '(untitled)')}</div>`
+    ).join('');
+  }
+
+  if (window._docTaskCache[pid] !== undefined) {
+    renderTasks(window._docTaskCache[pid]);
+    positionTooltip();
+    return;
+  }
+
+  titleEl.textContent = 'Tasks';
+  listEl.innerHTML = '<div class="dtt-loading">Loading…</div>';
+  positionTooltip();
+
+  fetch('/api/doc-tasks/' + pid)
+    .then(r => r.ok ? r.json() : { data: [] })
+    .then(res => {
+      const tasks = Array.isArray(res) ? res : (res.data || []);
+      window._docTaskCache[pid] = tasks;
+      if (tooltip.style.display !== 'none') {
+        renderTasks(tasks);
+        positionTooltip();
+      }
+    })
+    .catch(() => {
+      window._docTaskCache[pid] = [];
+      if (tooltip.style.display !== 'none') {
+        listEl.innerHTML = '<div class="dtt-empty">Could not load tasks</div>';
+      }
+    });
+}
+function hideDocTaskTooltip() {
+  const t = document.getElementById('docTaskTooltip');
   if (t) t.style.display = 'none';
 }
 
@@ -5495,7 +5622,7 @@ function closeModal(){
 document.addEventListener('keydown', e=>{ if(e.key==='Escape') { closeModal(); closeMeetingModal(); } });
 
 // ── RUN DATES CALENDAR ────────────────────────────────────────────────────────
-window._rdState = { dates: [], year: 0, month: 0, progressId: null };
+window._rdState = { dates: [], runCounts: {}, runIds: {}, year: 0, month: 0, progressId: null };
 
 async function loadRunDates(progressId) {
   const el = document.getElementById('runDatesCal');
@@ -5504,15 +5631,18 @@ async function loadRunDates(progressId) {
     const resp = await authFetch(`${API_BASE}/api/run-dates/${progressId}`);
     const data = await resp.json();
     if(!data.success) throw new Error(data.error);
-    const dates = data.data.map(r => r.run_date); // ['2026-04-15', ...]
+    const rows  = data.data;
+    const dates = rows.map(r => r.run_date);
+    const runCounts = {}, runIds = {};
+    rows.forEach(r => { runCounts[r.run_date] = r.run_count; runIds[r.run_date] = r.id; });
     const now = new Date();
-    window._rdState = { dates, year: now.getFullYear(), month: now.getMonth(), progressId };
-    renderRunCalendar(); // syncs modalLastRunDate automatically
-    // Keep in-memory project in sync
+    window._rdState = { dates, runCounts, runIds, year: now.getFullYear(), month: now.getMonth(), progressId };
+    renderRunCalendar();
     const latest = dates.length ? dates[dates.length - 1] : null;
     const idx = window._currentModalIdx;
     if(idx != null && window._projects && window._projects[idx]) {
-      window._projects[idx].lastRunDate = latest || null;
+      window._projects[idx].lastRunDate  = latest || null;
+      window._projects[idx].lastRunCount = latest ? (runCounts[latest] ?? null) : null;
     }
   } catch(err) {
     const el2 = document.getElementById('runDatesCal');
@@ -5570,8 +5700,11 @@ function renderRunCalendar() {
     if(isLatest) cls += ' is-latest';
     if(isTod && !isRun) cls += ' today';
     const onclick = canEditCal ? `onclick="toggleRunDate(${progressId},'${dateStr}')"` : '';
-    const tip = isLatest ? `title="Last run: ${dateStr}"` : `title="${dateStr}"`;
-    gridHTML += `<div class="${cls}" ${onclick} ${tip}>${d}</div>`;
+    let tipText = isLatest ? `Last run: ${fmtD(dateStr)}` : fmtD(dateStr);
+    if(isRun && window._rdState.runCounts[dateStr] != null) {
+      tipText += ` — ${Number(window._rdState.runCounts[dateStr]).toLocaleString()} runs`;
+    }
+    gridHTML += `<div class="${cls}" ${onclick} title="${tipText}">${d}</div>`;
   }
 
   const totalCells = firstDay + daysInMonth;
@@ -5644,25 +5777,163 @@ async function toggleRunDate(progressId, dateStr) {
     });
     const data = await resp.json();
     if(!data.success) throw new Error(data.error);
-    // Update local date list
     if(data.action === 'added') {
       window._rdState.dates.push(dateStr);
       window._rdState.dates.sort();
+      if(data.record) {
+        window._rdState.runIds[dateStr]    = data.record.id;
+        window._rdState.runCounts[dateStr] = data.record.run_count;
+      }
     } else {
       window._rdState.dates = window._rdState.dates.filter(d => d !== dateStr);
+      delete window._rdState.runIds[dateStr];
+      delete window._rdState.runCounts[dateStr];
     }
-    renderRunCalendar(); // this also syncs modalLastRunDate
-    // Compute latest from local sorted list (reliable regardless of server version)
+    renderRunCalendar();
     const latest = window._rdState.dates.length
       ? window._rdState.dates[window._rdState.dates.length - 1]
       : (data.latest_run_date || null);
-    // Keep in-memory project in sync
     const idx = window._currentModalIdx;
     if(idx != null && window._projects && window._projects[idx]) {
-      window._projects[idx].lastRunDate = latest;
-      window._projects[idx].updated_at = new Date().toISOString();
+      window._projects[idx].lastRunDate  = latest;
+      window._projects[idx].lastRunCount = data.latest_run_count ?? null;
+      window._projects[idx].updated_at   = new Date().toISOString();
     }
   } catch(err) { alert('Error: ' + err.message); }
+}
+
+// ── RUN HISTORY TABLE (edit form) ─────────────────────────────────────────────
+function toggleRhtAddForm() {
+  const f = document.getElementById('rhtAddForm');
+  if (f) f.classList.toggle('open');
+}
+
+async function loadEditRunDates(pid) {
+  const body = document.getElementById('rhtTableBody');
+  if (!body) return;
+  body.innerHTML = '<div class="rht-empty">Loading…</div>';
+  try {
+    const resp = await authFetch(`${API_BASE}/api/run-dates/${pid}`);
+    const data = await resp.json();
+    if (!data.success) throw new Error(data.error);
+    renderEditRunDates(data.data || [], pid);
+  } catch(e) {
+    if (body) body.innerHTML = `<div class="rht-empty" style="color:var(--coral)">Could not load run history</div>`;
+  }
+}
+
+function renderEditRunDates(rows, pid) {
+  const body = document.getElementById('rhtTableBody');
+  if (!body) return;
+
+  function fmtRunDate(ds) {
+    if (!ds) return '—';
+    const [y,m,d] = ds.split('-');
+    const mn = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return `${mn[parseInt(m,10)-1]} ${parseInt(d,10)}, ${y}`;
+  }
+
+  const latestDate = rows.length ? rows[rows.length - 1].run_date : null;
+
+  if (!rows.length) {
+    body.innerHTML = '<div class="rht-empty">No run dates added yet. Use the calendar or "+ Add Entry" above.</div>';
+    return;
+  }
+
+  const sorted = [...rows].sort((a,b) => b.run_date.localeCompare(a.run_date));
+  const rowsHtml = sorted.map(r => {
+    const isLatest = r.run_date === latestDate;
+    const latestBadge = isLatest ? '<span class="rht-latest-badge">latest</span>' : '';
+    const countVal = r.run_count != null ? r.run_count : '';
+    return `<tr id="rht-row-${r.id}">
+      <td style="color:var(--text);font-weight:500">${escapeHtml(fmtRunDate(r.run_date))}${latestBadge}</td>
+      <td>
+        <input type="number" class="rht-count-input" id="rht-count-${r.id}"
+          value="${countVal}" min="0" step="1" placeholder="—"
+          onchange="saveEditRunDateCount(${r.id},${pid})"/>
+      </td>
+      <td>
+        <div style="display:flex;gap:5px">
+          <button class="rht-action-btn save" onclick="saveEditRunDateCount(${r.id},${pid})">Save</button>
+          <button class="rht-action-btn del" onclick="deleteEditRunDate(${r.id},${pid})">Delete</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  body.innerHTML = `<table class="rht-table">
+    <thead><tr>
+      <th>Date</th>
+      <th>Run Count</th>
+      <th>Actions</th>
+    </tr></thead>
+    <tbody>${rowsHtml}</tbody>
+  </table>`;
+
+  // Refresh readonly display fields
+  _refreshEditRunInfoDisplay(rows);
+}
+
+function _refreshEditRunInfoDisplay(rows) {
+  const latestRow = rows.length ? rows.reduce((a,b) => a.run_date > b.run_date ? a : b) : null;
+  const lrdEl = document.getElementById('peLastRunDate');
+  const lrcEl = document.getElementById('peLastRunCount');
+  if (lrdEl) lrdEl.value = latestRow ? latestRow.run_date : '—';
+  if (lrcEl) lrcEl.value = (latestRow && latestRow.run_count != null) ? Number(latestRow.run_count).toLocaleString() : '—';
+}
+
+async function addEditRunDate(pid) {
+  const dateEl  = document.getElementById('rhtNewDate');
+  const countEl = document.getElementById('rhtNewCount');
+  const dateVal  = dateEl?.value || '';
+  const countVal = countEl?.value;
+  if (!dateVal) { showToast('Please select a date', 'warn'); return; }
+  try {
+    const resp = await authFetch(`${API_BASE}/api/run-dates`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ progress_id: pid, run_date: dateVal, run_count: countVal || null, create_only: true })
+    });
+    const data = await resp.json();
+    if (!data.success) throw new Error(data.error);
+    if (dateEl)  dateEl.value  = '';
+    if (countEl) countEl.value = '';
+    const addForm = document.getElementById('rhtAddForm');
+    if (addForm) addForm.classList.remove('open');
+    showToast('Run date saved', 'success');
+    loadEditRunDates(pid);
+    // Keep modal calendar in sync if same project is open
+    if (window._rdState.progressId === pid) loadRunDates(pid);
+  } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+async function saveEditRunDateCount(id, pid) {
+  const countEl = document.getElementById(`rht-count-${id}`);
+  const countVal = countEl?.value;
+  try {
+    const resp = await authFetch(`${API_BASE}/api/run-dates/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ run_count: countVal !== '' ? countVal : null })
+    });
+    const data = await resp.json();
+    if (!data.success) throw new Error(data.error);
+    showToast('Run count updated', 'success');
+    loadEditRunDates(pid);
+    if (window._rdState.progressId === pid) loadRunDates(pid);
+  } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+async function deleteEditRunDate(id, pid) {
+  if (!confirm('Delete this run date entry?')) return;
+  try {
+    const resp = await authFetch(`${API_BASE}/api/run-dates/${id}`, { method: 'DELETE' });
+    const data = await resp.json();
+    if (!data.success) throw new Error(data.error);
+    showToast('Run date deleted', 'success');
+    loadEditRunDates(pid);
+    if (window._rdState.progressId === pid) loadRunDates(pid);
+  } catch(e) { showToast('Error: ' + e.message, 'error'); }
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -6390,12 +6661,14 @@ async function deleteProject(idx) {
 function openProjectEditForm(idx) {
   const el = document.getElementById('projEditPanel');
   if (el) el.classList.add('open');
-  // Set assigned_ba value via JS to avoid template-literal / raw-array rendering issues
   const p = (window._projects || [])[idx];
   const baInput = document.getElementById('peAssignedBa');
   if (baInput && p) {
     const ba = Array.isArray(p.assignedBa) ? p.assignedBa : [];
     baInput.value = ba.join(' / ');
+  }
+  if (p && p._id && p.type && p.type.toLowerCase() === 'automation') {
+    loadEditRunDates(p._id);
   }
 }
 
@@ -6421,10 +6694,7 @@ async function saveProjectEdit(idx) {
   const frequency  = document.getElementById('peFrequency').value.trim();
   const autoFTE      = document.getElementById('peAutoFTE').value !== '' ? parseFloat(document.getElementById('peAutoFTE').value) : null;
   const manualFTE    = document.getElementById('peManualFTE').value !== '' ? parseFloat(document.getElementById('peManualFTE').value) : null;
-  const lrdEl        = document.getElementById('peLastRunDate');
-  const lrcEl        = document.getElementById('peLastRunCount');
-  const lastRunDate  = lrdEl  ? (lrdEl.value  || null) : null;
-  const lastRunCount = lrcEl  ? (lrcEl.value !== '' ? parseInt(lrcEl.value) : null) : null;
+  // lastRunDate and lastRunCount are auto-maintained by the run dates API — excluded from save payload
   const purpose         = (document.getElementById('pePurpose')?.value || '').trim() || null;
   const expectedResults = (document.getElementById('peExpectedResults')?.value || '').trim() || null;
   const betaTestingDate = (document.getElementById('peBetaTestingDate')?.value || '').trim() || null;
@@ -6444,7 +6714,7 @@ async function saveProjectEdit(idx) {
     const resp = await authFetch(`/api/progress/${p._id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ process, type, status, completion, doc, people, dept, priority, startDate, deadline, frequency, autoFTE, manualFTE, lastRunDate, lastRunCount, purpose, expectedResults, betaTestingDate, assignTeam, tags, assignedBa })
+      body: JSON.stringify({ process, type, status, completion, doc, people, dept, priority, startDate, deadline, frequency, autoFTE, manualFTE, purpose, expectedResults, betaTestingDate, assignTeam, tags, assignedBa })
     });
     const data = await resp.json();
     if (data.success) {
@@ -6646,6 +6916,12 @@ function esc(str) {
 <div id="smartTagTooltip">
   <div class="stt-title" id="sttTitle"></div>
   <div id="sttList"></div>
+</div>
+
+<!-- DOC TASK TOOLTIP -->
+<div id="docTaskTooltip">
+  <div class="dtt-title" id="dttTitle"></div>
+  <div id="dttList"></div>
 </div>
 
 <!-- ADD PROJECT MODAL -->

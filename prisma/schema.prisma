@@ -198,6 +198,7 @@ model run_dates {
   id          Int       @id @default(autoincrement())
   progress_id Int
   run_date    String
+  run_count   Int?
   created_at  DateTime? @default(now()) @db.Timestamptz(6)
   progress    Progress  @relation(fields: [progress_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
